@@ -1,0 +1,45 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model BloodTest {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String
+  slug        String   @unique
+  description String
+  price       Float
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  patientName       String
+  patientEmail      String
+  patientDateOfBirth String
+  patientMobile     String?
+  testName          String
+  notes             String?
+  internalNotes     String?
+  status            OrderStatus @default(PENDING)
+  paymentId         String?
+  stripeSessionId   String?     @unique
+  shippingAddress   Json?
+  dispatchedAt      DateTime?
+  dispatchedBy      String?
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  DISPATCHED
+  CANCELLED
+}
