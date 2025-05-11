@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { bloodTestOrderSchema } from '@/lib/validations/blood-test-order';
 import { sendOrderNotificationEmail } from '@/lib/services/email';
 import { ZodError } from 'zod';
 import Stripe from 'stripe';
 
-const prisma = new PrismaClient();
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const BLOOD_TEST_PRICES: { [key: string]: { price: string; name: string } } = {
@@ -66,11 +66,11 @@ export async function POST(request: Request) {
     // Create order in database first
     const order = await prisma.order.create({
       data: {
-        fullName: validatedData.fullName,
-        email: validatedData.email,
-        dateOfBirth: new Date(validatedData.dateOfBirth),
-        mobile: validatedData.mobile,
-        testSlug: validatedData.testSlug,
+        patientName: validatedData.fullName,
+        patientEmail: validatedData.email,
+        patientDateOfBirth: validatedData.dateOfBirth,
+        patientMobile: validatedData.mobile,
+        testName: test.name,
         notes: validatedData.notes,
         status: 'PENDING',
       },

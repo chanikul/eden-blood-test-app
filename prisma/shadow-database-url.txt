@@ -1,0 +1,10 @@
+To make Prisma migrations work with Supabase and pgBouncer, you need two database URLs:
+
+1. For runtime (already in your .env):
+DATABASE_URL with ?pgbouncer=true (which you already have)
+
+2. For migrations (needs to be added to .env):
+Same as DATABASE_URL but WITHOUT ?pgbouncer=true and other connection parameters
+
+Add this to your .env:
+DIRECT_URL="postgresql://postgres.dlzfhnnwyvddaoikrung:DNE8ytm_uyw1jbc*qbr@aws-0-eu-west-2.pooler.supabase.com:6543/postgres"
