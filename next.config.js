@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',
+  output: 'standalone',
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
   },
   pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: false
   },
   typescript: {
     ignoreBuildErrors: true
@@ -15,20 +15,13 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true
   },
-  staticPageGenerationTimeout: 300,
   experimental: {
-    workerThreads: true,
-    optimizeCss: true
+    serverActions: {
+      allowedOrigins: ['localhost:3000'],
+    },
   },
   images: {
-    unoptimized: true
-  },
-  webpack: (config) => {
-    config.experiments = {
-      ...config.experiments,
-      topLevelAwait: true,
-    };
-    return config;
+    domains: ['localhost', 'edenclinic.netlify.app'],
   },
 };
 
