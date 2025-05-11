@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  output: 'export',
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
   },
@@ -17,15 +17,18 @@ const nextConfig = {
   },
   staticPageGenerationTimeout: 300,
   experimental: {
-    serverActions: {
-      enabled: true
-    },
     workerThreads: true,
     optimizeCss: true
   },
   images: {
-    domains: ['localhost', 'edenclinic.netlify.app'],
     unoptimized: true
+  },
+  webpack: (config) => {
+    config.experiments = {
+      ...config.experiments,
+      topLevelAwait: true,
+    };
+    return config;
   },
 };
 
