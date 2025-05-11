@@ -3,14 +3,10 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "20.11.0"
   NEXT_TELEMETRY_DISABLED = "1"
-  NPM_FLAGS = "--legacy-peer-deps --no-optional"
+  NPM_FLAGS = "--legacy-peer-deps"
   NODE_ENV = "production"
-  NEXT_PRIVATE_TARGET = "server"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    nodeVersion = "20.11.0"
