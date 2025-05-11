@@ -1,14 +1,16 @@
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
 
 [build.environment]
+  NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "20.11.0"
   NEXT_TELEMETRY_DISABLED = "1"
-  NPM_FLAGS = "--legacy-peer-deps"
+  NPM_FLAGS = "--legacy-peer-deps --no-optional"
   NODE_ENV = "production"
+  NEXT_PRIVATE_TARGET = "server"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    nodeVersion = "20.11.0"
