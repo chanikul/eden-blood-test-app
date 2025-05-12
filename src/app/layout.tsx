@@ -4,6 +4,7 @@ import { ToastContainer } from "react-toastify";
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import Script from 'next/script';
+import Head from 'next/head';
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 
@@ -26,9 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <head>
-        <Script
+        <script
           src="https://cdn.jsdelivr.net/npm/iframe-resizer/js/iframeResizer.contentWindow.min.js"
-          strategy="beforeInteractive"
+          async
         />
       </head>
       <body className="font-sans antialiased">
