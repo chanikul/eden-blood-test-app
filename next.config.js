@@ -3,7 +3,7 @@ const path = require('path');
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',
+  output: 'standalone',
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
   },
