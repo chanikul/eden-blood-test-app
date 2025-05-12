@@ -1,11 +1,11 @@
 [build]
-  command = "npm install prisma && npx prisma generate && next build"
+  command = "npm ci && npm run postinstall && npm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20.11.0"
   NEXT_TELEMETRY_DISABLED = "1"
-  NPM_FLAGS = "--legacy-peer-deps"
+  NPM_FLAGS = "--legacy-peer-deps --no-optional"
   NODE_ENV = "production"
 
 [[plugins]]
