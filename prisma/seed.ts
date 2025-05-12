@@ -106,6 +106,14 @@ const testOrders = [
 async function main() {
   console.log('Start seeding...');
 
+  // Create blood tests
+  for (const test of bloodTests) {
+    await prisma.bloodTest.create({
+      data: test,
+    });
+    console.log(`Created blood test: ${test.name}`);
+  }
+
   // Create test orders
   for (const order of testOrders) {
     const createdOrder = await prisma.order.create({

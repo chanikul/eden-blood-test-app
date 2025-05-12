@@ -30,6 +30,7 @@ interface BloodTestOrderFormProps {
 }
 
 export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrderFormProps) {
+  console.log('BloodTestOrderForm received tests:', tests);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
@@ -247,9 +248,8 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
             <Select.Portal>
               <Select.Content 
-                className="overflow-visible rounded-md border border-gray-200 bg-white shadow-lg w-[var(--radix-select-trigger-width)] min-w-[--radix-select-trigger-width]" 
-                position="popper"
-                align="start"
+                className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]" 
+                position="item-aligned"
                 sideOffset={4}
               >
                 <Select.Viewport className="p-1 max-h-[400px]">

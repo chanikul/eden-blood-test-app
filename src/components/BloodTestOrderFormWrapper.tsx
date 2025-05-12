@@ -14,6 +14,7 @@ interface BloodTestOrderFormWrapperProps {
 }
 
 export function BloodTestOrderFormWrapper({ tests }: BloodTestOrderFormWrapperProps) {
+  console.log('BloodTestOrderFormWrapper received tests:', tests);
   const handleSuccess = (orderId: string) => {
     // Success will be handled by the form component's redirect
   };

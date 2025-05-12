@@ -43,24 +43,24 @@
     "tailwind-merge": "^3.2.0",
     "zod": "^3.22.4"
   },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@netlify/plugin-nextjs": "^5.11.1",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/forms": "^0.5.7",
     "@types/node": "^20",
-    "@types/nodemailer": "^6.4.17",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "15.3.2",
-    "postcss": "^8.5.3",
+    "@typescript-eslint/eslint-plugin": "^6",
+    "@typescript-eslint/parser": "^6",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "postcss": "^8",
     "prisma": "^5.10.2",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5"
-  },
-  "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
 }
