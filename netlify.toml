@@ -16,8 +16,8 @@
   STRIPE_SECRET_KEY = "${env:STRIPE_SECRET_KEY}"
   STRIPE_WEBHOOK_SECRET = "${env:STRIPE_WEBHOOK_SECRET}"
   SUPPORT_EMAIL = "${env:SUPPORT_EMAIL}"
-  DATABASE_URL = "postgresql://postgres.dlzfhnnwyvddaoikrung:DNE8ytm_uyw1jbc*qbr@aws-0-eu-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
-  DIRECT_URL = "postgresql://postgres.dlzfhnnwyvddaoikrung:DNE8ytm_uyw1jbc*qbr@aws-0-eu-west-2.pooler.supabase.com:5432/postgres"
+  DATABASE_URL = "${env:DATABASE_URL}"
+  DIRECT_URL = "${env:DIRECT_URL}"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
