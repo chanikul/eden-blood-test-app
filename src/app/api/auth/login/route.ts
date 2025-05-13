@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { validateCredentials, generateSessionToken } from '@/lib/auth';
+import { generateSessionToken } from '@/lib/auth';
+import { validateAdminPassword } from '@/lib/services/admin';
 
 export async function POST(request: Request) {
   try {
@@ -15,9 +16,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const isValid = await validateCredentials(email, password);
-    console.log('Credentials validation:', { isValid });
-    if (!isValid) {
+    const admin = await validateAdminPassword(email, password);
+    console.log('Credentials validation:', { isValid: !!admin });
+    if (!admin) {
       console.log('Invalid credentials');
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = generateSessionToken({ email, role: 'admin' });
+    const token = generateSessionToken({ email: admin.email, role: admin.role });
     console.log('Generated token:', token.substring(0, 20) + '...');
     
     // Set the token in an HTTP-only cookie

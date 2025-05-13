@@ -1,11 +1,9 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import type { BloodTest } from '@/types/schema';
 import Stripe from 'stripe';
 import nodemailer from 'nodemailer';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
 });
@@ -56,14 +54,14 @@ export async function POST(request: Request) {
     try {
       // Update order status
       const order = await prisma.order.update({
-        where: { id: orderId },
+        where: { id: metadata.orderId },
         data: {
           status: 'PAID',
           paymentId: session.payment_intent as string,
         },
         include: {
-          tests: true,
-        },
+          bloodTest: true
+        }
       });
 
       // Send confirmation email to patient

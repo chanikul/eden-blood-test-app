@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { verifySessionToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { OrderStatus } from '@prisma/client'
 
 export async function GET() {
   try {
+    const cookieStore = cookies();
+    const token = cookieStore.get('eden_admin_token')?.value;
+    if (!token || !verifySessionToken(token)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
     const [totalOrders, pendingDispatch, dispatched] = await Promise.all([
       prisma.order.count(),
       prisma.order.count({

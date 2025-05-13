@@ -1,23 +1,43 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-1.1.x", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  engineType = "binary"
 }
 
 datasource db {
-  provider = "postgresql"
-  url = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL") // Used for migrations and other direct access
   relationMode = "foreignKeys"
 }
 
+model Admin {
+  id                String    @id @default(cuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  email             String    @unique
+  name              String
+  passwordHash      String
+  role              AdminRole @default(ADMIN)
+  active            Boolean   @default(true)
+  lastLoginAt       DateTime?
+  resetToken        String?   @unique
+  resetTokenExpires DateTime?
+  orders            Order[]   @relation("OrderDispatchedBy")
+}
+
 model BloodTest {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  name        String
-  slug        String   @unique
-  description String
-  price       Float
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  name           String
+  slug           String   @unique
+  description    String
+  price          Float
+  stripeProductId String?
+  stripePriceId   String?
+  isActive       Boolean  @default(true)
+  orders         Order[]  @relation("OrderBloodTest")
 }
 
 model Order {
@@ -36,7 +56,10 @@ model Order {
   stripeSessionId   String?     @unique
   shippingAddress   Json?
   dispatchedAt      DateTime?
-  dispatchedBy      String?
+  dispatchedBy      Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
+  dispatchedById    String?
+  bloodTest         BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
+  bloodTestId       String
 }
 
 enum OrderStatus {
@@ -44,4 +67,9 @@ enum OrderStatus {
   PAID
   DISPATCHED
   CANCELLED
+}
+
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
 }

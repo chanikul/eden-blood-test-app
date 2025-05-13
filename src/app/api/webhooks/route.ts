@@ -442,23 +442,136 @@ ${formatShippingAddress(order.shippingAddress)}
     });
 
     try {
+      // Create admin email template
+      const adminEmail = {
+        to: process.env.SUPPORT_EMAIL!,
+        from: process.env.SUPPORT_EMAIL!,
+        subject: `New Blood Test Order - ${order.testName}`,
+        text: `New blood test order received:
+
+Order Details:
+Test: ${order.testName}
+Order ID: ${String(order.id)}
+Order Date: ${new Date().toLocaleDateString()}
+
+Patient Details:
+Name: ${order.patientName}
+Email: ${order.patientEmail}
+Date of Birth: ${order.patientDateOfBirth}
+${order.patientMobile ? `Mobile: ${order.patientMobile}` : ''}
+
+Shipping Address:
+${formatShippingAddress(order.shippingAddress)}
+
+View order in admin dashboard: https://edenclinic.netlify.app/admin/orders
+        `,
+        html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            .info-table { border-collapse: collapse; width: 100%; }
+            .info-table td { padding: 8px; border: 1px solid #ddd; }
+            .label { font-weight: bold; background-color: #f8f9fa; }
+          </style>
+        </head>
+        <body>
+          <h1>New Blood Test Order Received</h1>
+          
+          <h2>Order Details</h2>
+          <table class="info-table">
+            <tr>
+              <td class="label">Test</td>
+              <td>${order.testName}</td>
+            </tr>
+            <tr>
+              <td class="label">Order ID</td>
+              <td>${String(order.id)}</td>
+            </tr>
+            <tr>
+              <td class="label">Order Date</td>
+              <td>${new Date().toLocaleDateString()}</td>
+            </tr>
+          </table>
+
+          <h2>Patient Details</h2>
+          <table class="info-table">
+            <tr>
+              <td class="label">Name</td>
+              <td>${order.patientName}</td>
+            </tr>
+            <tr>
+              <td class="label">Email</td>
+              <td>${order.patientEmail}</td>
+            </tr>
+            <tr>
+              <td class="label">Date of Birth</td>
+              <td>${order.patientDateOfBirth}</td>
+            </tr>
+            ${order.patientMobile ? `
+            <tr>
+              <td class="label">Mobile</td>
+              <td>${order.patientMobile}</td>
+            </tr>` : ''}
+          </table>
+
+          ${order.shippingAddress ? `
+          <h2>Shipping Address</h2>
+          <table class="info-table">
+            ${(() => {
+              const addr = JSON.parse(order.shippingAddress) as ShippingAddress;
+              return `
+                <tr>
+                  <td class="label">Address Line 1</td>
+                  <td>${String(addr.line1)}</td>
+                </tr>
+                ${addr.line2 ? `
+                <tr>
+                  <td class="label">Address Line 2</td>
+                  <td>${String(addr.line2)}</td>
+                </tr>` : ''}
+                <tr>
+                  <td class="label">City</td>
+                  <td>${String(addr.city)}</td>
+                </tr>
+                <tr>
+                  <td class="label">Postal Code</td>
+                  <td>${String(addr.postal_code)}</td>
+                </tr>
+                <tr>
+                  <td class="label">Country</td>
+                  <td>${String(addr.country)}</td>
+                </tr>
+              `;
+            })()}
+          </table>` : ''}
+
+          <p style="margin-top: 20px;">
+            <a href="https://edenclinic.netlify.app/admin/orders" style="background-color: #4a5568; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+              View Order in Admin Dashboard →
+            </a>
+          </p>
+        </body>
+        </html>
+        `
+      };
+
       const emailPromises = [];
       
-      // Only send customer email if it exists (not a duplicate session)
-      if (customerMsg) {
-        emailPromises.push(sgMail.send(customerMsg));
-      }
-        
-        // Always send admin email
-        emailPromises.push(sgMail.send(adminEmail));
-        
-        const responses = await Promise.all(emailPromises);
-        
-        console.log('Email sending results:', {
-          customerSent: !!customerMsg,
-          adminSent: true,
-          responses: responses.map(r => r[0].statusCode)
-        });
+      // Send customer email
+      emailPromises.push(sgMail.send(customerMsg));
+      
+      // Send admin email
+      emailPromises.push(sgMail.send(adminEmail));
+      
+      const responses = await Promise.all(emailPromises);
+      
+      console.log('Email sending results:', {
+        customerSent: true,
+        adminSent: true,
+        responses: responses.map(r => r[0].statusCode)
+      });
 
 
       } catch (emailError: any) {

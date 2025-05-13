@@ -8,16 +8,24 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-const BLOOD_TEST_PRICES: { [key: string]: { price: string; name: string } } = {
-  'eden-well-man': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Eden Well Man' },
-  'eden-well-man-plus': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Eden Well Man Plus' },
-  'eden-well-woman': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Eden Well Woman' },
-  'trt-review': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'TRT Review' },
-  'advanced-thyroid-panel': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Advanced Thyroid Panel' },
-  'weight-management-blood-test': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Weight Management Blood Test' },
-  'venous-testosterone-panel': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Venous Testosterone Panel' },
-  'ultimate-sporting-performance-blood-test': { price: 'price_1RMtUvCSWTNipsrPXXXXXXXX', name: 'Ultimate Sporting Performance Blood Test' },
-};
+async function getBloodTestPrice(slug: string) {
+  const test = await prisma.bloodTest.findFirst({
+    where: {
+      slug,
+      isActive: true,
+      stripePriceId: { not: null }
+    }
+  });
+
+  if (!test || !test.stripePriceId) {
+    throw new Error(`Blood test not found or not available: ${slug}`);
+  }
+
+  return {
+    price: test.stripePriceId,
+    name: test.name
+  };
+}
 
 type StripeSessionData = {
   line_items: Array<{
@@ -50,58 +58,80 @@ export async function POST(request: Request) {
 
     // Validate request data
     const validatedData = bloodTestOrderSchema.parse(body);
-    console.log('Validated data:', JSON.stringify(validatedData, null, 2));
+    console.log('Validated data:', validatedData);
 
-    // Check if test exists
-    const test = BLOOD_TEST_PRICES[validatedData.testSlug];
-    if (!test) {
-      console.error('❌ Invalid test slug:', validatedData.testSlug);
-      console.error('❌ Available test slugs:', Object.keys(BLOOD_TEST_PRICES));
+    // Get blood test from database
+    const bloodTest = await prisma.bloodTest.findFirst({
+      where: {
+        slug: validatedData.testSlug,
+        isActive: true,
+      },
+    });
+
+    if (!bloodTest) {
+      console.error('Blood test not found or not active:', validatedData.testSlug);
       return NextResponse.json(
-        { success: false, message: `Invalid test: ${validatedData.testSlug}` },
-        { status: 400 }
+        { error: 'Blood test not found or not active' },
+        { status: 404 }
       );
     }
 
-    // Create order in database first
+    if (!bloodTest.stripePriceId) {
+      console.error('Blood test has no Stripe price ID:', bloodTest.name);
+      return NextResponse.json(
+        { error: 'Blood test configuration error' },
+        { status: 500 }
+      );
+    }
+
+    console.log('Found blood test:', {
+      name: bloodTest.name,
+      price: bloodTest.price,
+      stripePriceId: bloodTest.stripePriceId,
+    });
+
+    // Create order in database
     const order = await prisma.order.create({
       data: {
         patientName: validatedData.fullName,
         patientEmail: validatedData.email,
         patientDateOfBirth: validatedData.dateOfBirth,
         patientMobile: validatedData.mobile,
-        testName: test.name,
+        testName: bloodTest.name,
         notes: validatedData.notes,
         status: 'PENDING',
       },
     });
+    console.log('Created order:', order);
 
-    // Create Stripe checkout session with order ID
+    // Create Stripe checkout session
     const sessionData: StripeSessionData = {
-      line_items: [{
-        price: test.price,
-        quantity: 1,
-      }],
+      line_items: [
+        {
+          price: bloodTest.stripePriceId,
+          quantity: 1,
+        },
+      ],
       mode: 'payment',
-      success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.headers.get('origin')}/cancel`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order-success/${order.id}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-status?success=false`,
       customer_email: validatedData.email,
       metadata: {
         orderId: order.id,
         fullName: validatedData.fullName,
         email: validatedData.email,
         dateOfBirth: validatedData.dateOfBirth,
-        mobile: validatedData.mobile || '',
+        mobile: validatedData.mobile,
         testSlug: validatedData.testSlug,
-        testName: test.name,
-        notes: validatedData.notes || '',
+        testName: bloodTest.name,
+        notes: validatedData.notes,
       },
     };
 
-    console.log('Creating Stripe session with data:', JSON.stringify(sessionData, null, 2));
+    console.log('Creating Stripe session with data:', sessionData);
     const session = await stripe.checkout.sessions.create(sessionData);
+    console.log('Created Stripe session:', session.id);
 
-    // Update order with session ID
     await prisma.order.update({
       where: { id: order.id },
       data: { stripeSessionId: session.id },

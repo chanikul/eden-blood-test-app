@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+import sgMail from '@sendgrid/mail';
 
 
 
@@ -30,37 +32,87 @@ export async function POST(request: Request) {
     );
   }
 
+  // Initialize SendGrid
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('Missing SENDGRID_API_KEY environment variable');
+    return NextResponse.json(
+      { error: 'SendGrid configuration missing' },
+      { status: 500 }
+    );
+  }
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2025-04-30.basil'
   });
 
+  // Send a test email
   try {
-    const {
-      fullName,
-      email,
-      dateOfBirth,
-      testName,
-      notes,
-      mobile,
-      price,
-      successUrl,
-      cancelUrl
-    } = await request.json();
+    const msg = {
+      to: process.env.SUPPORT_EMAIL!,
+      from: process.env.SUPPORT_EMAIL!,
+      subject: 'Test Email from Eden Clinic',
+      text: 'This is a test email to verify SendGrid is working.',
+      html: '<strong>This is a test email to verify SendGrid is working.</strong>',
+    };
+    
+    console.log('Attempting to send test email to:', process.env.SUPPORT_EMAIL);
+    const response = await sgMail.send(msg);
+    console.log('Test email sent successfully:', response[0].statusCode);
+  } catch (emailError: any) {
+    console.error('Failed to send test email:', {
+      error: emailError.message,
+      response: emailError.response?.body
+    });
+  }
+
+  try {
+    const requestSchema = z.object({
+      fullName: z.string(),
+      email: z.string().email(),
+      dateOfBirth: z.string(),
+      testSlug: z.string(),
+      testName: z.string(),
+      notes: z.string().optional(),
+      mobile: z.string().optional(),
+      stripePriceId: z.string(),
+      successUrl: z.string().url(),
+      cancelUrl: z.string().url()
+    });
+
+    const data = requestSchema.parse(await request.json());
+
+    // Verify that the blood test exists and has a valid Stripe price ID
+    const bloodTest = await prisma.bloodTest.findFirst({
+      where: {
+        slug: data.testSlug,
+        isActive: true,
+        stripePriceId: data.stripePriceId
+      }
+    });
+
+    if (!bloodTest) {
+      return NextResponse.json(
+        { error: 'Blood test not found or invalid Stripe price' },
+        { status: 400 }
+      );
+    }
 
     // Create an order record
     let order;
     try {
       order = await prisma.order.create({
-      data: {
-        status: 'PENDING',
-        testName,
-        patientName: fullName,
-        patientEmail: email,
-        patientDateOfBirth: dateOfBirth,
-        patientMobile: mobile || null,
-        notes: notes || null,
-      },
-    });
+        data: {
+          status: 'PENDING',
+          testName: data.testName,
+          patientName: data.fullName,
+          patientEmail: data.email,
+          patientDateOfBirth: data.dateOfBirth,
+          patientMobile: data.mobile || null,
+          notes: data.notes || null,
+          bloodTestId: bloodTest.id
+        },
+      });
     } catch (dbError) {
       console.error('Prisma error details:', {
         error: dbError,
@@ -93,30 +145,29 @@ export async function POST(request: Request) {
       shipping_address_collection: {
         allowed_countries: ['GB'],
       },
-      success_url: `${request.headers.get('origin')}/payment-status?success=true&orderId=${order.id}`,
+      success_url: `${request.headers.get('origin')}/payment-status?success=true&orderId=${order.id}&sessionId={CHECKOUT_SESSION_ID}`,
       cancel_url: `${request.headers.get('origin')}/payment-status?error=payment_failed`,
       metadata: {
         orderId: order.id,
-        fullName,
-        email,
-        dateOfBirth,
-        testName,
-        notes: notes || '',
-        mobile: mobile || '',
+        fullName: data.fullName,
+        email: data.email,
+        dateOfBirth: data.dateOfBirth,
+        testName: data.testName,
+        notes: data.notes || '',
+        mobile: data.mobile || '',
       },
       line_items: [
         {
-          price_data: {
-            currency: 'gbp',
-            product_data: {
-              name: testName,
-              description: `Blood Test: ${testName}`,
-            },
-            unit_amount: price, // Price in pence
-          },
+          price: data.stripePriceId,
           quantity: 1,
         },
       ],
+    });
+
+    // Update order with session ID
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { stripeSessionId: session.id }
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });

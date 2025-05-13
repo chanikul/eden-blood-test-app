@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Form from '@radix-ui/react-form';
@@ -21,6 +21,7 @@ interface BloodTestItem {
   slug: string;
   price: number;
   description: string;
+  stripePriceId: string;
 }
 
 interface BloodTestOrderFormProps {
@@ -30,17 +31,25 @@ interface BloodTestOrderFormProps {
 }
 
 export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrderFormProps) {
-  console.log('BloodTestOrderForm received tests:', tests);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<BloodTestOrderFormData>({
     resolver: zodResolver(bloodTestOrderSchema),
-    mode: 'all', // Show validation errors immediately
+    mode: 'all',
   });
+
+  if (!tests || tests.length === 0) {
+    return (
+      <div className="form-card">
+        <p className="text-red-600 dark:text-red-400">No blood tests available. Please try again later.</p>
+      </div>
+    );
+  }
 
   const onSubmitForm = async (data: BloodTestOrderFormData) => {
     setIsSubmitting(true);
@@ -60,10 +69,11 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
         fullName: data.fullName,
         email: data.email,
         dateOfBirth: data.dateOfBirth,
+        testSlug: data.testSlug,
         testName: selectedTest.name,
         notes: data.notes,
         mobile: data.mobile,
-        price: selectedTest.price * 100, // Convert to pence
+        stripePriceId: selectedTest.stripePriceId,
         successUrl: `${window.location.origin}/order-success`,
         cancelUrl: window.location.href,
       };
@@ -118,102 +128,95 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
   return (
     <Form.Root className="space-y-8" onSubmit={handleSubmit(onSubmitForm)}>
       {/* Your Details Section */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-gray-900">Your Details</h2>
-        <Form.Field name="fullName">
-          <Form.Label className="block text-sm font-medium text-gray-700">
-            Full Name *
-          </Form.Label>
-          <Form.Control asChild>
-            <input
-              {...register('fullName')}
-              data-testid="fullName-input"
-              className={cn(
-                'mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-500',
-                errors.fullName && 'border-red-500'
-              )}
-            />
-          </Form.Control>
-          {errors.fullName && (
-            <Form.Message className="mt-1 text-sm text-red-500" data-testid="fullName-error">
-              {errors.fullName.message}
-            </Form.Message>
-          )}
-        </Form.Field>
+      <div className="form-section">
+        <h2 className="form-section-title">Your Details</h2>
+        
+        <div className="space-y-4">
+          <Form.Field name="fullName" className="form-group">
+            <Form.Label className="form-label">
+              Full Name *
+            </Form.Label>
+            <Form.Control asChild>
+              <input
+                {...register('fullName')}
+                className={cn('form-input', errors.fullName && 'border-red-500')}
+                data-testid="fullName-input"
+                placeholder="Enter your full name"
+              />
+            </Form.Control>
+            {errors.fullName && (
+              <Form.Message className="form-error" data-testid="fullName-error">
+                {errors.fullName.message}
+              </Form.Message>
+            )}
+          </Form.Field>
 
-        <Form.Field name="email">
-          <Form.Label className="block text-sm font-medium text-gray-700">
-            Email *
-          </Form.Label>
-          <Form.Control asChild>
-            <input
-              {...register('email')}
-              type="email"
-              data-testid="email-input"
-              className={cn(
-                'mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-500',
-                errors.email && 'border-red-500'
-              )}
-            />
-          </Form.Control>
-          {errors.email && (
-            <Form.Message className="mt-1 text-sm text-red-500" data-testid="email-error">
-              {errors.email.message}
-            </Form.Message>
-          )}
-        </Form.Field>
+          <Form.Field name="email" className="form-group">
+            <Form.Label className="form-label">
+              Email *
+            </Form.Label>
+            <Form.Control asChild>
+              <input
+                {...register('email')}
+                type="email"
+                className={cn('form-input', errors.email && 'border-red-500')}
+                data-testid="email-input"
+                placeholder="Enter your email address"
+              />
+            </Form.Control>
+            {errors.email && (
+              <Form.Message className="form-error" data-testid="email-error">
+                {errors.email.message}
+              </Form.Message>
+            )}
+          </Form.Field>
 
-        <Form.Field name="dateOfBirth">
-          <Form.Label className="block text-sm font-medium text-gray-700">
-            Date of Birth *
-          </Form.Label>
-          <Form.Control asChild>
-            <input
-              {...register('dateOfBirth')}
-              type="date"
-              data-testid="dateOfBirth-input"
-              className={cn(
-                'mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-500',
-                errors.dateOfBirth && 'border-red-500'
-              )}
-            />
-          </Form.Control>
-          {errors.dateOfBirth && (
-            <Form.Message className="mt-1 text-sm text-red-500" data-testid="dateOfBirth-error">
-              {errors.dateOfBirth.message}
-            </Form.Message>
-          )}
-        </Form.Field>
+          <Form.Field name="dateOfBirth" className="form-group">
+            <Form.Label className="form-label">
+              Date of Birth *
+            </Form.Label>
+            <Form.Control asChild>
+              <input
+                {...register('dateOfBirth')}
+                type="date"
+                className={cn('form-input', errors.dateOfBirth && 'border-red-500')}
+                data-testid="dateOfBirth-input"
+              />
+            </Form.Control>
+            {errors.dateOfBirth && (
+              <Form.Message className="form-error" data-testid="dateOfBirth-error">
+                {errors.dateOfBirth.message}
+              </Form.Message>
+            )}
+          </Form.Field>
 
-        <Form.Field name="mobile">
-          <Form.Label className="block text-sm font-medium text-gray-700">
-            Mobile
-          </Form.Label>
-          <Form.Control asChild>
-            <input
-              {...register('mobile')}
-              type="tel"
-              data-testid="mobile-input"
-              className={cn(
-                'mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-500',
-                errors.mobile && 'border-red-500'
-              )}
-            />
-          </Form.Control>
-          {errors.mobile && (
-            <Form.Message className="mt-1 text-sm text-red-500" data-testid="mobile-error">
-              {errors.mobile.message}
-            </Form.Message>
-          )}
-        </Form.Field>
-
+          <Form.Field name="mobile" className="form-group">
+            <Form.Label className="form-label">
+              Mobile *
+            </Form.Label>
+            <Form.Control asChild>
+              <input
+                {...register('mobile')}
+                type="tel"
+                className={cn('form-input', errors.mobile && 'border-red-500')}
+                data-testid="mobile-input"
+                placeholder="Enter your mobile number"
+              />
+            </Form.Control>
+            {errors.mobile && (
+              <Form.Message className="form-error" data-testid="mobile-error">
+                {errors.mobile.message}
+              </Form.Message>
+            )}
+          </Form.Field>
+        </div>
       </div>
 
       {/* Choose Your Test Section */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-gray-900">Choose Your Test</h2>
-        <Form.Field name="testSlug">
-          <Form.Label className="block text-sm font-medium text-gray-700">
+      <div className="form-section">
+        <h2 className="form-section-title">Choose Your Test</h2>
+        <Form.Field name="testSlug" className="form-group">
+          <Form.Label className="form-label">
             Select a Blood Test *
           </Form.Label>
           <Select.Root
@@ -223,13 +226,28 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
           >
             <Select.Trigger
               className={cn(
-                'mt-1 inline-flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-gray-900',
-                errors.testSlug && 'border-red-500'
+                'flex justify-between items-center w-full px-4 py-3 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors appearance-none',
+                errors.testSlug && 'border-red-500 dark:border-red-400 focus:ring-red-500 dark:focus:ring-red-400'
               )}
               aria-label="Select a blood test"
               data-testid="blood-test-select"
             >
-              <Select.Value placeholder="Choose a test" />
+              <Select.Value>
+                <span className="block truncate">
+                  {(() => {
+                    const selectedSlug = watch('testSlug');
+                    const value = tests.find(test => test.slug === selectedSlug);
+                    return value ? (
+                      <div className="flex justify-between items-center w-full">
+                        <span className="font-medium">{value.name}</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-semibold ml-4">£{value.price.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      'Choose a test'
+                    );
+                  })()}
+                </span>
+              </Select.Value>
               <Select.Icon className="ml-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -239,7 +257,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-4 w-4 text-gray-500"
+                  className="h-4 w-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-500 dark:group-hover:text-gray-400"
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
@@ -248,19 +266,30 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
             <Select.Portal>
               <Select.Content 
-                className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]" 
-                position="item-aligned"
+                className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-xl w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)] dark:bg-gray-800 dark:border-gray-700" 
+                position="popper"
                 sideOffset={4}
+                align="center"
               >
-                <Select.Viewport className="p-1 max-h-[400px]">
+                <Select.ScrollUpButton className="flex items-center justify-center h-8 bg-white dark:bg-gray-800 cursor-default">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 4L4 8L12 8L8 4Z" fill="currentColor"/>
+                  </svg>
+                </Select.ScrollUpButton>
+                <Select.Viewport className="p-2 max-h-[400px]">
                   {tests.map((test) => (
                     <Select.Item
                       key={test.slug}
                       value={test.slug}
-                      className="relative flex cursor-pointer select-none items-center rounded-md py-3 pl-8 pr-8 text-sm outline-none hover:bg-gray-50 data-[highlighted]:bg-gray-100 data-[highlighted]:text-gray-900 text-gray-700 transition-colors"
+                      className="relative flex cursor-pointer select-none items-center rounded-md py-3 pl-8 pr-8 text-sm outline-none hover:bg-gray-50 data-[highlighted]:bg-blue-50 data-[highlighted]:text-blue-900 text-gray-700 transition-colors dark:text-gray-300 dark:hover:bg-gray-700 dark:data-[highlighted]:bg-blue-900 dark:data-[highlighted]:text-white"
                       data-testid={`blood-test-option-${test.slug}`}
                     >
-                      <Select.ItemText>{test.name}</Select.ItemText>
+                      <Select.ItemText>
+                        <div className="flex justify-between items-center w-full">
+                          <span>{test.name}</span>
+                          <span className="text-gray-500 ml-4">£{test.price.toFixed(2)}</span>
+                        </div>
+                      </Select.ItemText>
                       <Select.ItemIndicator className="absolute left-2 inline-flex items-center justify-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -278,11 +307,16 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
                     </Select.Item>
                   ))}
                 </Select.Viewport>
+                <Select.ScrollDownButton className="flex items-center justify-center h-8 bg-white dark:bg-gray-800 cursor-default">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 12L12 8L4 8L8 12Z" fill="currentColor"/>
+                  </svg>
+                </Select.ScrollDownButton>
               </Select.Content>
             </Select.Portal>
           </Select.Root>
           {errors.testSlug && (
-            <Form.Message className="mt-1 text-sm text-red-500" data-testid="testSlug-error">
+            <Form.Message className="form-error" data-testid="testSlug-error">
               {errors.testSlug.message}
             </Form.Message>
           )}
@@ -291,24 +325,23 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
       </div>
 
       {/* Extra Notes Section */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-gray-900">Extra Notes</h2>
-        <Form.Field name="notes">
-          <Form.Label className="block text-sm font-medium text-gray-700">
+      <div className="form-section">
+        <h2 className="form-section-title">Extra Notes</h2>
+        <Form.Field name="notes" className="form-group">
+          <Form.Label className="form-label">
             Notes / Comments
           </Form.Label>
           <Form.Control asChild>
             <textarea
               {...register('notes')}
+              className={cn('form-textarea', errors.notes && 'border-red-500')}
               rows={4}
-              className={cn(
-                'mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-500 min-h-[100px]',
-                errors.notes && 'border-red-500'
-              )}
+              placeholder="Add any additional notes or special requirements"
+              data-testid="notes-input"
             />
           </Form.Control>
           {errors.notes && (
-            <Form.Message className="mt-1 text-sm text-red-500">
+            <Form.Message className="form-error">
               {errors.notes.message}
             </Form.Message>
           )}
@@ -339,7 +372,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
           </Form.Label>
         </Form.Field>
         {errors.consent && (
-          <Form.Message className="mt-1 text-sm text-red-500">
+          <Form.Message className="form-error">
             {errors.consent.message}
           </Form.Message>
         )}
@@ -349,7 +382,8 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-[#B4D4C3] px-4 py-3 text-sm font-semibold text-gray-900 shadow-sm hover:bg-[#A3C3B2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B4D4C3] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          className="form-button"
+          data-testid="submit-button"
         >
           {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
         </button>

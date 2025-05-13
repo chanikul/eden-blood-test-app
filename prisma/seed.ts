@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AdminRole } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -94,7 +95,6 @@ const testOrders = [
     status: OrderStatus.DISPATCHED,
     createdAt: new Date('2025-05-08T11:00:00Z'),
     dispatchedAt: new Date('2025-05-09T15:30:00Z'),
-    dispatchedBy: 'Admin User',
     shippingAddress: {
       street: '78 Queen Road',
       city: 'Birmingham',
@@ -106,6 +106,17 @@ const testOrders = [
 async function main() {
   console.log('Start seeding...');
 
+  // Create default admin user
+  const defaultAdmin = await prisma.admin.create({
+    data: {
+      email: 'admin@edenclinic.co.uk',
+      name: 'Admin User',
+      passwordHash: await bcrypt.hash('test123', 10),
+      role: AdminRole.SUPER_ADMIN,
+    }
+  });
+  console.log(`Created default admin: ${defaultAdmin.email}`);
+
   // Create blood tests
   for (const test of bloodTests) {
     await prisma.bloodTest.create({
@@ -116,8 +127,26 @@ async function main() {
 
   // Create test orders
   for (const order of testOrders) {
+    // Find the blood test by name
+    const bloodTest = await prisma.bloodTest.findFirst({
+      where: { name: order.testName }
+    });
+
+    if (!bloodTest) {
+      console.error(`Blood test not found: ${order.testName}`);
+      continue;
+    }
+
+    const { testName, ...orderData } = order;
+
     const createdOrder = await prisma.order.create({
-      data: order,
+      data: {
+        ...orderData,
+        testName,
+        bloodTestId: bloodTest.id,
+        // If the order is dispatched, connect it to the admin user
+        dispatchedById: order.status === 'DISPATCHED' ? defaultAdmin.id : null
+      },
     });
     console.log(`Created order for: ${createdOrder.patientName}`);
   }

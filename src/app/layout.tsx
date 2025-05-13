@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { ToastContainer } from "react-toastify";
-import { Inter } from 'next/font/google';
-import { Toaster } from 'react-hot-toast';
-import Script from 'next/script';
-import Head from 'next/head';
-import "react-toastify/dist/ReactToastify.css";
+import { Inter } from 'next/font/google'
+import { Toaster } from 'react-hot-toast'
+import { cn } from '@/lib/utils'
+
 import "./globals.css";
+import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,15 +24,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <head>
-        <script
-          src="https://cdn.jsdelivr.net/npm/iframe-resizer/js/iframeResizer.contentWindow.min.js"
-          async
-        />
-      </head>
-      <body className="font-sans antialiased">
-        {children}
-        <Toaster position="bottom-right" />
+      <body className={cn(
+        'min-h-screen bg-[rgb(var(--background))] text-[rgb(var(--foreground))]',
+        inter.className
+      )}>
+        <main className="min-h-screen">
+          <Toaster position="bottom-right" />
+          {children}
+        </main>
       </body>
     </html>
   );

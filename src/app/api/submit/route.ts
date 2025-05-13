@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import { bloodTestOrderSchema } from '@/types/schema';
-import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
 import nodemailer from 'nodemailer';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-04-30.basil',
 });
 
 const transporter = nodemailer.createTransport({
@@ -39,13 +37,12 @@ export async function POST(request: Request) {
     const order = await prisma.order.create({
       data: {
         patientName: validatedData.patientName,
-        email: validatedData.email,
-        phoneNumber: validatedData.phoneNumber,
-        dateOfBirth: validatedData.dateOfBirth,
-        totalAmount,
-        tests: {
-          connect: selectedTests.map((test) => ({ id: test.id })),
-        },
+        patientEmail: validatedData.email,
+        patientMobile: validatedData.phoneNumber,
+        patientDateOfBirth: validatedData.dateOfBirth.toISOString().split('T')[0],
+        testName: selectedTests[0].name,
+        bloodTestId: selectedTests[0].id,
+        status: 'PENDING',
       },
     });
 

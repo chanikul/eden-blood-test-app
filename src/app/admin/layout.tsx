@@ -1,38 +1,14 @@
 'use client'
 
 import { Sidebar } from '@/components/admin/Sidebar'
-import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
   const pathname = usePathname()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-  const handleLogout = async () => {
-    if (isLoggingOut) return
-    setIsLoggingOut(true)
-
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        throw new Error('Logout failed')
-      }
-
-      window.location.href = '/admin/login'
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      setIsLoggingOut(false)
-    }
-  }
 
   // Return children directly for login page
   if (pathname === '/admin/login') {
@@ -53,15 +29,6 @@ export default function AdminLayout({
                       Eden Clinic Admin
                     </h1>
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <button
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                    className="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 shadow-sm"
-                  >
-                    {isLoggingOut ? 'Logging out...' : 'Logout'}
-                  </button>
                 </div>
               </div>
             </div>

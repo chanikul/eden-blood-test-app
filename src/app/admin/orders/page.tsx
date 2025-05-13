@@ -113,6 +113,7 @@ const defaultFilters: OrderFiltersType = {
 
 type SearchParams = { [key: string]: string | string[] | undefined }
 
+
 export default async function OrdersPage({
   searchParams,
 }: {
@@ -143,7 +144,7 @@ export default async function OrdersPage({
   console.log('Test types:', testTypes);
 
   return (
-    <div>
+    <div className="p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-semibold text-gray-800">Orders</h1>
       </div>

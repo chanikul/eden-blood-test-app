@@ -1,18 +1,20 @@
 import { cookies } from 'next/headers';
+import { AdminRole } from '@prisma/client';
 
 const TOKEN_NAME = 'eden_admin_token';
 
-// Hardcoded admin credentials for development
-const ADMIN_EMAIL = 'admin@edenclinic.co.uk';
-const ADMIN_PASSWORD = 'test123';
-
 export interface AdminUser {
   email: string;
-  role: 'admin';
+  role: AdminRole;
+}
+
+export interface Session {
+  user?: AdminUser;
 }
 
 export async function validateCredentials(email: string, password: string): Promise<boolean> {
-  return email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+  // This function is no longer used, we use validateAdminPassword from admin service instead
+  return false;
 }
 
 export function generateSessionToken(user: AdminUser): string {
@@ -21,13 +23,31 @@ export function generateSessionToken(user: AdminUser): string {
   return Buffer.from(JSON.stringify(user)).toString('base64');
 }
 
+export async function getServerSession(): Promise<Session | null> {
+  const cookieStore = cookies();
+  const token = cookieStore.get(TOKEN_NAME)?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const decodedToken = Buffer.from(token, 'base64').toString();
+    const user = JSON.parse(decodedToken) as AdminUser;
+    return { user };
+  } catch (error) {
+    console.error('Error decoding session token:', error);
+    return null;
+  }
+}
+
 export function verifySessionToken(token: string): AdminUser | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString();
     const user = JSON.parse(decoded) as AdminUser;
     
     // Validate the user object structure
-    if (user && user.email && user.role === 'admin') {
+    if (user && user.email && (user.role === AdminRole.ADMIN || user.role === AdminRole.SUPER_ADMIN)) {
       return user;
     }
     return null;

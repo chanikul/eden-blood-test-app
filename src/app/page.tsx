@@ -7,19 +7,34 @@ type BloodTest = {
   slug: string;
   price: number;
   description: string;
+  stripePriceId: string;
 };
 
 async function getBloodTests(): Promise<BloodTest[]> {
   try {
     console.log('Fetching blood tests from database...');
-    const tests = await prisma.bloodTest.findMany();
+    const tests = await prisma.bloodTest.findMany({
+      where: { 
+        isActive: true,
+        ...(process.env.NODE_ENV === 'production' ? {
+          AND: [
+            { stripePriceId: { not: '' } },
+            { stripeProductId: { not: '' } },
+            { name: { not: { contains: '£' } } },
+            { name: { not: { contains: '–' } } }
+          ]
+        } : {})
+      },
+      orderBy: { name: 'asc' }
+    });
     console.log('Found blood tests:', tests);
     const mappedTests = tests.map(test => ({
       id: test.id,
-      name: `${test.name} – £${test.price}`,
+      name: test.name,
       slug: test.slug,
       price: test.price,
-      description: test.description
+      description: test.description || '',
+      stripePriceId: test.stripePriceId || ''
     }));
     console.log('Mapped blood tests:', mappedTests);
     return mappedTests;

@@ -72,8 +72,12 @@ export async function POST(req: NextRequest) {
         const metadata = session.metadata || {};
 
         // Find order and check if it's already processed
-        const order = await prisma.order.findFirst({
-          where: { id: metadata.orderId },
+        const orderId = metadata.orderId;
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            bloodTest: true
+          }
         });
 
         if (!order) {
@@ -105,12 +109,12 @@ export async function POST(req: NextRequest) {
 
         // Prepare email data
         const orderDetails = {
-          fullName: metadata.fullName || customerDetails.name || 'Not provided',
-          email: metadata.email || customerDetails.email || 'Not provided',
-          dateOfBirth: metadata.dateOfBirth || 'Not provided',
-          testName: metadata.testName || 'Not provided',
-          mobile: metadata.mobile || 'Not provided',
-          notes: metadata.notes || '',
+          fullName: order.patientName,
+          email: order.patientEmail,
+          dateOfBirth: order.patientDateOfBirth,
+          testName: order.bloodTest.name,
+          mobile: order.patientMobile || 'Not provided',
+          notes: order.notes || '',
           orderId: order.id,
           shippingAddress: session.shipping ? {
             line1: session.shipping.address?.line1 || '',

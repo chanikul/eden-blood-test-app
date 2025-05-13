@@ -5,8 +5,30 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
-    extend: {},
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        sm: '2rem',
+        lg: '4rem',
+        xl: '5rem',
+        '2xl': '6rem',
+      },
+    },
+    extend: {
+      colors: {
+        background: 'rgb(var(--background))',
+        foreground: 'rgb(var(--foreground))',
+        primary: 'rgb(var(--primary))',
+        'primary-hover': 'rgb(var(--primary-hover))',
+        muted: 'rgb(var(--muted))',
+        'muted-foreground': 'rgb(var(--muted-foreground))',
+      },
+    },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms')({ strategy: 'class' }),
+  ],
 }

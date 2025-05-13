@@ -1,6 +1,6 @@
 'use client';
 
-import { BloodTestOrderFormWrapper } from './BloodTestOrderFormWrapper';
+import { BloodTestOrderForm } from './forms/BloodTestOrderForm';
 
 interface BloodTest {
   id: string;
@@ -17,10 +17,29 @@ interface HomePageProps {
 export function HomePage({ tests }: HomePageProps) {
   console.log('HomePage received tests:', tests);
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6 sm:p-8">
-          <BloodTestOrderFormWrapper tests={tests} />
+    <div className="min-h-screen bg-[rgb(var(--background))]">
+      <div className="form-container">
+        <div className="form-card">
+          <div className="text-center mb-8">
+            <img
+              src="/Eden-Clinic-For-White-Background.png"
+              alt="Eden Clinic"
+              className="h-16 w-auto object-contain mx-auto dark:invert mb-6"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                // Fallback to text if image fails to load
+                const title = document.createElement('h1');
+                title.className = 'text-3xl font-semibold text-[rgb(var(--foreground))]';
+                title.textContent = 'Eden Clinic';
+                e.currentTarget.parentElement?.appendChild(title);
+              }}
+            />
+            <div className="form-header">
+              <h1>Order Your Eden Clinic Blood Test Kit</h1>
+              <p>We'll send your kit to you after checkout. You can use your preferred clinic for the blood draw.</p>
+            </div>
+          </div>
+          <BloodTestOrderForm tests={tests} />
         </div>
       </div>
     </div>

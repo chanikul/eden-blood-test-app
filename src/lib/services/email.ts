@@ -1,5 +1,6 @@
 import sgMail from '@sendgrid/mail';
 import { type MailDataRequired } from '@sendgrid/mail';
+import { generatePasswordResetEmailHtml } from '../email-templates/password-reset';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error('SENDGRID_API_KEY is not set');
@@ -165,5 +166,40 @@ Shipping address will be visible in Stripe.
       console.error('❌ Error stack:', error.stack);
     }
     // Don't throw the error as this is not critical for the order process
+  }
+}
+
+export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  try {
+    const text = `
+Reset Your Password
+
+We received a request to reset your password for your Eden Clinic admin account.
+To reset your password, click the following link:
+
+${resetUrl}
+
+This link will expire in 1 hour for security reasons.
+If you didn't request a password reset, please ignore this email.
+
+Best regards,
+Eden Clinic Team
+    `.trim();
+
+    await sendEmail({
+      to: email,
+      subject: 'Reset Your Password - Eden Clinic Admin',
+      text,
+      html: generatePasswordResetEmailHtml(resetUrl),
+    });
+
+    console.log('📨 Password reset email sent successfully to:', email);
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error);
+    if (error instanceof Error) {
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+    }
+    throw error;
   }
 }

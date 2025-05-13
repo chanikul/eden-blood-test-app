@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "20.11.0"
+    "node": "20.11.1"
   },
   "scripts": {
     "dev": "next dev",
@@ -13,23 +13,22 @@
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
-    "@typescript-eslint/eslint-plugin": "^6",
-    "@typescript-eslint/parser": "^6",
-    "@tailwindcss/forms": "^0.5.7",
-    "autoprefixer": "^10.4.21",
-    "tailwindcss": "^3.4.17",
-    "postcss": "^8.5.3",
     "@hookform/resolvers": "^3.3.4",
-    "@prisma/client": "^5.10.2",
+    "@prisma/client": "^5.22.0",
     "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-form": "^0.1.6",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/react-select": "^2.2.4",
     "@sendgrid/mail": "^8.1.5",
+    "@tailwindcss/forms": "^0.5.10",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^20",
     "@types/react-datepicker": "^6.2.0",
+    "@typescript-eslint/eslint-plugin": "^6",
+    "@typescript-eslint/parser": "^6",
+    "autoprefixer": "^10.4.21",
+    "bcryptjs": "^3.0.2",
     "beasties": "^0.3.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -40,6 +39,7 @@
     "next": "14.1.0",
     "nodemailer": "^7.0.2",
     "pg": "^8.15.6",
+    "postcss": "^8.5.3",
     "react": "^18.2.0",
     "react-datepicker": "^8.3.0",
     "react-dom": "^18.2.0",
@@ -47,8 +47,11 @@
     "react-hot-toast": "^2.5.2",
     "react-toastify": "^11.0.5",
     "resend": "^4.5.1",
+    "slugify": "^1.6.6",
     "stripe": "^18.1.0",
-    "tailwind-merge": "^3.2.0",
+    "tailwind-merge": "^3.3.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5",
     "zod": "^3.22.4"
   },
   "prisma": {
@@ -58,9 +61,11 @@
     "@eslint/eslintrc": "^3",
     "@netlify/plugin-nextjs": "^5.11.1",
     "@playwright/test": "^1.52.0",
+    "@types/nodemailer": "^6.4.17",
+    "dotenv": "^16.5.0",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
-    "prisma": "^5.10.2",
+    "prisma": "^5.22.0",
     "ts-node": "^10.9.2"
   }
 }
