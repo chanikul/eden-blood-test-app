@@ -9,7 +9,6 @@ import "react-toastify/dist/ReactToastify.css";
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
 });
 
 export const metadata: Metadata = {
@@ -23,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.className}>
       <body className={cn(
         'min-h-screen bg-[rgb(var(--background))] text-[rgb(var(--foreground))]',
         inter.className

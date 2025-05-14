@@ -61,25 +61,31 @@ export async function updateAdmin(id: string, data: AdminUpdateInput) {
 }
 
 export async function validateAdminPassword(email: string, password: string) {
-  const admin = await prisma.admin.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      passwordHash: true,
-      role: true,
-      active: true,
-    },
-  });
+  try {
+    await prisma.$connect();
+    const admin = await prisma.admin.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        role: true,
+        active: true,
+      },
+    });
 
-  if (!admin || !admin.active) return null;
+    if (!admin || !admin.active) return null;
 
-  const isValid = await bcrypt.compare(password, admin.passwordHash);
-  if (!isValid) return null;
+    const isValid = await bcrypt.compare(password, admin.passwordHash);
+    if (!isValid) return null;
 
-  const { passwordHash, ...adminData } = admin;
-  return adminData;
+    const { passwordHash, ...adminData } = admin;
+    return adminData;
+  } catch (error) {
+    console.error('Error validating admin password:', error);
+    return null;
+  }
 }
 
 export async function generatePasswordResetToken(email: string) {
@@ -162,10 +168,21 @@ export async function getAdminById(id: string) {
 }
 
 export async function updateLastLogin(id: string) {
-  return prisma.admin.update({
-    where: { id },
-    data: {
-      lastLoginAt: new Date(),
-    },
-  });
+  try {
+    await prisma.$connect();
+    return await prisma.admin.update({
+      where: { id },
+      data: {
+        lastLoginAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        lastLoginAt: true
+      }
+    });
+  } catch (error) {
+    console.error('Error updating last login:', error);
+    return null;
+  }
 }

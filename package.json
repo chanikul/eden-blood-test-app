@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
+    "@netlify/plugin-nextjs": "^5.11.1",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-form": "^0.1.6",
@@ -39,7 +40,6 @@
     "next": "14.1.0",
     "nodemailer": "^7.0.2",
     "pg": "^8.15.6",
-    "postcss": "^8.5.3",
     "react": "^18.2.0",
     "react-datepicker": "^8.3.0",
     "react-dom": "^18.2.0",
@@ -59,13 +59,18 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@netlify/plugin-nextjs": "^5.11.1",
     "@playwright/test": "^1.52.0",
     "@types/nodemailer": "^6.4.17",
+    "css-loader": "^7.1.2",
     "dotenv": "^16.5.0",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
+    "postcss": "^8.5.3",
+    "postcss-loader": "^8.1.1",
+    "postcss-preset-env": "^10.1.6",
     "prisma": "^5.22.0",
+    "sass": "^1.88.0",
+    "style-loader": "^4.0.0",
     "ts-node": "^10.9.2"
   }
 }

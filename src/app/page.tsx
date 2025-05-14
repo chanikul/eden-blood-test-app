@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { HomePage } from '@/components/HomePage';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type BloodTest = {
   id: string;
   name: string;
@@ -13,6 +16,7 @@ type BloodTest = {
 async function getBloodTests(): Promise<BloodTest[]> {
   try {
     console.log('Fetching blood tests from database...');
+    await prisma.$connect();
     const tests = await prisma.bloodTest.findMany({
       where: { 
         isActive: true,

@@ -1,17 +1,17 @@
 [build]
-  command = "npm ci && npx prisma generate && npx prisma db push --accept-data-loss && npm run build"
+  command = "npm install && npx prisma generate && npm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20.11.1"
-  PRISMA_ENGINES_VERSION = "5.22.0"
+  PRISMA_ENGINES_VERSION = "5.10.2"
   PRISMA_LOG_LEVEL = "info"
   PRISMA_LOG_QUERIES = "false"
   PRISMA_ENABLE_TRACING = "false"
   NEXT_TELEMETRY_DISABLED = "1"
-  NPM_FLAGS = "--no-optional"
+  NPM_FLAGS = "--no-audit --no-fund --legacy-peer-deps"
   NODE_ENV = "production"
-  NEXT_PUBLIC_API_URL = "https://eden-clinic.windsurf.build"
+  NEXT_PUBLIC_API_URL = "https://eden-clinic-blood-tests.netlify.app"
   SENDGRID_API_KEY = "${env:SENDGRID_API_KEY}"
   STRIPE_SECRET_KEY = "${env:STRIPE_SECRET_KEY}"
   STRIPE_WEBHOOK_SECRET = "${env:STRIPE_WEBHOOK_SECRET}"
