@@ -5,37 +5,97 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    console.log('=== ENVIRONMENT CHECK ===');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('DATABASE_URL:', process.env.DATABASE_URL ? '***' + process.env.DATABASE_URL.slice(-10) : 'not set');
+    console.log('DIRECT_URL:', process.env.DIRECT_URL ? '***' + process.env.DIRECT_URL.slice(-10) : 'not set');
+    
     // Test database connection
     try {
+      console.log('Attempting database connection...');
       await prisma.$connect();
       console.log('Successfully connected to database');
-    } catch (connError) {
-      console.error('Database connection error:', connError);
-      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    } catch (connError: any) {
+      console.error('Database connection error:', {
+        message: connError.message,
+        code: connError.code,
+        meta: connError.meta
+      });
+      return NextResponse.json({ 
+        error: 'Database connection failed',
+        details: connError.message
+      }, { status: 500 });
     }
-    console.log('\n=== FETCHING BLOOD TESTS ===');
-    console.log('Database URL configured:', !!process.env.DATABASE_URL);
-    console.log('Direct URL configured:', !!process.env.DIRECT_URL);
     
-    // First try a simple count query
-    console.log('Attempting count query...');
-    const count = await prisma.bloodTest.count();
-    console.log('Total blood tests:', count);
+    console.log('\n=== TESTING PRISMA QUERIES ===');
     
-    // Then get all blood tests with minimal fields
-    console.log('Fetching blood tests...');
-    const tests = await prisma.bloodTest.findMany({
-      select: {
-        id: true,
-        name: true,
-        price: true
-      }
-    });
+    try {
+      // Test a simple query first
+      console.log('Testing simple query...');
+      const testQuery = await prisma.$queryRaw`SELECT 1 as test`;
+      console.log('Simple query result:', testQuery);
+      
+      // Get total count of all blood tests
+      console.log('\nCounting all blood tests...');
+      const totalCount = await prisma.bloodTest.count();
+      console.log('Total blood tests (including inactive):', totalCount);
+      
+      // Get count of active blood tests
+      console.log('\nCounting active blood tests...');
+      const activeCount = await prisma.bloodTest.count({
+        where: {
+          isActive: true
+        }
+      });
+      console.log('Active blood tests:', activeCount);
+      
+      // Get all blood tests with minimal fields
+      console.log('\nFetching all blood tests...');
+      const allTests = await prisma.bloodTest.findMany({
+        select: {
+          id: true,
+          name: true,
+          isActive: true
+        }
+      });
+      
+      console.log('\nBlood test status:');
+      allTests.forEach(test => {
+        console.log(`- ${test.name}: ${test.isActive ? 'active' : 'inactive'}`);
+      });
+      
+      // Get active blood tests for the response
+      console.log('\nFetching active blood tests...');
+      const activeTests = await prisma.bloodTest.findMany({
+        where: {
+          isActive: true
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          description: true,
+          slug: true
+        }
+      });
 
-    console.log('Successfully fetched', tests.length, 'blood tests');
-    console.log('Sample test:', tests[0]);
-    
-    return NextResponse.json({ tests });
+      console.log('Active blood tests to be returned:', activeTests.length);
+      if (activeTests.length > 0) {
+        console.log('First active test:', activeTests[0]);
+      }
+      
+      return NextResponse.json({ tests: activeTests });
+    } catch (queryError: any) {
+      console.error('Database query error:', {
+        message: queryError.message,
+        code: queryError.code,
+        meta: queryError.meta
+      });
+      return NextResponse.json({ 
+        error: 'Database query failed',
+        details: queryError.message
+      }, { status: 500 });
+    }
   } catch (error) {
     console.error('Error fetching blood tests:', error);
     // More detailed error response

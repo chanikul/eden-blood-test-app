@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = generateSessionToken({ email: admin.email, role: admin.role });
+    const token = await generateSessionToken({ email: admin.email, role: admin.role });
     console.log('Generated token:', token.substring(0, 20) + '...');
     
     // Set the token in an HTTP-only cookie

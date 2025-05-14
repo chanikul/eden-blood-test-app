@@ -6,11 +6,13 @@ declare global {
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: ['error', 'warn'],
+    log: ['error', 'warn', 'info', 'query'],
     errorFormat: 'pretty',
     datasources: {
       db: {
-        url: process.env.NODE_ENV === 'production' ? process.env.DATABASE_URL : process.env.DIRECT_URL
+        url: process.env.NODE_ENV === 'production'
+          ? process.env.DATABASE_URL
+          : process.env.DIRECT_URL || process.env.DATABASE_URL
       }
     }
   })

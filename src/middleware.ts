@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifySessionToken } from '@/lib/auth'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   console.log('Middleware executing for path:', request.nextUrl.pathname);
   
   // Don't protect the login page
@@ -23,11 +23,16 @@ export function middleware(request: NextRequest) {
     }
 
     // Verify the session token
-    const user = verifySessionToken(token)
-    console.log('Token verification result:', !!user);
-    
-    if (!user) {
-      console.log('Invalid token - redirecting to login');
+    try {
+      const user = await verifySessionToken(token)
+      console.log('Token verification result:', !!user);
+      
+      if (!user) {
+        console.log('Invalid token - redirecting to login');
+        return NextResponse.redirect(new URL('/admin/login', request.url))
+      }
+    } catch (error) {
+      console.error('Token verification failed:', error);
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
     

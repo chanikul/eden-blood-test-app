@@ -15,9 +15,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['stripe'],
   },
-  sassOptions: {
-    includePaths: [path.join(__dirname, 'styles')],
-  },
+
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Handle Node.js modules in browser
     if (!isServer) {

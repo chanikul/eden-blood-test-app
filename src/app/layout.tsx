@@ -4,7 +4,6 @@ import { Toaster } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
 import "./globals.css";
-import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({
   subsets: ['latin'],

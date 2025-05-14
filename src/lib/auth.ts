@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { AdminRole } from '@prisma/client';
+import { SignJWT, jwtVerify } from 'jose';
 
 const TOKEN_NAME = 'eden_admin_token';
 
@@ -17,42 +18,59 @@ export async function validateCredentials(email: string, password: string): Prom
   return false;
 }
 
-export function generateSessionToken(user: AdminUser): string {
-  // For development, we'll use a simple encoded string
-  // In production, you would use a proper session management system
-  return Buffer.from(JSON.stringify(user)).toString('base64');
+export async function generateSessionToken(user: AdminUser): Promise<string> {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  
+  const token = await new SignJWT({ email: user.email, role: user.role })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('24h')
+    .sign(new TextEncoder().encode(process.env.JWT_SECRET));
+  
+  return token;
 }
 
 export async function getServerSession(): Promise<Session | null> {
   const cookieStore = cookies();
   const token = cookieStore.get(TOKEN_NAME)?.value;
 
-  if (!token) {
+  if (!token || !process.env.JWT_SECRET) {
     return null;
   }
 
   try {
-    const decodedToken = Buffer.from(token, 'base64').toString();
-    const user = JSON.parse(decodedToken) as AdminUser;
-    return { user };
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.JWT_SECRET)
+    );
+    return { user: payload as AdminUser };
   } catch (error) {
-    console.error('Error decoding session token:', error);
+    console.error('Error verifying session token:', error);
     return null;
   }
 }
 
-export function verifySessionToken(token: string): AdminUser | null {
+export async function verifySessionToken(token: string): Promise<AdminUser | null> {
+  if (!process.env.JWT_SECRET) {
+    return null;
+  }
+
   try {
-    const decoded = Buffer.from(token, 'base64').toString();
-    const user = JSON.parse(decoded) as AdminUser;
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.JWT_SECRET)
+    );
     
     // Validate the user object structure
-    if (user && user.email && (user.role === AdminRole.ADMIN || user.role === AdminRole.SUPER_ADMIN)) {
-      return user;
+    if (payload && 
+        typeof payload.email === 'string' && 
+        (payload.role === AdminRole.ADMIN || payload.role === AdminRole.SUPER_ADMIN)) {
+      return payload as AdminUser;
     }
     return null;
   } catch (error) {
-    console.error('Session token verification failed:', error);
+    console.error('Error verifying token:', error);
     return null;
   }
 }

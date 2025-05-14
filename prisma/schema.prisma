@@ -1,13 +1,13 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
-  engineType = "binary"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  engineType    = "binary"
 }
 
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
-  directUrl    = env("DIRECT_URL") // Used for migrations and other direct access
+  directUrl    = env("DIRECT_URL")
   relationMode = "foreignKeys"
 }
 
@@ -27,39 +27,39 @@ model Admin {
 }
 
 model BloodTest {
-  id             String   @id @default(cuid())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  name           String
-  slug           String   @unique
-  description    String
-  price          Float
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  name            String
+  slug            String   @unique
+  description     String
+  price           Float
   stripeProductId String?
   stripePriceId   String?
-  isActive       Boolean  @default(true)
-  orders         Order[]  @relation("OrderBloodTest")
+  isActive        Boolean  @default(true)
+  orders          Order[]  @relation("OrderBloodTest")
 }
 
 model Order {
-  id                String      @id @default(cuid())
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  patientName       String
-  patientEmail      String
+  id                 String      @id @default(cuid())
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  patientName        String
+  patientEmail       String
   patientDateOfBirth String
-  patientMobile     String?
-  testName          String
-  notes             String?
-  internalNotes     String?
-  status            OrderStatus @default(PENDING)
-  paymentId         String?
-  stripeSessionId   String?     @unique
-  shippingAddress   Json?
-  dispatchedAt      DateTime?
-  dispatchedBy      Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
-  dispatchedById    String?
-  bloodTest         BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
-  bloodTestId       String
+  patientMobile      String?
+  testName           String
+  notes              String?
+  internalNotes      String?
+  status             OrderStatus @default(PENDING)
+  paymentId          String?
+  stripeSessionId    String?     @unique
+  shippingAddress    Json?
+  dispatchedAt       DateTime?
+  dispatchedById     String?
+  bloodTestId        String
+  bloodTest          BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
+  dispatchedBy       Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
 }
 
 enum OrderStatus {
