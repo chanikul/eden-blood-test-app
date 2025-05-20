@@ -349,7 +349,7 @@ Eden Clinic Team`
         }
 
         emailPromises.push(
-          await sendOrderNotificationEmail({
+          sendOrderNotificationEmail({
             fullName: order.patientName,
             email: supportEmail,
             dateOfBirth: order.patientDateOfBirth,
@@ -357,15 +357,13 @@ Eden Clinic Team`
             notes: order.notes || undefined,
             orderId: order.id,
             shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : undefined,
-          }).catch(error => {
-            console.error('❌ Failed to send admin notification email:', error);
-            throw new Error('Failed to send admin notification email');
           })
         );
 
         try {
           await Promise.all(emailPromises);
           console.log('✅ All notification emails sent successfully');
+          return NextResponse.json({ received: true });
         } catch (error) {
           console.error('=== EMAIL SENDING ERROR ===');
           if (error instanceof Error) {
@@ -379,7 +377,6 @@ Eden Clinic Team`
           processedSessions.delete(session.id);
           throw error;
         }
-        return NextResponse.json({ received: true });
       } else {
         console.log('⏭️ Skipping non-checkout event:', event.type);
         return NextResponse.json({ received: true });
