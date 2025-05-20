@@ -4,6 +4,7 @@ const path = require('path');
 const nextConfig = {
   swcMinify: false,
   reactStrictMode: true,
+  output: 'standalone',
   experimental: {
     optimizeCss: true,
     serverComponentsExternalPackages: ['stripe'],

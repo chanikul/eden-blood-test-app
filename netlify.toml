@@ -1,6 +1,9 @@
 [build]
   command = "npm install && npx prisma generate && npm run build"
-  publish = ".next"
+  publish = ".next/standalone"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [build.environment]
   NODE_VERSION = "20.11.1"
