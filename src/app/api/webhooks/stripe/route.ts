@@ -160,141 +160,108 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       { error: 'Server configuration error' },
       { status: 500 }
-    );
-  }
-
   try {
-    console.log('=== WEBHOOK REQUEST RECEIVED ===');
-    
-    // Get the raw body and signature
     const body = await req.text();
-    const signature = headers().get('stripe-signature');
+    const headersList = headers();
+    const signature = headersList.get('stripe-signature');
+
     if (!signature) {
       return NextResponse.json(
-        { error: 'No signature in request' },
+        { error: { message: 'Missing stripe-signature header' } },
         { status: 400 }
       );
     }
 
-    // Verify webhook signature
-    const event = await stripeClient.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-    
-    // Handle the event
+    if (!STRIPE_WEBHOOK_SECRET) {
+      return NextResponse.json(
+        { error: { message: 'Missing Stripe webhook secret' } },
+        { status: 500 }
+      );
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripeClient.webhooks.constructEvent(
+        body,
+        signature,
+        STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error('❌ Error verifying webhook signature:', err instanceof Error ? err.message : 'Unknown error');
+      return NextResponse.json(
+        { error: { message: 'Invalid signature' } },
+        { status: 400 }
+      );
+    }
+
+    console.log('✅ Successfully constructed event:', event.type);
+
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object as ExtendedStripeSession;
 
-      if (!session) {
-        console.error('No session found in event');
-        return NextResponse.json(
-          { error: 'No session found in event' },
-          { status: 400 }
-        );
-      }
-
-      // Skip if already processed
+      // Check if we've already processed this session
       if (processedSessions.has(session.id)) {
+        console.log('⏭️ Session already processed:', session.id);
         return handleSessionAlreadyProcessed(session.id);
       }
 
-      // Get order ID from metadata
-      const orderId = session.metadata?.orderId;
+      // Add session to processed set
+      processedSessions.add(session.id);
 
+      // Extract orderId from session metadata
+      const orderId = session.metadata?.orderId;
       if (!orderId) {
         return handleMissingOrderId();
       }
 
-      // Get order from database with all required fields
+      // Find the order in the database
       const order = await prisma.order.findUnique({
         where: { id: orderId },
-        select: {
-          id: true,
-          status: true,
-          bloodTest: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          user: {
-            select: {
-              id: true,
-              email: true
-            }
-          }
-        }
-      }) as OrderWithRelations | null;
+        include: {
+          bloodTest: true,
+          user: true,
+        },
+      });
 
-      if (!order || !order.bloodTest) {
+      if (!order) {
         return handleOrderNotFound(orderId);
       }
 
-      // Check if order is already paid
-      if (order.status === 'PAID') {
+      if (order.paid) {
         return handleOrderAlreadyPaid(orderId);
       }
 
-      // Get shipping address from session
-      const shippingDetails = (session as any).shipping_details as StripeShippingDetails | null;
-      const shippingAddress = shippingDetails ? {
-        name: shippingDetails.name,
-        address: {
-          line1: shippingDetails.address.line1,
-          line2: shippingDetails.address.line2 || null,
-          city: shippingDetails.address.city,
-          state: shippingDetails.address.state || null,
-          postal_code: shippingDetails.address.postal_code,
-          country: shippingDetails.address.country
-        }
-      } : null;
-
-      // Update order with payment details
+      // Update order status
       await prisma.order.update({
         where: { id: orderId },
         data: {
-          status: 'PAID',
-          stripePaymentIntentId: typeof session.payment_intent === 'string' 
-            ? session.payment_intent 
+          paid: true,
+          paymentId: session.payment_intent,
+          shippingAddress: session.shipping_details
+            ? `${session.shipping_details.name}\n${session.shipping_details.address.line1}${session.shipping_details.address.line2 ? '\n' + session.shipping_details.address.line2 : ''}\n${session.shipping_details.address.city}${session.shipping_details.address.state ? ', ' + session.shipping_details.address.state : ''}\n${session.shipping_details.address.postal_code}\n${session.shipping_details.address.country}`
             : null,
-          shippingAddress: shippingAddress ? (shippingAddress as Prisma.InputJsonValue) : null,
-          updatedAt: new Date()
-        }
+        },
       });
 
-      try {
-        // Send confirmation email to customer
-        const customerDetails = session.customer_details;
-        if (!customerDetails?.email || !customerDetails?.name) {
-          console.error('Missing customer details');
-          return NextResponse.json(
-            { error: 'Missing customer details' },
-            { status: 400 }
-          );
-        }
+      // Prepare email notifications
+      const emailPromises: Promise<void>[] = [];
 
-        // Log event details
-        console.log('Event details:', {
-          type: event.type,
-          id: session.id,
-          status: session.status,
-          customerEmail: customerDetails.email,
-          amountTotal: session.amount_total,
-          currency: session.currency,
-          paymentStatus: session.payment_status,
-          metadata: session.metadata
-        });
+      // Add customer confirmation email
+      emailPromises.push(
+        sendPaymentConfirmationEmail({
+          email: order.user.email,
+          fullName: order.patientName,
+          testName: order.bloodTest.name,
+          orderId: order.id,
+          shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : undefined,
+        })
+      );
 
-        // Send confirmation email
-        await sendEmail({
-          to: customerDetails.email,
-          subject: `Blood Test Kit Order Confirmation - ${order.bloodTest.name}`,
-          text: `Dear ${customerDetails.name},
-
-Thank you for ordering the ${order.bloodTest.name} test kit.
-
+      // Add admin notification email
+      const supportEmail = SUPPORT_EMAIL;
+      if (!supportEmail) {
+        throw new Error('SUPPORT_EMAIL environment variable is not set');
 Order Details:
 - Order ID: ${order.id}
 - Test: ${order.bloodTest.name}
@@ -348,6 +315,7 @@ Eden Clinic Team`
           throw new Error('SUPPORT_EMAIL environment variable is not set');
         }
 
+        // Add admin notification email to promises
         emailPromises.push(
           sendOrderNotificationEmail({
             fullName: order.patientName,
@@ -360,49 +328,11 @@ Eden Clinic Team`
           })
         );
 
-        try {
-          await Promise.all(emailPromises);
-          console.log('✅ All notification emails sent successfully');
-          return NextResponse.json({ received: true });
-        } catch (error) {
-          console.error('=== EMAIL SENDING ERROR ===');
-          if (error instanceof Error) {
-            console.error('Error details:', {
-              name: error.name,
-              message: error.message,
-              stack: error.stack
-            });
-          }
-          // Remove the session from processed set if email sending fails
-          processedSessions.delete(session.id);
-          throw error;
-        }
-      } else {
-        console.log('⏭️ Skipping non-checkout event:', event.type);
-        return NextResponse.json({ received: true });
-      }
-    } catch (err) {
-      console.error('Error processing webhook:', err instanceof Error ? err.message : 'Unknown error');
-      return NextResponse.json(
-        {
-          error: {
-            message: 'Webhook handler failed',
-          },
-        },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
-    console.error('❌ Stripe webhook error:', error);
-    if (error instanceof Error) {
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error stack:', error.stack);
-    }
+        // Send all emails
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Webhook handler failed' },
+      { error: { message: err instanceof Error ? err.message : 'Unknown error', code: 400 } },
       { status: 400 }
     );
-  } finally {
     await prisma.$disconnect();
   }
 }
