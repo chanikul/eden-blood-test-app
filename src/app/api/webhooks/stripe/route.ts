@@ -378,8 +378,8 @@ Eden Clinic Team`
           // Remove the session from processed set if email sending fails
           processedSessions.delete(session.id);
           throw error;
-          return NextResponse.json({ received: true });
         }
+        return NextResponse.json({ received: true });
       } else {
         console.log('⏭️ Skipping non-checkout event:', event.type);
         return NextResponse.json({ received: true });
