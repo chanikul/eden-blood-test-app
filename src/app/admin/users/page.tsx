@@ -22,7 +22,7 @@ export default function AdminUsersPage() {
   const [showEditUser, setShowEditUser] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'ADMIN', password: '' });
+  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'ADMIN' as 'ADMIN' | 'SUPER_ADMIN', password: '' });
 
   useEffect(() => {
     fetchUsers();
@@ -81,13 +81,22 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleEditUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEditUser = (user: AdminUser) => {
+    setSelectedUser(user);
+    setShowEditUser(true);
+  };
+
+  const showResetPasswordDialog = (user: AdminUser) => {
+    setSelectedUser(user);
+    setShowResetPassword(true);
+  };
+
+  const handleUpdateUser = async (updatedUser: AdminUser) => {
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser?.id}`, {
+      const response = await fetch(`/api/admin/users/${updatedUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(selectedUser),
+        body: JSON.stringify(updatedUser),
       });
 
       if (!response.ok) throw new Error('Failed to update user');
@@ -186,29 +195,32 @@ export default function AdminUsersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                    {user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : 'Never'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                     <Button
                       variant="secondary"
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowEditUser(true);
-                      }}
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
                     >
                       Edit
                     </Button>
                     <Button
                       variant="secondary"
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowResetPassword(true);
-                      }}
+                      size="sm"
+                      onClick={() => showResetPasswordDialog(user)}
                     >
                       Reset Password
                     </Button>
                     <Button
-                      variant={user.active ? 'danger' : 'primary'}
+                      variant={user.active ? 'outline' : 'secondary'}
+                      size="sm"
                       onClick={() => toggleUserStatus(user.id, !user.active)}
                     >
                       {user.active ? 'Deactivate' : 'Activate'}

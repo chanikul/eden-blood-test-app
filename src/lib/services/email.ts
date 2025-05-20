@@ -1,12 +1,16 @@
 import sgMail from '@sendgrid/mail';
 import { type MailDataRequired } from '@sendgrid/mail';
 import { generatePasswordResetEmailHtml } from '../email-templates/password-reset';
+import { generateOrderConfirmationEmailHtml } from '../email-templates/order-confirmation';
+import { generateOrderNotificationEmailHtml } from '../email-templates/order-notification';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error('SENDGRID_API_KEY is not set');
 }
 
+console.log('Initializing SendGrid with API key:', process.env.SENDGRID_API_KEY.substring(0, 10) + '...');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+console.log('SendGrid initialized successfully');
 
 type EmailParams = {
   to: string;
@@ -17,9 +21,19 @@ type EmailParams = {
 
 export const sendEmail = async ({ to, subject, text, html }: EmailParams): Promise<[sgMail.ClientResponse, {}]> => {
   try {
-    console.log('Preparing to send email...');
-    console.log('To:', to);
-    console.log('Subject:', subject);
+    console.log('=== SENDING EMAIL ===');
+    console.log('SendGrid Configuration:', {
+      apiKeyPresent: !!process.env.SENDGRID_API_KEY,
+      apiKeyPrefix: process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.substring(0, 10) + '...' : 'not set',
+      supportEmail: process.env.SUPPORT_EMAIL || 'not set'
+    });
+    console.log('Email Details:', {
+      to,
+      from: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+      subject,
+      textLength: text?.length,
+      htmlLength: html?.length
+    });
     
     const msg: MailDataRequired = {
       to,
@@ -58,15 +72,15 @@ interface SendOrderNotificationEmailParams {
   testName: string;
   notes?: string;
   orderId: string;
+  shippingAddress?: string;
 }
 
 interface SendPaymentConfirmationEmailParams {
   fullName: string;
   email: string;
-  dateOfBirth: string;
   testName: string;
-  notes?: string;
   orderId: string;
+  shippingAddress?: string;
 }
 
 export async function sendPaymentConfirmationEmail({
@@ -74,52 +88,34 @@ export async function sendPaymentConfirmationEmail({
   email,
   testName,
   orderId,
+  shippingAddress,
 }: SendPaymentConfirmationEmailParams) {
-  try {
-    const text = `
-Dear ${fullName},
+  console.log('🔄 Preparing customer confirmation email for:', email);
+  const html = generateOrderConfirmationEmailHtml({
+    fullName,
+    testName,
+    orderId,
+    shippingAddress,
+  });
 
-Thank you for your payment. Your blood test order has been confirmed.
+  console.log('📧 Attempting to send customer email with details:', {
+    to: email,
+    subject: 'Blood Test Order Payment Confirmed',
+    testName,
+    orderId
+  });
 
-Order Details:
-Order ID: ${orderId}
-Test: ${testName}
+  const response = await sendEmail({
+    to: email,
+    subject: 'Blood Test Order Payment Confirmed',
+    text: `Thank you for your order at Eden Clinic. Your blood test (${testName}) has been confirmed. Order ID: ${orderId}`,
+    html,
+  });
 
-We'll be in touch shortly with next steps.
-
-Best regards,
-Eden Clinic Team
-    `.trim();
-
-    const html = `
-<p>Dear ${fullName},</p>
-<p>Thank you for your payment. Your blood test order has been confirmed.</p>
-<h3>Order Details:</h3>
-<ul>
-  <li><strong>Order ID:</strong> ${orderId}</li>
-  <li><strong>Test:</strong> ${testName}</li>
-</ul>
-<p>We'll be in touch shortly with next steps.</p>
-<p>Best regards,<br>Eden Clinic Team</p>
-    `.trim();
-
-    await sendEmail({
-      to: email,
-      subject: 'Blood Test Order Payment Confirmed',
-      text,
-      html,
-    });
-
-    console.log("📨 Email sent successfully to:", email);
-    console.log("✅ Email sent successfully");
-  } catch (error) {
-    console.error('❌ SendGrid error:', error);
-    if (error instanceof Error) {
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
-    }
-    // Don't throw the error as this is not critical
-  }
+  console.log("📨 Customer email sent successfully to:", email);
+  console.log("✅ Customer email sent successfully", { messageId: response[0]?.headers['x-message-id'] });
+  
+  return response;
 }
 
 export async function sendOrderNotificationEmail({
@@ -129,44 +125,28 @@ export async function sendOrderNotificationEmail({
   testName,
   notes,
   orderId,
+  shippingAddress,
 }: SendOrderNotificationEmailParams) {
-  try {
-    await sendEmail({
-      to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
-      subject: 'New Blood Test Order',
-      text: `
-A new order has been received.
+  const html = generateOrderNotificationEmailHtml({
+    fullName,
+    email,
+    dateOfBirth,
+    testName,
+    notes,
+    orderId,
+    shippingAddress,
+  });
 
-Order ID: ${orderId}
-Name: ${fullName}
-Email: ${email}
-DOB: ${dateOfBirth}
-Selected Test: ${testName}
-${notes ? `Notes: ${notes}` : ''}
+  const response = await sendEmail({
+    to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+    subject: 'New Blood Test Order',
+    text: `New order received: ${testName} for ${fullName} (${email}). Order ID: ${orderId}. DOB: ${dateOfBirth}. ${notes ? `Notes: ${notes}` : ''}`,
+    html,
+  });
 
-Shipping address will be visible in Stripe.
-      `.trim(),
-      html: `
-<h2>New Blood Test Order</h2>
-<ul>
-  <li><strong>Order ID:</strong> ${orderId}</li>
-  <li><strong>Name:</strong> ${fullName}</li>
-  <li><strong>Email:</strong> ${email}</li>
-  <li><strong>DOB:</strong> ${dateOfBirth}</li>
-  <li><strong>Selected Test:</strong> ${testName}</li>
-  ${notes ? `<li><strong>Notes:</strong> ${notes}</li>` : ''}
-</ul>
-<p>Shipping address will be visible in Stripe.</p>
-      `.trim(),
-    });
-  } catch (error) {
-    console.error('❌ SendGrid notification error:', error);
-    if (error instanceof Error) {
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
-    }
-    // Don't throw the error as this is not critical for the order process
-  }
+  console.log("📨 Admin notification email sent successfully", { messageId: response[0]?.headers['x-message-id'] });
+  
+  return response;
 }
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string) {

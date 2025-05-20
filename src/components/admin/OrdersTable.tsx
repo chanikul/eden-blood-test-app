@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Order, OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { OrderDetailModal } from '@/components/admin/OrderDetailModal'
+import { useRouter } from 'next/navigation'
 
 interface OrdersTableProps {
   orders: Order[]
@@ -78,7 +79,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">
-                    {format(new Date(order.createdAt), 'dd/MM/yyyy')}
+                    {format(new Date(order.createdAt), 'dd MMM yyyy, HH:mm')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">
                     <button

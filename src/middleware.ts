@@ -22,13 +22,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
-    // Verify the session token
+    // Verify the session token and role
     try {
       const user = await verifySessionToken(token)
-      console.log('Token verification result:', !!user);
+      console.log('Token verification result:', { user: !!user, role: user?.role });
       
-      if (!user) {
-        console.log('Invalid token - redirecting to login');
+      if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+        console.log('Invalid token or insufficient permissions - redirecting to login');
         return NextResponse.redirect(new URL('/admin/login', request.url))
       }
     } catch (error) {

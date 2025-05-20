@@ -2,6 +2,7 @@ generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
   engineType    = "binary"
+  output        = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -24,6 +25,15 @@ model Admin {
   resetToken        String?   @unique
   resetTokenExpires DateTime?
   orders            Order[]   @relation("OrderDispatchedBy")
+}
+
+model StripeEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique @map("event_id")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@map("stripe_events")
 }
 
 model BloodTest {
@@ -60,6 +70,8 @@ model Order {
   bloodTestId        String
   bloodTest          BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
   dispatchedBy       Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
+
+  @@unique([patientEmail, createdAt])
 }
 
 enum OrderStatus {

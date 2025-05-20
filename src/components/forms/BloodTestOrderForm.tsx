@@ -12,8 +12,16 @@ import { stripePaymentLinks } from '@/lib/stripe-links';
 import { BloodTest as BloodTestType } from '@/types';
 import { BloodTestOrderFormData, bloodTestOrderSchema } from '@/lib/validations/blood-test-order';
 import { cn } from '@/lib/utils';
+import { loadStripe } from '@stripe/stripe-js';
 import { submitBloodTestOrder } from '@/lib/services/blood-test';
 import { RedirectingToPayment } from '@/components/RedirectingToPayment';
+
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+if (!stripePublishableKey) {
+  console.error('Stripe publishable key is not set');
+  throw new Error('Stripe configuration is missing');
+}
+const stripePromise = loadStripe(stripePublishableKey);
 
 interface BloodTestItem {
   id: string;
@@ -22,6 +30,7 @@ interface BloodTestItem {
   price: number;
   description: string;
   stripePriceId: string;
+  stripeProductId: string;
 }
 
 interface BloodTestOrderFormProps {
@@ -46,7 +55,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
   if (!tests || tests.length === 0) {
     return (
       <div className="form-card">
-        <p className="text-red-600 dark:text-red-400">No blood tests available. Please try again later.</p>
+        <p className="form-error">No blood tests available. Please try again later.</p>
       </div>
     );
   }
@@ -56,13 +65,28 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
     try {
       console.log('Submitting form data:', data);
 
-      // Find the selected test from the tests array
+      // Find and log selected test details
       const selectedTest = tests.find(test => test.slug === data.testSlug);
       if (!selectedTest) {
         console.error('Selected test not found:', data.testSlug);
         console.error('Available tests:', tests);
         throw new Error('Selected test not found');
       }
+
+      // Log selected test details
+      console.log('Selected test details:', {
+        name: selectedTest.name,
+        price: selectedTest.price,
+        stripePriceId: selectedTest.stripePriceId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Log all available tests
+      console.log('Available tests:', tests.map(test => ({
+        name: test.name,
+        price: test.price,
+        stripePriceId: test.stripePriceId
+      })));
 
       // Create a checkout session
       const requestData = {
@@ -129,12 +153,12 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
     <Form.Root className="space-y-8" onSubmit={handleSubmit(onSubmitForm)}>
       {/* Your Details Section */}
       <div className="form-section">
-        <h2 className="form-section-title">Your Details</h2>
+        <h2 className="form-title">Your Details</h2>
         
         <div className="space-y-4">
           <Form.Field name="fullName" className="form-group">
             <Form.Label className="form-label">
-              Full Name *
+              Full Name <span className="form-required">*</span>
             </Form.Label>
             <Form.Control asChild>
               <input
@@ -153,7 +177,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
           <Form.Field name="email" className="form-group">
             <Form.Label className="form-label">
-              Email *
+              Email <span className="form-required">*</span>
             </Form.Label>
             <Form.Control asChild>
               <input
@@ -173,7 +197,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
           <Form.Field name="dateOfBirth" className="form-group">
             <Form.Label className="form-label">
-              Date of Birth *
+              Date of Birth <span className="form-required">*</span>
             </Form.Label>
             <Form.Control asChild>
               <input
@@ -192,7 +216,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
           <Form.Field name="mobile" className="form-group">
             <Form.Label className="form-label">
-              Mobile *
+              Mobile <span className="form-required">*</span>
             </Form.Label>
             <Form.Control asChild>
               <input
@@ -217,18 +241,28 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
         <h2 className="form-section-title">Choose Your Test</h2>
         <Form.Field name="testSlug" className="form-group">
           <Form.Label className="form-label">
-            Select a Blood Test *
+            Select a Blood Test <span className="form-required">*</span>
           </Form.Label>
           <Select.Root
             onValueChange={(value) => {
               setValue('testSlug', value, { shouldValidate: true });
+              
+              // Log selected test details
+              const selectedTest = tests.find(test => test.slug === value);
+              if (selectedTest) {
+                console.log('Test selected:', {
+                  name: selectedTest.name,
+                  displayPrice: `£${selectedTest.price.toFixed(2)}`,
+                  priceInPence: selectedTest.price * 100,
+                  stripePriceId: selectedTest.stripePriceId,
+                  stripeProductId: selectedTest.stripeProductId,
+                  timestamp: new Date().toISOString()
+                });
+              }
             }}
           >
             <Select.Trigger
-              className={cn(
-                'flex justify-between items-center w-full px-4 py-3 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors appearance-none',
-                errors.testSlug && 'border-red-500 dark:border-red-400 focus:ring-red-500 dark:focus:ring-red-400'
-              )}
+              className={cn('form-select', errors.testSlug && 'border-red-500')}
               aria-label="Select a blood test"
               data-testid="blood-test-select"
             >
@@ -266,12 +300,12 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
             <Select.Portal>
               <Select.Content 
-                className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-xl w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)] dark:bg-gray-800 dark:border-gray-700" 
+                className="overflow-hidden rounded-md border border-gray-200 bg-[rgb(var(--background))] shadow-xl w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]" 
                 position="popper"
                 sideOffset={4}
                 align="center"
               >
-                <Select.ScrollUpButton className="flex items-center justify-center h-8 bg-white dark:bg-gray-800 cursor-default">
+                <Select.ScrollUpButton className="flex items-center justify-center h-8 bg-[rgb(var(--background))] cursor-default">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M8 4L4 8L12 8L8 4Z" fill="currentColor"/>
                   </svg>
@@ -281,7 +315,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
                     <Select.Item
                       key={test.slug}
                       value={test.slug}
-                      className="relative flex cursor-pointer select-none items-center rounded-md py-3 pl-8 pr-8 text-sm outline-none hover:bg-gray-50 data-[highlighted]:bg-blue-50 data-[highlighted]:text-blue-900 text-gray-700 transition-colors dark:text-gray-300 dark:hover:bg-gray-700 dark:data-[highlighted]:bg-blue-900 dark:data-[highlighted]:text-white"
+                      className="relative flex cursor-pointer select-none items-center rounded-md py-3 pl-8 pr-8 text-sm outline-none hover:bg-[rgb(var(--muted))] data-[highlighted]:bg-[rgb(var(--primary))] data-[highlighted]:text-white text-[rgb(var(--foreground))] transition-colors"
                       data-testid={`blood-test-option-${test.slug}`}
                     >
                       <Select.ItemText>
@@ -326,7 +360,7 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
       {/* Extra Notes Section */}
       <div className="form-section">
-        <h2 className="form-section-title">Extra Notes</h2>
+        <h2 className="form-title">Extra Notes</h2>
         <Form.Field name="notes" className="form-group">
           <Form.Label className="form-label">
             Notes / Comments
@@ -350,40 +384,35 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
 
       {/* Consent Checkbox */}
       <div className="mt-6">
-        <Form.Field name="consent" className="flex items-start space-x-3">
-          <Form.Control asChild>
-            <input
-              type="checkbox"
-              {...register('consent')}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-          </Form.Control>
-          <Form.Label className="text-sm text-gray-600">
-            I agree to the{' '}
-            <a
-              href="/privacy-policy"
-              className="text-blue-600 hover:text-blue-800 underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Privacy Policy
-            </a>{' '}
-            and consent to Eden Clinic processing my data for this order.
-          </Form.Label>
+        <Form.Field name="consent" className="flex flex-col space-y-2">
+          <div className="flex items-start space-x-3">
+            <div className="flex items-center space-x-2">
+              <Form.Control asChild>
+                <input
+                  type="checkbox"
+                  {...register('consent')}
+                  id="consent"
+                  className="h-4 w-4 rounded border-gray-300 text-[rgb(var(--primary))] focus:ring-[rgb(var(--primary))]"
+                />
+              </Form.Control>
+              <Form.Label htmlFor="consent" className="form-checkbox-label">
+                I agree to the <a href="/privacy-policy" target="_blank" className="text-[rgb(var(--primary))] hover:underline">Privacy Policy</a> and consent to Eden Clinic processing my data for this order.
+              </Form.Label>
+            </div>
+          </div>
+          {errors.consent && (
+            <Form.Message className="form-error">
+              {errors.consent.message}
+            </Form.Message>
+          )}
         </Form.Field>
-        {errors.consent && (
-          <Form.Message className="form-error">
-            {errors.consent.message}
-          </Form.Message>
-        )}
       </div>
 
       <Form.Submit asChild>
         <button
           type="submit"
+          className="form-submit-button"
           disabled={isSubmitting}
-          className="form-button"
-          data-testid="submit-button"
         >
           {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
         </button>

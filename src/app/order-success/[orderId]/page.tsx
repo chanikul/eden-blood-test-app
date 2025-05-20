@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
 interface OrderSuccessPageProps {
-  params: Promise<{
+  params: {
     orderId: string;
-  }>;
+  };
 }
 
 interface OrderDetails {
@@ -18,14 +18,30 @@ interface OrderDetails {
 }
 
 export default function OrderSuccessPage({ params }: OrderSuccessPageProps) {
-  const { orderId } = use(params);
+  const { orderId } = params;
   const router = useRouter();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    async function fetchOrderDetails() {
+    async function verifyPaymentAndFetchOrder() {
       try {
+        // Get the session ID from URL
+        const searchParams = new URLSearchParams(window.location.search);
+        const sessionId = searchParams.get('session_id');
+
+        if (sessionId) {
+          console.log('Verifying payment...', { orderId, sessionId });
+          // First verify the payment
+          const verifyResponse = await fetch(`/api/verify-payment?orderId=${orderId}&sessionId=${sessionId}`);
+          if (!verifyResponse.ok) {
+            const errorData = await verifyResponse.json();
+            throw new Error(errorData.error || 'Failed to verify payment');
+          }
+        }
+
+        // Then fetch order details
+        console.log('Fetching order details...');
         const response = await fetch(`/api/orders/${orderId}`);
         if (response.ok) {
           const data = await response.json();
@@ -46,7 +62,7 @@ export default function OrderSuccessPage({ params }: OrderSuccessPageProps) {
       }
     }
 
-    fetchOrderDetails();
+    verifyPaymentAndFetchOrder();
   }, [orderId, router]);
 
   if (error) {

@@ -6,7 +6,9 @@ export async function GET(
   context: { params: { orderId: string } }
 ) {
   const { orderId } = context.params;
+  console.log('Fetching order details:', { orderId });
   try {
+    // First try to find the order
     const order = await prisma.order.findUnique({
       where: {
         id: orderId,
@@ -16,7 +18,15 @@ export async function GET(
         patientEmail: true,
         testName: true,
         status: true,
+        createdAt: true,
+        stripeSessionId: true,
       },
+    });
+
+    console.log('Order lookup result:', {
+      found: !!order,
+      orderId,
+      details: order
     });
 
     if (!order) {

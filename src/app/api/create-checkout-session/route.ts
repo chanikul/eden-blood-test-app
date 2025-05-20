@@ -43,28 +43,8 @@ export async function POST(request: Request) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-04-30.basil'
-  });
-
-  // Send a test email
-  try {
-    const msg = {
-      to: process.env.SUPPORT_EMAIL!,
-      from: process.env.SUPPORT_EMAIL!,
-      subject: 'Test Email from Eden Clinic',
-      text: 'This is a test email to verify SendGrid is working.',
-      html: '<strong>This is a test email to verify SendGrid is working.</strong>',
-    };
-    
-    console.log('Attempting to send test email to:', process.env.SUPPORT_EMAIL);
-    const response = await sgMail.send(msg);
-    console.log('Test email sent successfully:', response[0].statusCode);
-  } catch (emailError: any) {
-    console.error('Failed to send test email:', {
-      error: emailError.message,
-      response: emailError.response?.body
-    });
-  }
+    apiVersion: '2023-10-16'
+  }) as any;
 
   try {
     const requestSchema = z.object({
@@ -92,11 +72,25 @@ export async function POST(request: Request) {
     });
 
     if (!bloodTest) {
+      console.error('Blood test validation failed:', {
+        requestedSlug: data.testSlug,
+        requestedPriceId: data.stripePriceId,
+        timestamp: new Date().toISOString()
+      });
       return NextResponse.json(
         { error: 'Blood test not found or invalid Stripe price' },
         { status: 400 }
       );
     }
+
+    // Log blood test details
+    console.log('Creating checkout for blood test:', {
+      name: bloodTest.name,
+      price: bloodTest.price,
+      stripePriceId: bloodTest.stripePriceId,
+      stripeProductId: bloodTest.stripeProductId,
+      timestamp: new Date().toISOString()
+    });
 
     // Create an order record
     let order;
@@ -139,23 +133,41 @@ export async function POST(request: Request) {
     }
 
     // Create Stripe checkout session
+    console.log('Creating Stripe checkout session with price:', data.stripePriceId);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
       shipping_address_collection: {
         allowed_countries: ['GB'],
       },
-      success_url: `${request.headers.get('origin')}/payment-status?success=true&orderId=${order.id}&sessionId={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.headers.get('origin')}/payment-status?error=payment_failed`,
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: { amount: 0, currency: 'gbp' },
+            display_name: 'Free shipping',
+            delivery_estimate: {
+              minimum: { unit: 'business_day', value: 3 },
+              maximum: { unit: 'business_day', value: 5 },
+            },
+          },
+        },
+      ],
+      success_url: `${new URL(data.successUrl).origin}/order-success/${order.id}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: data.cancelUrl,
       metadata: {
         orderId: order.id,
         fullName: data.fullName,
         email: data.email,
         dateOfBirth: data.dateOfBirth,
         testName: data.testName,
+        testSlug: data.testSlug,
+        stripePriceId: data.stripePriceId,
         notes: data.notes || '',
         mobile: data.mobile || '',
+        orderCreatedAt: new Date().toISOString(),
       },
+      customer_email: data.email,
       line_items: [
         {
           price: data.stripePriceId,
@@ -168,6 +180,15 @@ export async function POST(request: Request) {
     await prisma.order.update({
       where: { id: order.id },
       data: { stripeSessionId: session.id }
+    });
+
+    // Log successful session creation
+    console.log('Checkout session created:', {
+      sessionId: session.id,
+      amount: session.amount_total,
+      currency: session.currency,
+      priceId: data.stripePriceId,
+      timestamp: new Date().toISOString()
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });

@@ -8,17 +8,17 @@ export enum OrderStatus {
 }
 
 export type ShippingAddress = {
+  name: string
   line1: string
-  line2?: string
+  line2?: string | null
   city: string
-  state?: string
+  state?: string | null
   postal_code: string
   country: string
 }
 
-export interface Order extends Omit<PrismaOrder, 'internalNotes' | 'dispatchedAt' | 'dispatchedBy' | 'shippingAddress'> {
+export interface Order extends Omit<PrismaOrder, 'internalNotes' | 'dispatchedAt' | 'dispatchedBy'> {
   internalNotes?: string | null
   dispatchedAt?: Date | null
   dispatchedBy?: string | null
-  shippingAddress?: ShippingAddress | null
 }

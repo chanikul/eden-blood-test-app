@@ -13,25 +13,30 @@ export async function POST(request: Request) {
   try {
     console.log('\n=== SYNCING STRIPE PRODUCTS ===');
 
-    // Check if user is authenticated as admin
-    const cookieStore = cookies();
-    const token = cookieStore.get('eden_admin_token')?.value;
-    if (!token) {
-      console.log('No auth token found');
-      return NextResponse.json(
-        { error: 'Unauthorized - No token' },
-        { status: 401 }
-      );
-    }
+    // Bypass auth check for local development
+    if (process.env.NODE_ENV === 'production') {
+      // Check if user is authenticated as admin
+      const cookieStore = cookies();
+      const token = cookieStore.get('eden_admin_token')?.value;
+      if (!token) {
+        console.log('No auth token found');
+        return NextResponse.json(
+          { error: 'Unauthorized - No token' },
+          { status: 401 }
+        );
+      }
 
-    // Verify the token
-    const user = verifySessionToken(token);
-    if (!user) {
-      console.log('Invalid auth token');
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
-        { status: 401 }
-      );
+      // Verify the token
+      const user = verifySessionToken(token);
+      if (!user) {
+        console.log('Invalid auth token');
+        return NextResponse.json(
+          { error: 'Unauthorized - Invalid token' },
+          { status: 401 }
+        );
+      }
+    } else {
+      console.log('Bypassing auth check for local development');
     }
 
     console.log('Starting sync with Stripe...');

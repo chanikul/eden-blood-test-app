@@ -1,8 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Order, OrderStatus } from '@/types'
+import { useState, useEffect } from 'react'
+import { Order, OrderStatus, ShippingAddress } from '@/types'
 import { format } from 'date-fns'
+import { useRouter } from 'next/navigation'
+
+
 
 interface OrderDetailModalProps {
   order: Order | null
@@ -11,8 +14,22 @@ interface OrderDetailModalProps {
 
 export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   const [internalNotes, setInternalNotes] = useState(order?.internalNotes || '')
-  const [status, setStatus] = useState<OrderStatus>(order?.status || 'PENDING')
+  const initialStatus = order?.status || OrderStatus.PENDING
+  const [status, setStatus] = useState<OrderStatus>(initialStatus)
   const [isLoading, setIsLoading] = useState(false)
+  const [parsedAddress, setParsedAddress] = useState<ShippingAddress | null>(null)
+
+  useEffect(() => {
+    if (order?.shippingAddress) {
+      try {
+        const address = order.shippingAddress ? (JSON.parse(order.shippingAddress) as ShippingAddress) : null
+        setParsedAddress(address)
+      } catch (error) {
+        console.error('Error parsing shipping address:', error)
+        setParsedAddress(null)
+      }
+    }
+  }, [order?.shippingAddress])
 
   if (!order) return null
 
@@ -50,124 +67,172 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
     }
   }
 
+  const formatShippingAddress = (addressStr?: string) => {
+    if (!addressStr) return null
+    try {
+      const address = JSON.parse(addressStr) as ShippingAddress
+      return (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Shipping Address</h3>
+          <div className="space-y-1">
+            <p className="font-medium">{address.name}</p>
+            <p>{address.line1}</p>
+            {address.line2 && <p>{address.line2}</p>}
+            <p>{address.city}{address.state ? `, ${address.state}` : ''} {address.postal_code}</p>
+            <p>{address.country}</p>
+          </div>
+        </div>
+      )
+    } catch (error) {
+      console.error('Error parsing shipping address:', error)
+      return null
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800">Order Details</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-700 hover:text-gray-900"
-            >
-              ✕
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-800">Order Details</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <span className="sr-only">Close</span>
+            ✕
+          </button>
+        </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-800 mb-4">
-                Patient Information
-              </h3>
-              <div className="space-y-2 text-gray-800">
-                <p>
-                  <span className="font-medium text-gray-800">Name:</span> {order.patientName}
-                </p>
-                <p>
-                  <span className="font-medium text-gray-800">Email:</span> {order.patientEmail}
-                </p>
-                <p>
-                  <span className="font-medium text-gray-800">Date of Birth:</span>{' '}
-                  {order.patientDateOfBirth}
-                </p>
-                <p>
-                  <span className="font-medium text-gray-800">Mobile:</span>{' '}
-                  {order.patientMobile || 'N/A'}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium text-gray-800 mb-4">
-                Order Information
-              </h3>
-              <div className="space-y-2 text-gray-800">
-                <p>
-                  <span className="font-medium text-gray-800">Test Type:</span> {order.testName}
-                </p>
-                <p>
-                  <span className="font-medium text-gray-800">Order Date:</span>{' '}
-                  {format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm')}
-                </p>
-                <p>
-                  <span className="font-medium text-gray-800">Stripe Session ID:</span>{' '}
-                  {order.stripeSessionId || 'N/A'}
-                </p>
-                {order.dispatchedAt && (
-                  <p>
-                    <span className="font-medium text-gray-800">Dispatched:</span>{' '}
-                    {format(new Date(order.dispatchedAt), 'dd/MM/yyyy HH:mm')}
-                  </p>
-                )}
-              </div>
+        <div className="space-y-6">
+          {/* Patient Information */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Patient Information</h3>
+            <div className="space-y-2">
+              <p><span className="font-medium">Name:</span> {order.patientName}</p>
+              <p><span className="font-medium">Date of Birth:</span> {format(new Date(order.patientDateOfBirth), 'dd/MM/yyyy')}</p>
+              <p><span className="font-medium">Email:</span> {order.patientEmail}</p>
+              {order.patientMobile && (
+                <p><span className="font-medium">Mobile:</span> {order.patientMobile}</p>
+              )}
             </div>
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-800 mb-4">
-              Shipping Address
-            </h3>
+          {/* Order Details */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Order Details</h3>
+            <div className="space-y-2">
+              <p><span className="font-medium">Order ID:</span> {order.id}</p>
+              <p><span className="font-medium">Test Type:</span> {order.testName}</p>
+              <p><span className="font-medium">Patient Name:</span> {order.patientName}</p>
+              <p><span className="font-medium">Date of Birth:</span> {format(new Date(order.patientDateOfBirth), 'dd/MM/yyyy')}</p>
+              <p><span className="font-medium">Email:</span> {order.patientEmail}</p>
+              <p><span className="font-medium">Order Date:</span> {format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm')}</p>
+              {formatShippingAddress(order.shippingAddress)}
+              <p>
+                <span className="font-medium text-gray-800">Stripe Session ID:</span>{' '}
+                {order.stripeSessionId || 'N/A'}
+              </p>
+              {order.dispatchedAt && (
+                <p>
+                  <span className="font-medium text-gray-800">Dispatched:</span>{' '}
+                  {format(new Date(order.dispatchedAt), 'dd/MM/yyyy HH:mm')}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Shipping Address</h3>
             {order.shippingAddress ? (
-              <pre className="whitespace-pre-wrap bg-white border border-gray-200 p-3 rounded text-gray-800">
-                {JSON.stringify(order.shippingAddress, null, 2)}
-              </pre>
+              <div className="space-y-1">
+                {(() => {
+                  try {
+                    const address = JSON.parse(order.shippingAddress as string);
+                    return (
+                      <>
+                        <div className="font-medium">{address.name}</div>
+                        <div>{address.line1}</div>
+                        {address.line2 && <div>{address.line2}</div>}
+                        <div>
+                          {address.city}{address.state ? `, ${address.state}` : ''} {address.postal_code}
+                        </div>
+                        <div>{address.country}</div>
+                      </>
+                    );
+                  } catch (error) {
+                    console.error('Error parsing shipping address:', error);
+                    return <div className="text-gray-500">Invalid shipping address format</div>;
+                  }
+                })()}
+              </div>
             ) : (
-              <p className="text-gray-800">No shipping address provided</p>
+              <div className="text-gray-500">No shipping address provided</div>
             )}
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Status</h3>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as OrderStatus)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-gray-800 bg-white"
-              disabled={isLoading}
-            >
-              <option value="PENDING">Pending</option>
-              <option value="PAID">Paid</option>
-              <option value="DISPATCHED">Dispatched</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
+          {/* Order Status */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Update Status</h3>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(e) => {
+                    const newStatus = e.target.value
+                    if (Object.values(OrderStatus).includes(newStatus as OrderStatus)) {
+                      setStatus(newStatus as OrderStatus)
+                    }
+                  }}
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                  disabled={isLoading}
+                >
+                  {Object.values(OrderStatus).map((statusOption) => (
+                    <option key={statusOption} value={statusOption}>
+                      {statusOption}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-800 mb-2">
-              Internal Notes
-            </h3>
-            <textarea
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              rows={4}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800 bg-white"
-              placeholder="Add internal notes here..."
-            />
-          </div>
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                  Internal Notes
+                </label>
+                <textarea
+                  id="notes"
+                  rows={4}
+                  value={internalNotes}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  disabled={isLoading}
+                  placeholder="Add any internal notes here..."
+                />
+              </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-800 font-medium hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpdateOrder}
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? 'Saving...' : 'Save Changes'}
-            </button>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpdateOrder}
+                  className="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Order'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

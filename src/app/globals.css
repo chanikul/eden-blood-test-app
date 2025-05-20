@@ -2,23 +2,109 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .form-container {
+    @apply container mx-auto px-4 py-8 min-h-screen;
+  }
+
+  .form-card {
+    @apply bg-[rgb(var(--card))] text-[rgb(var(--card-foreground))] rounded-lg shadow-lg p-6 max-w-2xl mx-auto;
+  }
+
+  .form-section {
+    @apply mb-6;
+  }
+
+  .form-title {
+    @apply text-2xl font-bold mb-4 text-[rgb(var(--foreground))];
+  }
+
+  .form-subtitle {
+    @apply text-lg mb-6 text-[rgb(var(--muted-foreground))];
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium mb-1 text-[rgb(var(--foreground))];
+  }
+
+  .form-input {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 bg-[rgb(var(--background))] text-[rgb(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:border-transparent transition-colors;
+  }
+
+  .form-select {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 bg-[rgb(var(--background))] text-[rgb(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:border-transparent transition-colors;
+  }
+
+  .form-textarea {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 bg-[rgb(var(--background))] text-[rgb(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:border-transparent transition-colors min-h-[100px];
+  }
+
+  .form-error {
+    @apply text-sm text-red-600 dark:text-red-400 mt-1;
+  }
+
+  .form-checkbox-label {
+    @apply text-sm text-[rgb(var(--foreground))] ml-2;
+  }
+
+  .form-submit-button {
+    @apply w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-hover))] text-white font-semibold py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .form-required {
+    @apply text-red-600 dark:text-red-400 ml-1;
+  }
+}
+
 @layer base {
   :root {
     --background: 255, 255, 255;
-    --foreground: 17, 24, 39;
-    --primary: 180, 212, 195;
-    --primary-hover: 163, 195, 178;
+    --foreground: 0, 0, 0;
+    --card: 255, 255, 255;
+    --card-foreground: 0, 0, 0;
+    --popover: 255, 255, 255;
+    --popover-foreground: 0, 0, 0;
+    --primary: 29, 78, 216;
+    --primary-hover: 30, 64, 175;
+    --primary-foreground: 255, 255, 255;
+    --secondary: 241, 245, 249;
+    --secondary-foreground: 15, 23, 42;
     --muted: 241, 245, 249;
     --muted-foreground: 100, 116, 139;
+    --accent: 241, 245, 249;
+    --accent-foreground: 15, 23, 42;
+    --destructive: 239, 68, 68;
+    --destructive-foreground: 255, 255, 255;
+    --border: 226, 232, 240;
+    --input: 226, 232, 240;
+    --ring: 29, 78, 216;
   }
 
-  .dark {
-    --background: 17, 24, 39;
+  :root.dark {
+    --background: 15, 23, 42;
     --foreground: 255, 255, 255;
-    --primary: 163, 195, 178;
-    --primary-hover: 180, 212, 195;
+    --card: 30, 41, 59;
+    --card-foreground: 255, 255, 255;
+    --popover: 30, 41, 59;
+    --popover-foreground: 255, 255, 255;
+    --primary: 96, 165, 250;
+    --primary-hover: 59, 130, 246;
+    --primary-foreground: 255, 255, 255;
+    --secondary: 30, 41, 59;
+    --secondary-foreground: 255, 255, 255;
     --muted: 30, 41, 59;
     --muted-foreground: 148, 163, 184;
+    --accent: 30, 41, 59;
+    --accent-foreground: 255, 255, 255;
+    --destructive: 239, 68, 68;
+    --destructive-foreground: 255, 255, 255;
+    --border: 51, 65, 85;
+    --input: 51, 65, 85;
+    --ring: 96, 165, 250;
   }
 
   body {
@@ -26,8 +112,15 @@
   }
 
   input,
-  select {
+  select,
+  textarea {
     @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[rgb(var(--primary))] focus:ring-[rgb(var(--primary))] bg-[rgb(var(--background))] text-[rgb(var(--foreground))];
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-[rgb(var(--card))] text-[rgb(var(--card-foreground))] rounded-lg shadow-lg p-6;
   }
 }
 

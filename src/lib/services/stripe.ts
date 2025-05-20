@@ -58,32 +58,39 @@ export async function syncStripeProducts(): Promise<SyncResult> {
 
     // Step 1: Fetch all active products from Stripe
     console.log('Fetching products from Stripe...');
-    const allProducts = await stripe.products.list({ 
+    // Only get live mode products
+    const allProducts = await stripe.products.list({
       active: true,
-      expand: ['data.default_price']
+      expand: ['data.default_price'],
+      limit: 100 // Increase limit to get all products
     });
-    console.log(`Found ${allProducts.data.length} total products in Stripe`);
+    
+    // Filter for live mode products only
+    const liveProducts = allProducts.data.filter(p => p.livemode);
+    console.log(`Found ${liveProducts.length} live products in Stripe`);
     
     // Step 2: Filter for blood test products and get their prices
     console.log('\nProcessing products:');
     const validProducts = [];
     const productPrices = new Map<string, Stripe.Price>();
 
-    for (const product of allProducts.data) {
+    for (const product of liveProducts) {
       console.log(`\nProduct: ${product.name}`);
       console.log('ID:', product.id);
       console.log('Active:', product.active);
       console.log('Metadata:', JSON.stringify(product.metadata, null, 2));
 
-      // Skip if not a blood test
-      if (!product.metadata?.category || product.metadata.category !== 'blood_test') {
-        console.log(`Skipping - not a blood test (category: ${product.metadata?.category || 'undefined'})`);
+      // Skip non-blood test products
+      if (product.name.toLowerCase().includes('invoice') || 
+          product.name.toLowerCase().includes('subscription') || 
+          product.name.toLowerCase().includes('social media')) {
+        console.log('Skipping non-blood test product:', product.name);
         continue;
       }
 
-      // Skip if price in name
-      if (product.name.includes('£') || product.name.includes('–')) {
-        console.log('Skipping - price in name');
+      // Skip test products
+      if (product.description === 'test product' && !product.name.includes('Blood Test') && !product.name.includes('Panel')) {
+        console.log('Skipping test product:', product.name);
         continue;
       }
 
