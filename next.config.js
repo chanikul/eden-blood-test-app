@@ -2,6 +2,7 @@
 const path = require('path');
 
 const nextConfig = {
+  swcMinify: false,
   reactStrictMode: true,
   experimental: {
     optimizeCss: true,
