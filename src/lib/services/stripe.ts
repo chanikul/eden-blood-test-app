@@ -71,6 +71,10 @@ export async function syncStripeProducts(): Promise<SyncResult> {
     
     // In development, use test mode products. In production, use live mode products
     const isProduction = process.env.NODE_ENV === 'production';
+    console.log('Environment:', isProduction ? 'production' : 'development');
+    console.log('Total products in Stripe:', allProducts.data.length);
+    console.log('Products:', allProducts.data.map(p => ({ name: p.name, livemode: p.livemode, active: p.active })));
+    
     const filteredProducts = isProduction 
       ? allProducts.data.filter(p => p.livemode)
       : allProducts.data.filter(p => !p.livemode);
@@ -87,17 +91,15 @@ export async function syncStripeProducts(): Promise<SyncResult> {
       console.log('Active:', product.active);
       console.log('Metadata:', JSON.stringify(product.metadata, null, 2));
 
-      // Skip non-blood test products
-      if (product.name.toLowerCase().includes('invoice') || 
-          product.name.toLowerCase().includes('subscription') || 
-          product.name.toLowerCase().includes('social media')) {
-        console.log('Skipping non-blood test product:', product.name);
+      // Only include blood test products based on metadata
+      if (!product.metadata?.category || product.metadata.category !== 'blood_test') {
+        console.log('Skipping non-blood test product:', product.name, '(metadata category:', product.metadata?.category || 'none', ')');
         continue;
       }
 
-      // Skip test products
-      if (product.description === 'test product' && !product.name.includes('Blood Test') && !product.name.includes('Panel')) {
-        console.log('Skipping test product:', product.name);
+      // Skip inactive products
+      if (!product.active) {
+        console.log('Skipping inactive product:', product.name);
         continue;
       }
 
