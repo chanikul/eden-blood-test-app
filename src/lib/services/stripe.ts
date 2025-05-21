@@ -69,16 +69,19 @@ export async function syncStripeProducts(): Promise<SyncResult> {
       limit: 100 // Increase limit to get all products
     });
     
-    // Filter for live mode products only
-    const liveProducts = allProducts.data.filter(p => p.livemode);
-    console.log(`Found ${liveProducts.length} live products in Stripe`);
+    // In development, use test mode products. In production, use live mode products
+    const isProduction = process.env.NODE_ENV === 'production';
+    const filteredProducts = isProduction 
+      ? allProducts.data.filter(p => p.livemode)
+      : allProducts.data.filter(p => !p.livemode);
+    console.log(`Found ${filteredProducts.length} ${isProduction ? 'live' : 'test'} products in Stripe`);
     
     // Step 2: Filter for blood test products and get their prices
     console.log('\nProcessing products:');
     const validProducts = [];
     const productPrices = new Map<string, Stripe.Price>();
 
-    for (const product of liveProducts) {
+    for (const product of filteredProducts) {
       console.log(`\nProduct: ${product.name}`);
       console.log('ID:', product.id);
       console.log('Active:', product.active);
