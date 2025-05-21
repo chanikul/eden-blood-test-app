@@ -62,23 +62,37 @@ export async function syncStripeProducts(): Promise<SyncResult> {
 
     // Step 1: Fetch all active products from Stripe
     console.log('Fetching products from Stripe...');
-    // Only get live mode products
     const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.default_price'],
-      limit: 100 // Increase limit to get all products
+      limit: 100,
+      active: true
+    });
+
+    // Always use test mode products when not in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.log('\nEnvironment:', isProduction ? 'production' : 'development');
+    console.log('Total products in Stripe:', allProducts.data.length);
+    console.log('\nAll products:');
+    allProducts.data.forEach(p => {
+      console.log(`\nProduct: ${p.name}`);
+      console.log(`ID: ${p.id}`);
+      console.log(`Active: ${p.active}`);
+      console.log(`Livemode: ${p.livemode}`);
+      console.log(`Metadata:`, p.metadata);
     });
     
-    // In development, use test mode products. In production, use live mode products
-    const isProduction = process.env.NODE_ENV === 'production';
-    console.log('Environment:', isProduction ? 'production' : 'development');
-    console.log('Total products in Stripe:', allProducts.data.length);
-    console.log('Products:', allProducts.data.map(p => ({ name: p.name, livemode: p.livemode, active: p.active })));
-    
-    const filteredProducts = isProduction 
-      ? allProducts.data.filter(p => p.livemode)
-      : allProducts.data.filter(p => !p.livemode);
+    console.log('\nFiltering products based on environment...');
+    // Force test mode products when not in production
+    const filteredProducts = allProducts.data.filter(p => !p.livemode);
     console.log(`Found ${filteredProducts.length} ${isProduction ? 'live' : 'test'} products in Stripe`);
+    
+    console.log('\nFiltered products:');
+    filteredProducts.forEach(p => {
+      console.log(`\nProduct: ${p.name}`);
+      console.log(`ID: ${p.id}`);
+      console.log(`Active: ${p.active}`);
+      console.log(`Livemode: ${p.livemode}`);
+      console.log(`Metadata:`, p.metadata);
+    });
     
     // Step 2: Filter for blood test products and get their prices
     console.log('\nProcessing products:');
