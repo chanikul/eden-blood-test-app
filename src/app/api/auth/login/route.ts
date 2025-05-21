@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     console.log('Login attempt started');
     const { email, password } = await request.json();
-    console.log('Received credentials:', { email });
+    console.log('Received credentials:', { email, passwordLength: password?.length });
 
     if (!email || !password) {
       return NextResponse.json(
@@ -16,8 +16,14 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log('About to validate password...');
     const admin = await validateAdminPassword(email, password);
-    console.log('Credentials validation:', { isValid: !!admin });
+    console.log('Credentials validation result:', { 
+      isValid: !!admin,
+      adminFound: !!admin,
+      email: admin?.email,
+      role: admin?.role
+    });
     if (!admin) {
       console.log('Invalid credentials');
       return NextResponse.json(
@@ -35,7 +41,7 @@ export async function POST(request: Request) {
     // Use development-friendly cookie settings
     cookieStore.set('eden_admin_token', token, {
       httpOnly: true,
-      secure: false, // Allow non-HTTPS in development
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24, // 24 hours
       path: '/',
@@ -47,7 +53,7 @@ export async function POST(request: Request) {
     // Explicitly set the cookie in the response headers
     response.cookies.set('eden_admin_token', token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24, // 24 hours
       path: '/',

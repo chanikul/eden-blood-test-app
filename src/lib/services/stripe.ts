@@ -2,7 +2,11 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import slugify from 'slugify';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 interface SyncResult {
   success: boolean;

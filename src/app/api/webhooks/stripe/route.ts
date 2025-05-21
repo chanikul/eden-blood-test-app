@@ -18,7 +18,7 @@ if (!STRIPE_WEBHOOK_SECRET) {
 }
 
 const stripeClient = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
+  apiVersion: '2025-04-30.basil'
 });
 
 type StripeCheckoutSession = Stripe.Checkout.Session & {
@@ -212,13 +212,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         body,
         signature,
         STRIPE_WEBHOOK_SECRET
-      ) as Stripe.Event;
+      );
     } catch (error) {
       return handleWebhookError(error);
     }
 
     console.log('✅ Successfully constructed event:', event.type);
 
+    // Handle checkout session completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as StripeCheckoutSession;
       const orderId = session.metadata?.orderId;
@@ -257,138 +258,67 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       let formattedShippingAddress: string | undefined = undefined;
       if (session.shipping_details?.address && session.shipping_details.name) {
         const address = session.shipping_details.address;
-        formattedShippingAddress = `${session.shipping_details.name}\n${[
+        formattedShippingAddress = [
+          session.shipping_details.name,
           address.line1,
           address.line2,
           address.city,
           address.state,
           address.postal_code,
           address.country
-        ].filter(Boolean).join('\n')}`;
+        ].filter(Boolean).join('\n');
       }
 
-      try {
-        // Send confirmation email to customer
-        if (order.patientEmail) {
-          await sendPaymentConfirmationEmail({
+      // Initialize email promises array
+      const emailPromises: Promise<void>[] = [];
+
+      // Add customer confirmation email
+      if (order.patientEmail) {
+        emailPromises.push(
+          sendPaymentConfirmationEmail({
             email: order.patientEmail,
+            name: order.patientName || '',
+            testName: order.testName || '',
+            orderId: order.id,
+            shippingAddress: formattedShippingAddress
+          })
+        );
+      }
+
+      // Add admin notification email
+      const supportEmail = process.env.SUPPORT_EMAIL;
+      if (supportEmail) {
+        emailPromises.push(
+          sendOrderNotificationEmail({
             orderId: order.id,
             name: order.patientName || '',
-            shippingAddress: formattedShippingAddress,
-            testName: order.testName || ''
-          });
-        }
+            testName: order.testName || '',
+            shippingAddress: formattedShippingAddress
+          })
+        );
+      }
 
-        // Send notification email to admin
-        if (SUPPORT_EMAIL) {
-          await sendOrderNotificationEmail({
-            orderId: order.id,
-            name: order.patientName || '',
-            shippingAddress: formattedShippingAddress,
-            testName: order.testName || ''
-          });
-        }
-
-        // Update order status and payment details
-        await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            status: 'PAID',
-            paymentId: paymentIntent,
-            shippingAddress: formattedShippingAddress,
-            updatedAt: new Date()
-          }
-        });
-
-        // Add session to processed set
-        processedSessions.add(session.id);
-
-        console.log('✅ Payment processed successfully for order:', orderId);
+      // Send all emails
+      try {
+        await Promise.all(emailPromises);
+        console.log('All notification emails sent successfully');
         return NextResponse.json({ received: true });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('❌ Error processing payment:', errorMessage);
+      } catch (emailError) {
+        console.error('Error sending notification emails:', emailError instanceof Error ? emailError.message : 'Unknown error');
         return NextResponse.json(
-          { error: { message: 'Failed to process payment', details: errorMessage } },
+          { error: { message: 'Error sending notification emails', code: 500 } },
           { status: 500 }
         );
       }
+    } else {
+      console.log('Skipping non-checkout event:', event.type);
+      return NextResponse.json({ success: true });
     }
-
-    // Handle non-checkout events
-    if (event) {
-      console.log('⏭️ Skipping non-checkout event:', event.type);
-    }
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Error handling webhook:', errorMessage);
+  } catch (err) {
+    console.error('Error handling webhook:', err instanceof Error ? err.message : 'Unknown error');
     return NextResponse.json(
-      { error: { message: 'Webhook handler failed', details: errorMessage } },
-      { status: 500 }
+      { error: { message: err instanceof Error ? err.message : 'Unknown error', code: 400 } },
+      { status: 400 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
-}
-await prisma.order.update({
-where: { id: orderId },
-data: {
-status: 'PAID',
-stripePaymentIntentId: session.payment_intent,
-shippingAddress: session.shipping_details
-? `${session.shipping_details.name}\n${session.shipping_details.address.line1}${session.shipping_details.address.line2 ? '\n' + session.shipping_details.address.line2 : ''}\n${session.shipping_details.address.city}${session.shipping_details.address.state ? ', ' + session.shipping_details.address.state : ''}\n${session.shipping_details.address.postal_code}\n${session.shipping_details.address.country}`
-: null,
-},
-});
-
-// Prepare email data
-const emailPromises = [];
-
-// Add customer confirmation email
-emailPromises.push(
-sendPaymentConfirmationEmail({
-email: order.patientEmail,
-fullName: order.patientName,
-testName: order.testName,
-orderId: order.id,
-shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : undefined,
-})
-);
-
-// Add admin notification email
-const supportEmail = SUPPORT_EMAIL;
-if (!supportEmail) {
-throw new Error('SUPPORT_EMAIL environment variable is not set');
-}
-
-// Add admin notification email to promises
-emailPromises.push(
-sendOrderNotificationEmail({
-fullName: order.patientName,
-email: supportEmail,
-dateOfBirth: order.patientDateOfBirth,
-testName: order.testName,
-notes: order.notes || undefined,
-orderId: order.id,
-shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : undefined,
-})
-);
-
-// Send all emails
-await Promise.all(emailPromises);
-console.log(' All notification emails sent successfully');
-return NextResponse.json({ received: true });
-} else {
-console.log(' Skipping non-checkout event:', event.type);
-return NextResponse.json({ success: true });
-}
-} catch (err) {
-console.error(' Error handling webhook:', err instanceof Error ? err.message : 'Unknown error');
-return NextResponse.json(
-{ error: { message: err instanceof Error ? err.message : 'Unknown error', code: 400 } },
-{ status: 400 }
-);
-}
-await prisma.$disconnect();
 }

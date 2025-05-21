@@ -15,12 +15,7 @@
   NPM_FLAGS = "--no-audit --no-fund --legacy-peer-deps"
   NODE_ENV = "production"
   NEXT_PUBLIC_API_URL = "https://eden-clinic-blood-tests.netlify.app"
-  SENDGRID_API_KEY = "${env:SENDGRID_API_KEY}"
-  STRIPE_SECRET_KEY = "${env:STRIPE_SECRET_KEY}"
-  STRIPE_WEBHOOK_SECRET = "${env:STRIPE_WEBHOOK_SECRET}"
-  SUPPORT_EMAIL = "${env:SUPPORT_EMAIL}"
-  DATABASE_URL = "${env:DATABASE_URL}"
-  DIRECT_URL = "${env:DIRECT_URL}"
+  # Environment variables are set in Netlify UI
 
 [build.processing]
   skip_processing = false

@@ -62,7 +62,9 @@ export async function updateAdmin(id: string, data: AdminUpdateInput) {
 
 export async function validateAdminPassword(email: string, password: string) {
   try {
+    console.log('Connecting to database...');
     await prisma.$connect();
+    console.log('Looking up admin user:', { email });
     const admin = await prisma.admin.findUnique({
       where: { email },
       select: {
@@ -75,9 +77,21 @@ export async function validateAdminPassword(email: string, password: string) {
       },
     });
 
-    if (!admin || !admin.active) return null;
+    console.log('Admin lookup result:', { 
+      found: !!admin,
+      active: admin?.active,
+      role: admin?.role,
+      hasPasswordHash: !!admin?.passwordHash
+    });
 
+    if (!admin || !admin.active) {
+      console.log('Admin not found or inactive');
+      return null;
+    }
+
+    console.log('Comparing passwords...');
     const isValid = await bcrypt.compare(password, admin.passwordHash);
+    console.log('Password comparison result:', { isValid });
     if (!isValid) return null;
 
     const { passwordHash, ...adminData } = admin;

@@ -18,6 +18,7 @@ const nextConfig = {
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
     SUPPORT_EMAIL: process.env.SUPPORT_EMAIL,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    JWT_SECRET: process.env.JWT_SECRET,
   },
   experimental: {
     serverComponentsExternalPackages: ['stripe'],
