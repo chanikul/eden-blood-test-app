@@ -1,38 +1,86 @@
+'use client';
+
 import { CheckCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { notFound } from 'next/navigation';
 
-export default async function OrderSuccessPage({
+interface OrderSuccessPageProps {
+  searchParams: {
+    session_id?: string;
+  };
+}
+
+export default function OrderSuccessPage({
   searchParams,
-}: {
-  searchParams: { orderId?: string; sessionId?: string };
-}) {
-  const orderId = searchParams.orderId;
-  const sessionId = searchParams.sessionId;
+}: OrderSuccessPageProps) {
+  const sessionId = searchParams.session_id;
 
-  if (!orderId || !sessionId) {
+  if (!sessionId) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-xl">
-            <p>Missing order information</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Missing Session Information</h2>
+          <p className="text-gray-500 mb-6">Unable to verify your payment. Please contact support if this persists.</p>
+          <a href="/" className="inline-block bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">
+            Return to Home
+          </a>
         </div>
       </div>
     );
   }
 
-  let error = '';
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/api/verify-payment?orderId=${orderId}&sessionId=${sessionId}`,
-      { cache: 'no-store' }
-    );
-    
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to verify payment');
-    }
+  const [isLoading, setIsLoading] = useState(true);
 
-    // If we get here, the payment was verified successfully
+  useEffect(() => {
+
+
+    const verifyPayment = async () => {
+      try {
+        console.log('Verifying payment:', { sessionId });
+        const response = await fetch(
+          `/api/verify-payment?sessionId=${sessionId}`,
+          { 
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        console.log('Verify payment response:', { status: response.status });
+        if (!response.ok) {
+          const data = await response.json();
+          console.error('Payment verification failed:', data);
+          throw new Error(data.error || 'Failed to verify payment');
+        }
+
+        const { order } = await response.json();
+        console.log('Payment verified:', { order });
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error verifying payment:', err);
+        throw new Error(err instanceof Error ? err.message : 'Failed to verify payment');
+      }
+    };
+
+    verifyPayment();
+  }, [orderId, sessionId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Verifying Payment</h2>
+          <p className="text-gray-500">Please wait while we confirm your payment...</p>
+        </div>
+      </div>
+    );
+  }
+
+
+
+  // If we get here, the payment was verified successfully
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-2xl w-full mx-auto p-8">
@@ -68,17 +116,5 @@ export default async function OrderSuccessPage({
         </div>
       </div>
     );
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Failed to verify payment';
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-xl">
-            <p>There was an error verifying your order:</p>
-            <p className="font-semibold mt-2">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 }

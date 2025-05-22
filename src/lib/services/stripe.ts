@@ -1,12 +1,33 @@
 import Stripe from 'stripe';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 import slugify from 'slugify';
+import { BloodTest } from '@prisma/client';
+
+type BloodTestProduct = Stripe.Product & {
+  metadata: {
+    category?: string;
+    slug?: string;
+  };
+};
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY environment variable is not set');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-04-30.basil'
+});
+
+interface StripeMode {
+  isTestMode: boolean;
+  secretKey: string;
+}
 
 interface SyncResult {
   success: boolean;
@@ -16,279 +37,175 @@ interface SyncResult {
     oldPrice?: number;
     newPrice: number;
     status: 'created' | 'updated' | 'archived';
+    stripeProductId: string;
+    stripePriceId: string;
+    paymentLinkUrl?: string;
   }>;
 }
 
-async function deactivateAllTests() {
-  console.log('\n=== DEACTIVATING ALL BLOOD TESTS ===');
-  
-  // First, log all existing tests
-  const allTests = await prisma.bloodTest.findMany({
-    select: {
-      id: true,
-      name: true,
-      stripeProductId: true,
-      stripePriceId: true,
-      isActive: true
-    }
-  });
-  
-  console.log('Existing tests:', allTests.map(t => ({
-    name: t.name,
-    active: t.isActive,
-    stripeId: t.stripeProductId
-  })));
+async function getStripeMode(): Promise<StripeMode> {
+  const secretKey = process.env.STRIPE_SECRET_KEY!;
+  const isTestMode = secretKey.startsWith('sk_test_');
+  return { isTestMode, secretKey };
+}
 
-  // Deactivate all tests
-  const result = await prisma.bloodTest.updateMany({
+async function deactivateAllTests(): Promise<void> {
+  console.log('Deactivating existing blood tests...');
+  
+  // Mark all existing blood tests as inactive
+  const updateResult = await prisma.bloodTest.updateMany({
     where: { isActive: true },
     data: { isActive: false }
   });
-
-  console.log(`Deactivated ${result.count} blood tests`);
-
-  // Verify deactivation
-  const remaining = await prisma.bloodTest.count({ where: { isActive: true } });
-  console.log(`Remaining active tests: ${remaining}`);
+  console.log(`Deactivated ${updateResult.count} existing blood tests`);
 }
 
 export async function syncStripeProducts(): Promise<SyncResult> {
-  console.log('Starting Stripe products sync...');
-  console.log(`Using Stripe ${process.env.NODE_ENV === 'production' ? 'LIVE' : 'TEST'} mode`);
+  console.log('Starting complete Stripe sync...');
   
   try {
-    // Step 0: Deactivate all blood tests
+    // Step 1: Get Stripe mode
+    const { isTestMode } = await getStripeMode();
+    const mode = isTestMode ? 'test' : 'live';
+    console.log(`Operating in ${mode} mode`);
+
+    // Step 2: Deactivate existing tests
     await deactivateAllTests();
 
-    // Step 1: Fetch all active products from Stripe
-    console.log('Fetching products from Stripe...');
-    const allProducts = await stripe.products.list({
-      limit: 100,
-      active: true
+    // Step 3: Fetch all payment links from Stripe
+    console.log('\nFetching payment links from Stripe...');
+    const paymentLinks = await stripe.paymentLinks.list({
+      limit: 100
     });
 
-    // Always use test mode products when not in production
-    const isProduction = process.env.NODE_ENV === 'production';
-    console.log('\nEnvironment:', isProduction ? 'production' : 'development');
-    console.log('Total products in Stripe:', allProducts.data.length);
-    console.log('\nAll products:');
-    allProducts.data.forEach(p => {
-      console.log(`\nProduct: ${p.name}`);
-      console.log(`ID: ${p.id}`);
-      console.log(`Active: ${p.active}`);
-      console.log(`Livemode: ${p.livemode}`);
-      console.log(`Metadata:`, p.metadata);
-    });
+    console.log(`Total payment links found: ${paymentLinks.data.length}`);
     
-    console.log('\nFiltering products based on environment...');
-    // Force test mode products when not in production
-    const filteredProducts = allProducts.data.filter(p => !p.livemode);
-    console.log(`Found ${filteredProducts.length} ${isProduction ? 'live' : 'test'} products in Stripe`);
-    
-    console.log('\nFiltered products:');
-    filteredProducts.forEach(p => {
-      console.log(`\nProduct: ${p.name}`);
-      console.log(`ID: ${p.id}`);
-      console.log(`Active: ${p.active}`);
-      console.log(`Livemode: ${p.livemode}`);
-      console.log(`Metadata:`, p.metadata);
-    });
-    
-    // Step 2: Filter for blood test products and get their prices
-    console.log('\nProcessing products:');
-    const validProducts = [];
-    const productPrices = new Map<string, Stripe.Price>();
-
-    for (const product of filteredProducts) {
-      console.log(`\nProduct: ${product.name}`);
-      console.log('ID:', product.id);
-      console.log('Active:', product.active);
-      console.log('Metadata:', JSON.stringify(product.metadata, null, 2));
-
-      // Only include blood test products based on metadata
-      if (!product.metadata?.category || product.metadata.category !== 'blood_test') {
-        console.log('Skipping non-blood test product:', product.name, '(metadata category:', product.metadata?.category || 'none', ')');
-        continue;
-      }
-
-      // Skip inactive products
-      if (!product.active) {
-        console.log('Skipping inactive product:', product.name);
-        continue;
-      }
-
-      // Get latest active price
-      const prices = await stripe.prices.list({
-        product: product.id,
-        active: true,
-        limit: 1
+    // Log all payment links for debugging
+    paymentLinks.data.forEach(link => {
+      console.log(`Link ${link.id}:`, {
+        active: link.active,
+        livemode: link.livemode,
+        url: link.url
       });
+    });
 
-      if (prices.data.length === 0) {
-        console.log('Skipping - no active price');
-        continue;
-      }
+    // Filter for correct mode links (including inactive ones)
+    const validLinks = paymentLinks.data.filter(link => 
+      link.livemode === !isTestMode
+    );
+    console.log(`Found ${validLinks.length} ${mode} mode payment links (including inactive)`);
 
-      const price = prices.data[0];
-      console.log(`Found price: £${price.unit_amount! / 100}`);
-      
-      validProducts.push(product);
-      productPrices.set(product.id, price);
-    }
-
-    console.log(`\nFound ${validProducts.length} valid blood test products`);
-
-    // Step 3: Create/update blood tests
     const changes: SyncResult['products'] = [];
-    const activeProductIds = new Set<string>();
 
-    for (const product of validProducts) {
-      const price = productPrices.get(product.id)!;
-      const priceAmount = price.unit_amount! / 100;
-      activeProductIds.add(product.id);
-
+    // Step 4: Process each payment link
+    for (const link of validLinks) {
       try {
-        // First try to find an existing test
+        // Log payment link status
+        console.log(`Processing link ${link.id} (${link.active ? 'active' : 'inactive'})...`);
+        
+        // Get the line items from the payment link
+        console.log(`Fetching line items for link ${link.id}...`);
+        const lineItems = await stripe.paymentLinks.listLineItems(link.id);
+        
+        if (lineItems.data.length === 0) {
+          console.log(`Skipping link ${link.id} - no products`);
+          continue;
+        }
+
+        // Get the first line item (payment links should only have one product)
+        const item = lineItems.data[0];
+        console.log(`Found line item:`, item);
+
+        if (!item.price || !item.price.product) {
+          console.log(`Skipping link ${link.id} - invalid price or product`);
+          continue;
+        }
+
+        // Get the product details
+        console.log(`Fetching product details for ${item.price.product}...`);
+        const product = await stripe.products.retrieve(item.price.product as string);
+        const price = item.price;
+        const priceAmount = price.unit_amount! / 100;
+        console.log(`Product details:`, {
+          name: product.name,
+          price: priceAmount,
+          id: product.id
+        });
+
+        // Ensure required fields are present
+        if (!product.name || !product.id || !price.id) {
+          console.log(`Skipping product - missing required fields`);
+          continue;
+        }
+
+        // Try to find existing blood test
         const existingTest = await prisma.bloodTest.findFirst({
           where: { stripeProductId: product.id }
         });
 
-        let test;
+        let bloodTest;
         if (existingTest) {
           // Update existing test
-          test = await prisma.bloodTest.update({
+          bloodTest = await prisma.bloodTest.update({
             where: { id: existingTest.id },
             data: {
               name: product.name,
               description: product.description || '',
               price: priceAmount,
               stripePriceId: price.id,
-              isActive: true
+              isActive: link.active,
+              slug: slugify(product.name, { lower: true })
             }
           });
         } else {
           // Create new test
-          const baseSlug = slugify(product.name, { lower: true });
-          let finalSlug = baseSlug;
-          let counter = 1;
-
-          // Keep trying with numbered slugs until we find a unique one
-          while (true) {
-            try {
-              test = await prisma.bloodTest.create({
-                data: {
-                  name: product.name,
-                  slug: finalSlug,
-                  description: product.description || '',
-                  price: priceAmount,
-                  stripeProductId: product.id,
-                  stripePriceId: price.id,
-                  isActive: true
-                }
-              });
-              break;
-            } catch (error: any) {
-              if (error?.code === 'P2002' && error?.meta?.target?.includes('slug')) {
-                finalSlug = `${baseSlug}-${counter}`;
-                counter++;
-                continue;
-              }
-              throw error;
-            }
-          }
-        }
-
-        changes.push({
-          name: product.name,
-          oldPrice: test.price !== priceAmount ? test.price : undefined,
-          newPrice: priceAmount,
-          status: test.price !== priceAmount ? 'updated' : 'created'
-        });
-      } catch (error: any) {
-        if (error?.code === 'P2002' && error?.meta?.target?.includes('slug')) {
-          const uniqueSlug = slugify(`${product.name}-${Date.now()}`, { lower: true });
-          const test = await prisma.bloodTest.create({
+          bloodTest = await prisma.bloodTest.create({
             data: {
               name: product.name,
-              slug: uniqueSlug,
               description: product.description || '',
               price: priceAmount,
               stripeProductId: product.id,
               stripePriceId: price.id,
-              isActive: true
+              isActive: link.active,
+              slug: slugify(product.name, { lower: true })
             }
           });
-
-          changes.push({
-            name: product.name,
-            newPrice: priceAmount,
-            status: 'created'
-          });
-        } else {
-          throw error;
         }
+
+        changes.push({
+          name: bloodTest.name,
+          newPrice: bloodTest.price,
+          status: 'created',
+          stripeProductId: bloodTest.stripeProductId || '',
+          stripePriceId: bloodTest.stripePriceId || '',
+          paymentLinkUrl: link.url
+        });
+
+        console.log(`Created: ${bloodTest.name} at £${bloodTest.price}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Error processing ${product.name}:`, errorMessage);
+        // Skip this product but continue with others
+        continue;
       }
     }
 
-    // Step 4: Archive old tests
-    const testsToArchive = await prisma.bloodTest.findMany({
-      where: {
-        isActive: true,
-        NOT: { stripeProductId: { in: Array.from(activeProductIds) } }
-      }
-    });
-
-    for (const test of testsToArchive) {
-      await prisma.bloodTest.update({
-        where: { id: test.id },
-        data: {
-          isActive: false,
-          stripePriceId: null,
-          stripeProductId: null
-        }
-      });
-
-      changes.push({
-        name: test.name,
-        oldPrice: test.price,
-        newPrice: 0,
-        status: 'archived'
-      });
-    }
-
-    // Step 5: Final check
-    const finalActiveTests = await prisma.bloodTest.findMany({
-      where: { 
-        isActive: true,
-        AND: [
-          { stripePriceId: { not: null } },
-          { stripeProductId: { not: null } }
-        ]
-      },
-      orderBy: { name: 'asc' }
-    });
-
-    const summary = {
-      total: validProducts.length,
-      created: changes.filter(c => c.status === 'created').length,
-      updated: changes.filter(c => c.status === 'updated').length,
-      archived: changes.filter(c => c.status === 'archived').length,
-      active: finalActiveTests.length
-    };
-
-    console.log('\nSync summary:', summary);
-    console.log('Active tests:', finalActiveTests.map(t => t.name));
+    const successMessage = `Successfully synced ${changes.length} blood tests`;
+    console.log('\n' + successMessage);
 
     return {
       success: true,
-      message: `Synced ${summary.total} blood tests (${summary.created} created, ${summary.updated} updated, ${summary.archived} archived)`,
+      message: successMessage,
       products: changes
     };
-  } catch (error: any) {
-    console.error('Error syncing Stripe products:', error);
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Sync failed:', errorMessage);
+    
     return {
       success: false,
-      message: `Error syncing Stripe products: ${error?.message || 'Unknown error'}`,
+      message: `Sync failed: ${errorMessage}`,
       products: []
     };
   }

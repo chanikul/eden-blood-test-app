@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16'
+    apiVersion: '2025-04-30.basil'
   }) as any;
 
   try {
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
           },
         },
       ],
-      success_url: `${new URL(data.successUrl).origin}/order-success/${order.id}?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${new URL(data.successUrl).origin}/order-success?orderId=${order.id}&sessionId=${'{CHECKOUT_SESSION_ID}'}`,
       cancel_url: data.cancelUrl,
       metadata: {
         orderId: order.id,

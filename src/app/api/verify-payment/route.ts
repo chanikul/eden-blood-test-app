@@ -3,21 +3,21 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   console.log('=== VERIFYING PAYMENT ===');
   const { searchParams } = new URL(request.url);
-  const orderId = searchParams.get('orderId');
   const sessionId = searchParams.get('sessionId');
 
   console.log('Payment verification params:', {
-    orderId,
     sessionId,
     url: request.url
   });
 
-  if (!orderId || !sessionId) {
+  if (!sessionId) {
     return NextResponse.json(
-      { error: 'Missing orderId or sessionId' },
+      { error: 'Missing session ID' },
       { status: 400 }
     );
   }
@@ -37,10 +37,21 @@ export async function GET(request: Request) {
   });
 
   try {
+    console.log('Fetching Stripe session...');
+    // Verify the payment with Stripe
+    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+    
+    if (stripeSession.payment_status !== 'paid') {
+      return NextResponse.json(
+        { error: 'Payment not completed' },
+        { status: 400 }
+      );
+    }
+
     console.log('Fetching order from database...');
-    // Get the order
+    // Get the order using the session ID
     const order = await prisma.order.findUnique({
-      where: { id: orderId },
+      where: { stripeSessionId: sessionId },
       include: {
         bloodTest: true
       }

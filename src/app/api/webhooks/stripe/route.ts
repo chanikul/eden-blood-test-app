@@ -24,7 +24,14 @@ const stripeClient = new Stripe(STRIPE_SECRET_KEY, {
 type StripeCheckoutSession = Stripe.Checkout.Session & {
   shipping_details?: {
     name: string;
-    address: Stripe.Address;
+    address: {
+      line1: string;
+      line2?: string | null;
+      city: string;
+      state?: string | null;
+      postal_code: string;
+      country: string;
+    };
   };
   metadata?: {
     orderId?: string;
@@ -255,19 +262,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ received: true });
       }
 
-      let formattedShippingAddress: string | undefined = undefined;
-      if (session.shipping_details?.address && session.shipping_details.name) {
-        const address = session.shipping_details.address;
-        formattedShippingAddress = [
-          session.shipping_details.name,
-          address.line1,
-          address.line2,
-          address.city,
-          address.state,
-          address.postal_code,
-          address.country
-        ].filter(Boolean).join('\n');
-      }
+      console.log('=== PROCESSING CHECKOUT SESSION ===');
+      console.log('Session details:', {
+        id: session.id,
+        shipping_details: session.shipping_details,
+        customer_details: session.customer_details,
+        payment_status: session.payment_status,
+        mode: session.mode,
+        metadata: session.metadata
+      });
+
+      // Get shipping details from session
+      const shipping = (session as any).shipping_details;
+      const address = shipping?.address;
+      console.log('Raw shipping info:', JSON.stringify(shipping, null, 2));
+      
+      console.log('Shipping address to save:', JSON.stringify(address, null, 2));
 
       // Initialize email promises array
       const emailPromises: Promise<void>[] = [];
@@ -298,15 +308,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
       }
 
-      // Send all emails
+      // Send all emails and update order
       try {
+        // Update order status and shipping address
+        await prisma.order.update({
+          where: { id: orderId },
+          data: {
+            status: 'PAID',
+            paymentId: paymentIntent,
+            shippingAddress: address ? JSON.stringify(address) : Prisma.JsonNull
+          }
+        });
+        console.log('Order updated with shipping address:', {
+          orderId: order.id,
+          shippingAddress: order.shippingAddress
+        });
+
+        // Send notification emails
         await Promise.all(emailPromises);
         console.log('All notification emails sent successfully');
+
         return NextResponse.json({ received: true });
-      } catch (emailError) {
-        console.error('Error sending notification emails:', emailError instanceof Error ? emailError.message : 'Unknown error');
+      } catch (error) {
+        console.error('Error processing order:', error instanceof Error ? error.message : 'Unknown error');
         return NextResponse.json(
-          { error: { message: 'Error sending notification emails', code: 500 } },
+          { error: { message: 'Error processing order', code: 500 } },
           { status: 500 }
         );
       }

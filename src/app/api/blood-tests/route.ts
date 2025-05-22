@@ -64,27 +64,27 @@ export async function GET() {
         console.log(`- ${test.name}: ${test.isActive ? 'active' : 'inactive'}`);
       });
       
-      // Get active blood tests for the response
-      console.log('\nFetching active blood tests...');
-      const activeTests = await prisma.bloodTest.findMany({
-        where: {
-          isActive: true
-        },
+      // Get blood tests for the response
+      console.log('\nFetching blood tests...');
+      const tests = await prisma.bloodTest.findMany({
+        where: process.env.NODE_ENV === 'development' ? undefined : { isActive: true },
         select: {
           id: true,
           name: true,
           price: true,
           description: true,
-          slug: true
+          slug: true,
+          isActive: true
         }
       });
 
-      console.log('Active blood tests to be returned:', activeTests.length);
-      if (activeTests.length > 0) {
-        console.log('First active test:', activeTests[0]);
+      console.log(`Found ${tests.length} blood tests (${tests.filter(t => t.isActive).length} active)`);
+
+      if (tests.length > 0) {
+        console.log('First test:', tests[0]);
       }
       
-      return NextResponse.json({ tests: activeTests });
+      return NextResponse.json({ tests });
     } catch (queryError: any) {
       console.error('Database query error:', {
         message: queryError.message,
