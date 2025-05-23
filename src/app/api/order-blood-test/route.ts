@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { bloodTestOrderSchema } from '@/lib/validations/blood-test-order';
 import { sendOrderNotificationEmail } from '@/lib/services/email';
+import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
 import { ZodError } from 'zod';
 import Stripe from 'stripe';
 
@@ -50,6 +51,65 @@ type StripeSessionData = {
 
 export async function POST(request: Request) {
   try {
+    const data = await request.json();
+    const {
+      patientName,
+      patientEmail,
+      patientDateOfBirth,
+      patientMobile,
+      testSlug,
+      notes,
+      createAccount,
+      password,
+      shippingAddress
+    } = data;
+
+    // Create client account if requested
+    let clientId: string | undefined;
+    if (createAccount && password) {
+      try {
+        const client = await createClientUser({
+          email: patientEmail,
+          password,
+          name: patientName,
+          dateOfBirth: patientDateOfBirth,
+          mobile: patientMobile,
+        });
+        clientId = client.id;
+      } catch (error: any) {
+        if (error.message === 'User with this email already exists') {
+          const existingClient = await findClientUserByEmail(patientEmail);
+          if (existingClient) {
+            clientId = existingClient.id;
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    // Get blood test details
+    const { price: stripePriceId, name: testName } = await getBloodTestPrice(testSlug);
+
+    // Create order
+    const order = await prisma.order.create({
+      data: {
+        patientName,
+        patientEmail,
+        patientDateOfBirth,
+        patientMobile,
+        testName,
+        notes,
+        status: 'PENDING',
+        shippingAddress,
+        clientId,
+        bloodTest: {
+          connect: {
+            slug: testSlug
+          }
+        }
+      }
+    });
     console.log('\n=== CREATING ORDER ===');
     
     // Parse request body

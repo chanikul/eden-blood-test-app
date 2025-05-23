@@ -50,6 +50,24 @@ model BloodTest {
   orders          Order[]  @relation("OrderBloodTest")
 }
 
+model ClientUser {
+  id                String    @id @default(cuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  email             String    @unique
+  passwordHash      String
+  name              String
+  dateOfBirth       String
+  mobile            String?
+  active            Boolean   @default(true)
+  lastLoginAt       DateTime?
+  resetToken        String?   @unique
+  resetTokenExpires DateTime?
+  stripeCustomerId  String?   @unique
+  orders            Order[]
+  addresses         Address[]
+}
+
 model Order {
   id                 String      @id @default(cuid())
   createdAt          DateTime    @default(now())
@@ -68,8 +86,10 @@ model Order {
   dispatchedAt       DateTime?
   dispatchedById     String?
   bloodTestId        String
+  clientId           String?
   bloodTest          BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
   dispatchedBy       Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
+  client             ClientUser? @relation(fields: [clientId], references: [id])
 
   @@unique([patientEmail, createdAt])
 }
@@ -84,4 +104,27 @@ enum OrderStatus {
 enum AdminRole {
   ADMIN
   SUPER_ADMIN
+}
+
+model Address {
+  id        String      @id @default(cuid())
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  type      AddressType
+  name      String
+  line1     String
+  line2     String?
+  city      String
+  postcode  String
+  country   String
+  isDefault Boolean     @default(false)
+  clientId  String
+  client    ClientUser  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, type, isDefault])
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
 }

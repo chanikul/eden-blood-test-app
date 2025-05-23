@@ -134,11 +134,12 @@ export async function POST(request: Request) {
 
     // Create Stripe checkout session
     console.log('Creating Stripe checkout session with price:', data.stripePriceId);
+    console.log('Creating checkout session with shipping enabled');
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
       shipping_address_collection: {
-        allowed_countries: ['GB'],
+        allowed_countries: ['GB']
       },
       shipping_options: [
         {

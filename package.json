@@ -13,7 +13,7 @@
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.3.4",
+    "@hookform/resolvers": "^3.10.0",
     "@netlify/plugin-nextjs": "^5.11.1",
     "@prisma/client": "^6.7.0",
     "@radix-ui/react-dialog": "^1.1.13",
@@ -22,6 +22,7 @@
     "@radix-ui/react-select": "^2.2.4",
     "@sendgrid/mail": "^8.1.5",
     "@stripe/stripe-js": "^7.3.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@tailwindcss/forms": "^0.5.10",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -44,16 +45,17 @@
     "react": "^18.2.0",
     "react-datepicker": "^8.3.0",
     "react-dom": "^18.2.0",
-    "react-hook-form": "^7.49.2",
+    "react-hook-form": "^7.56.4",
     "react-hot-toast": "^2.5.2",
     "react-toastify": "^11.0.5",
     "resend": "^4.5.1",
     "slugify": "^1.6.6",
+    "sonner": "^2.0.3",
     "stripe": "^18.1.0",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5",
-    "zod": "^3.22.4"
+    "zod": "^3.25.23"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

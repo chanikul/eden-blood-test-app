@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Order, OrderStatus, ShippingAddress } from '@/types'
+import { useState } from 'react'
+import { Order, OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 
@@ -17,27 +17,6 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   const initialStatus = order?.status || OrderStatus.PENDING
   const [status, setStatus] = useState<OrderStatus>(initialStatus as OrderStatus)
   const [isLoading, setIsLoading] = useState(false)
-  const [parsedAddress, setParsedAddress] = useState<ShippingAddress | null>(null)
-
-  useEffect(() => {
-    if (order?.shippingAddress) {
-      try {
-        let address: ShippingAddress;
-        if (typeof order.shippingAddress === 'string') {
-          address = JSON.parse(order.shippingAddress) as ShippingAddress;
-        } else {
-          address = order.shippingAddress as unknown as ShippingAddress;
-        }
-        console.log('Parsed shipping address:', address);
-        setParsedAddress(address);
-      } catch (error) {
-        console.error('Error parsing shipping address:', error);
-        setParsedAddress(null);
-      }
-    } else {
-      setParsedAddress(null);
-    }
-  }, [order?.shippingAddress])
 
   if (!order) return null
 
@@ -75,33 +54,65 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
     }
   }
 
-  const formatShippingAddress = (address?: ShippingAddress | null) => {
+  const renderShippingAddress = () => {
+    console.log('=== DEBUG: ORDER DETAIL MODAL ===');
+    console.log('1. Order:', order);
+    console.log('2. Shipping Address:', order.shippingAddress);
+    
     return (
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
         <h3 className="text-lg font-semibold mb-2">Shipping Address</h3>
         {order.shippingAddress ? (
-          <div className="space-y-1">
-            {(() => {
-              try {
-                const address = JSON.parse(order.shippingAddress);
-                return (
-                  <>
-                    <div>{address.line1}</div>
-                    {address.line2 && <div>{address.line2}</div>}
-                    <div>
-                      {address.city}{address.state ? `, ${address.state}` : ''} {address.postal_code}
-                    </div>
-                    <div>{address.country}</div>
-                  </>
-                );
-              } catch (e) {
-                console.error('Failed to parse shipping address:', e);
-                return <div className="text-red-500">Invalid address format</div>;
-              }
-            })()}
+          <div className="space-y-3">
+            {/* Formatted Address */}
+            <div className="space-y-1 text-gray-800">
+              {(() => {
+                try {
+                  console.log('3. Attempting to parse:', order.shippingAddress);
+                  type ShippingAddress = {
+                    line1: string;
+                    line2?: string | null;
+                    city: string;
+                    state?: string | null;
+                    postal_code: string;
+                    country: string;
+                  };
+
+                  const shippingAddress = order.shippingAddress ? (order.shippingAddress as unknown as ShippingAddress) : null;
+
+                  console.log('Shipping address from order:', shippingAddress);
+                  
+                  if (!shippingAddress) {
+                    return <div>No shipping address provided</div>;
+                  }
+
+                  return (
+                    <>
+                      <div className="font-medium">{shippingAddress.line1}</div>
+                      {shippingAddress.line2 && <div>{shippingAddress.line2}</div>}
+                      <div>
+                        {[shippingAddress.city, shippingAddress.state].filter(Boolean).join(', ')}
+                      </div>
+                      <div>{shippingAddress.postal_code}</div>
+                      <div className="font-medium">{shippingAddress.country}</div>
+                    </>
+                  );
+                } catch (e) {
+                  console.error('Failed to parse shipping address:', e, '\nRaw value:', order.shippingAddress);
+                  return <div className="text-red-500">Error: Invalid address format</div>;
+                }
+              })()}
+            </div>
+            
+            {/* Debug: Raw JSON */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="text-xs font-mono text-gray-500 break-all">
+                Raw data: {order.shippingAddress}
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="text-gray-500">No shipping address provided</div>
+          <div className="text-gray-500 italic">No shipping address recorded</div>
         )}
       </div>
     )
@@ -145,7 +156,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
               <p><span className="font-medium">Date of Birth:</span> {format(new Date(order.patientDateOfBirth), 'dd/MM/yyyy')}</p>
               <p><span className="font-medium">Email:</span> {order.patientEmail}</p>
               <p><span className="font-medium">Order Date:</span> {format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm')}</p>
-              {formatShippingAddress(parsedAddress)}
+              {renderShippingAddress()}
               <p>
                 <span className="font-medium text-gray-800">Stripe Session ID:</span>{' '}
                 {order.stripeSessionId || 'N/A'}

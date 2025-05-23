@@ -6,16 +6,19 @@ import { notFound } from 'next/navigation';
 
 interface OrderSuccessPageProps {
   searchParams: {
-    session_id?: string;
+    sessionId?: string;
+    orderId?: string;
   };
 }
 
 export default function OrderSuccessPage({
   searchParams,
 }: OrderSuccessPageProps) {
-  const sessionId = searchParams.session_id;
+  const sessionId = searchParams.sessionId;
+  const orderId = searchParams.orderId;
 
-  if (!sessionId) {
+  // Need both sessionId and orderId
+  if (!sessionId || !orderId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
@@ -31,9 +34,9 @@ export default function OrderSuccessPage({
 
   const [isLoading, setIsLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-
-
     const verifyPayment = async () => {
       try {
         console.log('Verifying payment:', { sessionId });
@@ -48,18 +51,28 @@ export default function OrderSuccessPage({
         );
         
         console.log('Verify payment response:', { status: response.status });
+        const data = await response.json();
+
         if (!response.ok) {
-          const data = await response.json();
           console.error('Payment verification failed:', data);
-          throw new Error(data.error || 'Failed to verify payment');
+          setError(data.error || 'Failed to verify payment');
+          setIsLoading(false);
+          return;
         }
 
-        const { order } = await response.json();
-        console.log('Payment verified:', { order });
+        if (!data.success || !data.order) {
+          console.error('Invalid response format:', data);
+          setError('Invalid server response');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('Payment verified:', { order: data.order });
         setIsLoading(false);
       } catch (err) {
         console.error('Error verifying payment:', err);
-        throw new Error(err instanceof Error ? err.message : 'Failed to verify payment');
+        setError(err instanceof Error ? err.message : 'Failed to verify payment');
+        setIsLoading(false);
       }
     };
 
@@ -73,6 +86,20 @@ export default function OrderSuccessPage({
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <h2 className="text-2xl font-semibold text-gray-700 mb-2">Verifying Payment</h2>
           <p className="text-gray-500">Please wait while we confirm your payment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <h2 className="text-2xl font-semibold text-red-600 mb-4">Payment Verification Failed</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <a href="/" className="inline-block bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">
+            Return to Home
+          </a>
         </div>
       </div>
     );

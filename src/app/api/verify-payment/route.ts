@@ -33,15 +33,26 @@ export async function GET(request: Request) {
 
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-04-30.basil' as const
+    apiVersion: '2023-10-16' as const
   });
 
   try {
     console.log('Fetching Stripe session...');
     // Verify the payment with Stripe
-    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['shipping', 'shipping_details', 'customer']
+    });
     
-    if (stripeSession.payment_status !== 'paid') {
+    console.log('Stripe session details:', {
+      id: session.id,
+      paymentStatus: session.payment_status,
+      paymentIntent: session.payment_intent,
+      customer: session.customer,
+      customer_details: session.customer_details,
+      shipping_address: session.customer_details?.address
+    });
+    
+    if (session.payment_status !== 'paid') {
       return NextResponse.json(
         { error: 'Payment not completed' },
         { status: 400 }
@@ -64,37 +75,62 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log('Fetching Stripe session...');
-    // Verify the payment with Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
-    console.log('Stripe session details:', {
-      id: session.id,
-      paymentStatus: session.payment_status,
-      paymentIntent: session.payment_intent,
-      customer: session.customer
+    console.log('Updating order status to PAID...');
+    // Get shipping details from session
+    const shippingAddress = session.customer_details?.address;
+    console.log('Shipping details from session:', {
+      customer_details: session.customer_details,
+      shipping_address: shippingAddress
     });
-    
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json(
-        { error: 'Payment not completed' },
-        { status: 400 }
-      );
+
+    // Prepare update data
+    const updateData: any = {
+      status: 'PAID',
+      paymentId: session.payment_intent as string,
+      updatedAt: new Date()
+    };
+
+    // Add shipping address if present
+    if (shippingAddress) {
+      updateData.shippingAddress = {
+        line1: shippingAddress.line1,
+        line2: shippingAddress.line2 || null,
+        city: shippingAddress.city,
+        state: shippingAddress.state || null,
+        postal_code: shippingAddress.postal_code,
+        country: shippingAddress.country
+      };
     }
 
-    console.log('Updating order status to PAID...');
-    // Update order status
-    await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: 'PAID',
-        paymentId: session.payment_intent as string,
-        updatedAt: new Date()
-      }
+    console.log('Updating order with data:', updateData);
+
+    // Update order status and shipping address
+    let updatedOrder;
+    try {
+      updatedOrder = await prisma.order.update({
+        where: { id: order.id },
+        data: updateData,
+        include: {
+          bloodTest: true
+        }
+      });
+      console.log('Order updated successfully:', {
+        id: updatedOrder.id,
+        shippingAddress: updatedOrder.shippingAddress
+      });
+    } catch (error) {
+      console.error('Error updating order:', {
+        error,
+        orderId: order.id,
+        updateData
+      });
+      throw error;
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      order: updatedOrder
     });
-
-
-    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error verifying payment:', {
       error,

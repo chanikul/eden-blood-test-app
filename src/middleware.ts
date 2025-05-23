@@ -1,42 +1,57 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifySessionToken } from '@/lib/auth'
+import { verifySessionToken, verifyClientToken } from '@/lib/auth'
 
 export async function middleware(request: NextRequest) {
   console.log('Middleware executing for path:', request.nextUrl.pathname);
   
-  // Don't protect the login page
-  if (request.nextUrl.pathname === '/admin/login') {
-    console.log('Login page access - allowing');
+  // Don't protect public pages
+  if (
+    request.nextUrl.pathname === '/admin/login' ||
+    request.nextUrl.pathname === '/login' ||
+    request.nextUrl.pathname === '/register'
+  ) {
     return NextResponse.next()
   }
 
-  // Protect all other /admin routes
+  // Protect admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    console.log('Admin route access - checking authentication');
     const token = request.cookies.get('eden_admin_token')?.value
-    console.log('Token present:', !!token);
 
     if (!token) {
-      console.log('No token found - redirecting to login');
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
-    // Verify the session token and role
     try {
       const user = await verifySessionToken(token)
-      console.log('Token verification result:', { user: !!user, role: user?.role });
-      
       if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-        console.log('Invalid token or insufficient permissions - redirecting to login');
         return NextResponse.redirect(new URL('/admin/login', request.url))
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
+      console.error('Admin token verification failed:', error);
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
-    
-    console.log('Authentication successful');
+
+    return NextResponse.next()
+  }
+
+  // Protect client routes
+  if (request.nextUrl.pathname.startsWith('/client')) {
+    const token = request.cookies.get('eden_client_token')?.value
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    try {
+      const user = await verifyClientToken(token)
+      if (!user) {
+        return NextResponse.redirect(new URL('/login', request.url))
+      }
+    } catch (error) {
+      console.error('Client token verification failed:', error);
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
 
     return NextResponse.next()
   }
@@ -45,5 +60,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/admin/:path*',
+  matcher: ['/admin/:path*', '/client/:path*'],
 }
