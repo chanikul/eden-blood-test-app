@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "preview-emails": "node src/lib/email-templates/__tests__/preview.mjs"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -49,6 +50,7 @@
     "typescript": "5.1.6"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "ts-node": "^10.9.2"
   }
 }
