@@ -19,6 +19,7 @@
     "@react-email/link": "^0.0.5",
     "@react-email/preview": "^0.0.6",
     "@react-email/render": "^0.0.7",
+    "@react-email/section": "^0.0.16",
     "@react-email/text": "^0.0.5",
     "@stripe/stripe-js": "^2.1.0",
     "@types/node": "20.4.5",
