@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { bloodTestOrderSchema } from '@/lib/validations/blood-test-order';
 import { sendOrderNotificationEmail } from '@/lib/services/email';
 import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 import Stripe from 'stripe';
+import type { BloodTest } from '@prisma/client';
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -51,73 +53,26 @@ type StripeSessionData = {
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const {
-      patientName,
-      patientEmail,
-      patientDateOfBirth,
-      patientMobile,
-      testSlug,
-      notes,
-      createAccount,
-      password,
-      shippingAddress
-    } = data;
-
-    // Create client account if requested
-    let clientId: string | undefined;
-    if (createAccount && password) {
-      try {
-        const client = await createClientUser({
-          email: patientEmail,
-          password,
-          name: patientName,
-          dateOfBirth: patientDateOfBirth,
-          mobile: patientMobile,
-        });
-        clientId = client.id;
-      } catch (error: any) {
-        if (error.message === 'User with this email already exists') {
-          const existingClient = await findClientUserByEmail(patientEmail);
-          if (existingClient) {
-            clientId = existingClient.id;
-          }
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    // Get blood test details
-    const { price: stripePriceId, name: testName } = await getBloodTestPrice(testSlug);
-
-    // Create order
-    const order = await prisma.order.create({
-      data: {
-        patientName,
-        patientEmail,
-        patientDateOfBirth,
-        patientMobile,
-        testName,
-        notes,
-        status: 'PENDING',
-        shippingAddress,
-        clientId,
-        bloodTest: {
-          connect: {
-            slug: testSlug
-          }
-        }
-      }
-    });
-    console.log('\n=== CREATING ORDER ===');
+    console.log('=== CREATING ORDER ===');
     
-    // Parse request body
+    // Parse and validate request data
     const body = await request.json();
     console.log('Request body:', JSON.stringify(body, null, 2));
 
-    // Validate request data
-    const validatedData = bloodTestOrderSchema.parse(body);
+    // Validate with extended schema that includes account creation fields
+    const validatedData = bloodTestOrderSchema.extend({
+      createAccount: z.boolean().optional(),
+      password: z.string().min(8).optional(),
+      shippingAddress: z.object({
+        line1: z.string(),
+        line2: z.string().optional(),
+        city: z.string(),
+        state: z.string().optional(),
+        postalCode: z.string(),
+        country: z.string()
+      })
+    }).parse(body);
+    
     console.log('Validated data:', validatedData);
 
     // Get blood test from database
@@ -150,17 +105,50 @@ export async function POST(request: Request) {
       stripePriceId: bloodTest.stripePriceId,
     });
 
+    // Create client account if requested
+    let clientId: string | undefined;
+    if (validatedData.createAccount && validatedData.password) {
+      try {
+        const client = await createClientUser({
+          email: validatedData.email,
+          password: validatedData.password,
+          name: validatedData.fullName,
+          dateOfBirth: validatedData.dateOfBirth,
+          mobile: validatedData.mobile,
+        });
+        clientId = client.id;
+      } catch (error: any) {
+        if (error.message === 'User with this email already exists') {
+          const existingClient = await findClientUserByEmail(validatedData.email);
+          if (existingClient) {
+            clientId = existingClient.id;
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+
     // Create order in database
-    const order = await prisma.order.create({
-      data: {
-        patientName: validatedData.fullName,
-        patientEmail: validatedData.email,
-        patientDateOfBirth: validatedData.dateOfBirth,
-        patientMobile: validatedData.mobile,
-        testName: bloodTest.name,
-        notes: validatedData.notes,
-        status: 'PENDING',
+    const orderData: Prisma.OrderCreateInput = {
+      patientName: validatedData.fullName,
+      patientEmail: validatedData.email,
+      patientDateOfBirth: validatedData.dateOfBirth,
+      patientMobile: validatedData.mobile,
+      testName: bloodTest.name,
+      notes: validatedData.notes,
+      status: 'PENDING',
+      shippingAddress: validatedData.shippingAddress,
+      bloodTest: {
+        connect: {
+          id: bloodTest.id
+        }
       },
+      ...(clientId ? { client: { connect: { id: clientId } } } : {})
+    };
+
+    const order = await prisma.order.create({
+      data: orderData
     });
     console.log('Created order:', order);
 
@@ -173,8 +161,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order-success/${order.id}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-status?success=false`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/client/blood-tests?success=true&orderId=${order.id}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order?error=payment-cancelled`,
       customer_email: validatedData.email,
       metadata: {
         orderId: order.id,

@@ -74,7 +74,8 @@ export async function GET() {
           price: true,
           description: true,
           slug: true,
-          isActive: true
+          isActive: true,
+          stripePriceId: true
         }
       });
 

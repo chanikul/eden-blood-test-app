@@ -30,6 +30,20 @@ export const bloodTestOrderSchema = z.object({
   consent: z
     .boolean()
     .refine((val) => val === true, 'You must agree to the Privacy Policy and consent to data processing'),
+  createAccount: z
+    .boolean()
+    .optional(),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .optional(),
+  shippingAddress: z.object({
+    line1: z.string().min(1, 'Address line 1 is required'),
+    line2: z.string().optional(),
+    city: z.string().min(1, 'City is required'),
+    postalCode: z.string().min(1, 'Postal code is required'),
+    country: z.string().min(1, 'Country is required')
+  })
 });
 
 export type BloodTestOrderFormData = z.infer<typeof bloodTestOrderSchema>;

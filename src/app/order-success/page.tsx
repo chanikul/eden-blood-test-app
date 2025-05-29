@@ -39,29 +39,43 @@ export default function OrderSuccessPage({
   useEffect(() => {
     const verifyPayment = async () => {
       try {
-        console.log('Verifying payment:', { sessionId });
+        console.log('Verifying payment:', { sessionId, orderId });
         const response = await fetch(
-          `/api/verify-payment?sessionId=${sessionId}`,
+          `/api/verify-payment?sessionId=${sessionId}&orderId=${orderId}`,
           { 
             method: 'GET',
             headers: {
               'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include' // Include cookies for auth
           }
         );
         
-        console.log('Verify payment response:', { status: response.status });
+        console.log('Verify payment response:', { 
+          status: response.status,
+          ok: response.ok,
+          statusText: response.statusText
+        });
         const data = await response.json();
+        console.log('Response data:', data);
 
         if (!response.ok) {
-          console.error('Payment verification failed:', data);
+          console.error('Payment verification failed:', {
+            error: data.error,
+            status: response.status,
+            data
+          });
           setError(data.error || 'Failed to verify payment');
           setIsLoading(false);
           return;
         }
 
-        if (!data.success || !data.order) {
-          console.error('Invalid response format:', data);
+        if (!data.success && !data.order) {
+          console.error('Invalid response format:', {
+            data,
+            hasSuccess: 'success' in data,
+            hasOrder: 'order' in data
+          });
           setError('Invalid server response');
           setIsLoading(false);
           return;

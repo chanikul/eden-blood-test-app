@@ -1,0 +1,18 @@
+.toggle-checkbox:checked {
+  @apply right-0 border-teal-600;
+  transform: translateX(100%);
+}
+
+.toggle-checkbox:checked + .toggle-label {
+  @apply bg-teal-600;
+}
+
+.toggle-checkbox {
+  @apply right-4 border-gray-300;
+  transition: all 0.3s ease-in-out;
+}
+
+.toggle-label {
+  @apply bg-gray-300;
+  transition: background-color 0.3s ease-in-out;
+}

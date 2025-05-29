@@ -81,6 +81,7 @@ interface SendPaymentConfirmationEmailParams {
   testName: string;
   orderId: string;
   shippingAddress?: string;
+  isHomeKit?: boolean;
 }
 
 export async function sendPaymentConfirmationEmail({
@@ -89,6 +90,7 @@ export async function sendPaymentConfirmationEmail({
   testName,
   orderId,
   shippingAddress,
+  isHomeKit,
 }: SendPaymentConfirmationEmailParams) {
   console.log('🔄 Preparing customer confirmation email for:', email);
   const html = generateOrderConfirmationEmailHtml({
@@ -96,6 +98,7 @@ export async function sendPaymentConfirmationEmail({
     testName,
     orderId,
     shippingAddress,
+    isHomeKit,
   });
 
   console.log('📧 Attempting to send customer email with details:', {

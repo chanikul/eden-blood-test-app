@@ -21,7 +21,7 @@ const navigation = [
   { name: 'Bookings', href: '/client/bookings', icon: Calendar },
   { name: 'Repeat Prescriptions', href: '/client/prescriptions', icon: FileText },
   { name: 'Travel Letter Request', href: '/client/travel-letters', icon: Plane },
-  { name: 'Payment Methods', href: '/client/payment', icon: CreditCard },
+  { name: 'Payment Methods', href: '/client/payment-methods', icon: CreditCard },
   { name: 'Subscriptions', href: '/client/subscriptions', icon: Repeat },
   { name: 'Addresses', href: '/client/addresses', icon: MapPin },
   { name: 'Account Details', href: '/client/account', icon: User },

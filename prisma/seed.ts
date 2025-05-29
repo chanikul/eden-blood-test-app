@@ -89,6 +89,7 @@ const testOrder = {
   testName: 'Eden Well Man',
   status: OrderStatus.PAID,
   notes: 'Fasting blood test requested',
+  createAccount: false,
   shippingAddress: JSON.stringify({
     line1: '123 High Street',
     city: 'London',

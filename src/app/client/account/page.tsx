@@ -1,9 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Mail, Lock, Phone, Calendar, X } from 'lucide-react';
+import styles from './account.module.css';
+import { User, Mail, Lock, Phone, Calendar, X, Bell } from 'lucide-react';
 
 interface Profile {
+  reminderPreferences: {
+    emailReminders: boolean;
+    smsReminders: boolean;
+  };
+
   firstName: string;
   lastName: string;
   email: string;
@@ -13,6 +19,10 @@ interface Profile {
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<Profile>({
+    reminderPreferences: {
+      emailReminders: true,
+      smsReminders: false,
+    },
     firstName: 'Chanikul',
     lastName: 'Smith',
     email: 'chanikul@example.com',
@@ -29,8 +39,24 @@ export default function AccountPage() {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: API call to update profile
-    // Show success toast
+    try {
+      // TODO: API call to update profile
+      // Example:
+      // await fetch('/api/profile', {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     ...profile,
+      //     reminderPreferences: profile.reminderPreferences,
+      //   }),
+      // });
+
+      // Show success toast
+      console.log('Profile updated:', profile);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // Show error toast
+    }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -161,6 +187,68 @@ export default function AccountPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Notification Settings */}
+      <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Notification Settings</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-gray-400" />
+              <label htmlFor="emailReminders" className="text-sm font-medium text-gray-700">
+                Email Reminders
+              </label>
+            </div>
+            <div className="relative inline-block w-10 mr-2 align-middle select-none">
+              <input
+                type="checkbox"
+                id="emailReminders"
+                checked={profile.reminderPreferences.emailReminders}
+                onChange={(e) => setProfile({
+                  ...profile,
+                  reminderPreferences: {
+                    ...profile.reminderPreferences,
+                    emailReminders: e.target.checked,
+                  },
+                })}
+                className={`${styles['toggle-checkbox']} absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer`}
+              />
+              <label
+                htmlFor="emailReminders"
+                className={`${styles['toggle-label']} block overflow-hidden h-6 rounded-full cursor-pointer`}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-gray-400" />
+              <label htmlFor="smsReminders" className="text-sm font-medium text-gray-700">
+                SMS Reminders
+              </label>
+            </div>
+            <div className="relative inline-block w-10 mr-2 align-middle select-none">
+              <input
+                type="checkbox"
+                id="smsReminders"
+                checked={profile.reminderPreferences.smsReminders}
+                onChange={(e) => setProfile({
+                  ...profile,
+                  reminderPreferences: {
+                    ...profile.reminderPreferences,
+                    smsReminders: e.target.checked,
+                  },
+                })}
+                className={`${styles['toggle-checkbox']} absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer`}
+              />
+              <label
+                htmlFor="smsReminders"
+                className={`${styles['toggle-label']} block overflow-hidden h-6 rounded-full cursor-pointer`}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Password Section */}

@@ -87,6 +87,7 @@ model Order {
   dispatchedById     String?
   bloodTestId        String
   clientId           String?
+  createAccount      Boolean     @default(false)
   bloodTest          BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
   dispatchedBy       Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
   client             ClientUser? @relation(fields: [clientId], references: [id])

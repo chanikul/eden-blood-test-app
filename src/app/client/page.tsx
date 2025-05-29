@@ -8,24 +8,25 @@ import {
   FileText, 
   ArrowRight,
   CheckCircle2,
-  Clock
+  Clock,
+  CreditCard,
+  Bell,
+  LifeBuoy
 } from 'lucide-react';
+import { ReminderPreferences, BloodTestWithFollowUp } from '@/lib/types/reminders';
+import { BloodTest } from '@/lib/types/blood-test';
 
-interface BloodTest {
-  id: string;
-  testName: string;
-  status: 'PENDING' | 'PAID' | 'COMPLETED';
-  date: Date;
-}
+
 
 interface DashboardData {
   firstName: string;
-  recentTests: BloodTest[];
-  upcomingBooking?: {
+  recentTests: {
     id: string;
-    date: Date;
-    type: string;
-  };
+    testName: string;
+    status: 'PENDING' | 'PAID' | 'DISPATCHED' | 'CANCELLED';
+    date: string;
+  }[];
+  hasActivePaymentMethod: boolean;
 }
 
 export default function ClientDashboard() {
@@ -39,38 +40,40 @@ export default function ClientDashboard() {
       : 'Good evening';
 
   useEffect(() => {
-    // TODO: Fetch dashboard data
-    setData({
-      firstName: 'Chanikul',
-      recentTests: [
-        {
-          id: '1',
-          testName: 'Complete Blood Count',
-          status: 'COMPLETED',
-          date: new Date('2025-05-20'),
-        },
-        {
-          id: '2',
-          testName: 'Vitamin D Test',
-          status: 'PENDING',
-          date: new Date('2025-05-22'),
-        },
-      ],
-      upcomingBooking: {
-        id: '1',
-        date: new Date('2025-05-25'),
-        type: 'Blood Sample Collection',
-      },
-    });
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/client');
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const data = await response.json();
+        setData(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
   if (!data) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500" />
+      </div>
+    );
   }
 
-  const getStatusIcon = (status: BloodTest['status']) => {
+  const isUpcomingSoon = (date: Date) => {
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    const hours = diff / (1000 * 60 * 60);
+    return hours > 0 && hours < 24;
+  };
+
+  const getStatusIcon = (status: DashboardData['recentTests'][0]['status']) => {
     switch (status) {
-      case 'COMPLETED':
+      case 'DISPATCHED':
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
       case 'PENDING':
         return <Clock className="h-5 w-5 text-amber-500" />;
@@ -96,6 +99,16 @@ export default function ClientDashboard() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-3">
+            <Link 
+              href="/support"
+              className="flex items-center justify-between p-3 bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 transition-colors"
+            >
+              <div className="flex items-center">
+                <LifeBuoy className="h-5 w-5 mr-3" />
+                <span>Get Support</span>
+              </div>
+              <ArrowRight className="h-5 w-5" />
+            </Link>
             <Link 
               href="/client/blood-tests/new"
               className="flex items-center justify-between p-3 bg-teal-50 rounded-md text-teal-700 hover:bg-teal-100 transition-colors"
@@ -144,7 +157,7 @@ export default function ClientDashboard() {
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-900">{test.testName}</p>
                     <p className="text-sm text-gray-500">
-                      {test.date.toLocaleDateString()}
+                      {new Date(test.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -161,37 +174,29 @@ export default function ClientDashboard() {
           </Link>
         </div>
 
-        {/* Upcoming Booking */}
-        {data.upcomingBooking && (
+        {/* Payment Method Preview */}
+        {data.hasActivePaymentMethod && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Upcoming Booking</h2>
-            <div className="bg-blue-50 p-4 rounded-md">
-              <div className="flex items-center">
-                <Calendar className="h-6 w-6 text-blue-600" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-blue-900">
-                    {data.upcomingBooking.type}
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    {data.upcomingBooking.date.toLocaleDateString()} at{' '}
-                    {data.upcomingBooking.date.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <CreditCard className="h-5 w-5 text-gray-500" />
+                <div>
+                  <h2 className="text-sm font-medium text-gray-900">Default Payment Method</h2>
+                  <p className="text-sm text-gray-500">•••• •••• •••• 4242</p>
                 </div>
               </div>
-              <div className="mt-3 flex space-x-3">
-                <button className="text-sm text-blue-700 hover:text-blue-900">
-                  Reschedule
-                </button>
-                <button className="text-sm text-red-600 hover:text-red-800">
-                  Cancel
-                </button>
-              </div>
+              <Link 
+                href="/client/payment-methods"
+                className="text-sm text-teal-600 hover:text-teal-800 flex items-center"
+              >
+                View all
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
             </div>
           </div>
         )}
+
+
       </div>
     </div>
   );

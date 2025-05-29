@@ -1,382 +1,524 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { orderFormSchema, type OrderFormData } from '@/lib/validations/order-form';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
+'use client';
 
-const steps = [
-  'Personal Details',
-  'Choose Test',
-  'Account Setup (Optional)',
-  'Payment'
-] as const;
+import React, { useState, useEffect, useMemo } from 'react';
+import { Loader2, Check, CreditCard, User, MapPin } from 'lucide-react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import styles from './OrderForm.module.css';
+import { cn } from '@/lib/utils';
+import { AddressAutocomplete } from '@/components/AddressAutocomplete';
+
+interface ShippingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+interface BloodTest {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stripePriceId: string;
+  isActive: boolean;
+  slug: string;
+}
+
+interface Step {
+  id: string;
+  title: string;
+  description: string;
+}
+
+const steps: Step[] = [
+  {
+    id: 'patient-info',
+    title: 'Patient Information',
+    description: 'We need your details to prepare your test kit'
+  },
+  {
+    id: 'test-selection',
+    title: 'Select Blood Test',
+    description: 'Choose from our range of comprehensive blood tests'
+  },
+  {
+    id: 'shipping',
+    title: 'Shipping Address',
+    description: 'Where should we send your test kit?'
+  },
+  {
+    id: 'account',
+    title: 'Create Account',
+    description: 'Create an account to track your orders and results'
+  },
+  {
+    id: 'review',
+    title: 'Review & Pay',
+    description: 'Review your order before payment'
+  }
+];
+
+const orderFormSchema = z.object({
+  patientName: z.string().min(1, 'Name is required'),
+  patientEmail: z.string().email('Invalid email address'),
+  patientDateOfBirth: z.string().min(1, 'Date of birth is required'),
+  patientMobile: z.string().optional(),
+  testSlug: z.string().min(1, 'Please select a test'),
+  notes: z.string().optional(),
+  createAccount: z.boolean().default(false),
+  password: z.string().optional().refine(
+    (val) => {
+      if (!val) return true; // Allow empty if createAccount is false
+      return val.length >= 8; // Require 8+ chars if provided
+    },
+    { message: 'Password must be at least 8 characters' }
+  ),
+  shippingAddress: z.object({
+    line1: z.string().min(1, 'Street address is required'),
+    line2: z.string().optional(),
+    city: z.string().min(1, 'City is required'),
+    state: z.string().optional(),
+    postalCode: z.string().min(1, 'Postal code is required'),
+    country: z.string().min(1, 'Country is required')
+  })
+});
+
+type OrderFormData = z.infer<typeof orderFormSchema>;
+
+function getFieldsForStep(step: number): (keyof OrderFormData)[] {
+  switch (step) {
+    case 0:
+      return ['patientName', 'patientEmail', 'patientDateOfBirth', 'patientMobile'];
+    case 1:
+      return ['testSlug', 'notes'];
+    case 2:
+      return ['shippingAddress'];
+    case 3:
+      return ['createAccount', 'password'];
+    default:
+      return [];
+  }
+}
 
 export function OrderForm() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [bloodTests, setBloodTests] = useState<BloodTest[]>([]);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const router = useRouter();
-  
+
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
+    mode: 'onBlur',
     defaultValues: {
+      patientName: '',
+      patientEmail: '',
+      patientDateOfBirth: '',
+      patientMobile: '',
+      testSlug: '',
+      notes: '',
       createAccount: false,
+      password: '',
       shippingAddress: {
-        country: 'United Kingdom'
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: ''
       }
     }
   });
 
-  const onSubmit = async (data: OrderFormData) => {
+  const selectedTest = useMemo(() => {
+    const testSlug = form.watch('testSlug');
+    return bloodTests?.find((test) => test.slug === testSlug);
+  }, [bloodTests, form.watch('testSlug')]);
+
+  async function fetchBloodTests() {
     try {
-      const response = await fetch('/api/order-blood-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
+      setIsLoading(true);
+      const response = await fetch('/api/blood-tests');
       if (!response.ok) {
-        throw new Error('Failed to create order');
+        throw new Error('Failed to fetch blood tests');
       }
-
-      const { orderId, url } = await response.json();
-      
-      if (url) {
-        router.push(url); // Redirect to Stripe checkout
+      const data = await response.json();
+      if (data.tests) {
+        setBloodTests(data.tests);
+      } else {
+        throw new Error('Invalid response format');
       }
     } catch (error) {
-      console.error('Order submission error:', error);
-      toast.error('Failed to create order. Please try again.');
+      console.error('Error fetching blood tests:', error);
+      toast.error('Failed to load blood tests');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchBloodTests();
+  }, []);
+
+  const isStepValid = async (step: number): Promise<boolean> => {
+    const fields = getFieldsForStep(step);
+    const result = await form.trigger(fields as any);
+    return result;
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
-  const nextStep = () => {
-    const fields = getFieldsForStep(currentStep);
-    const isValid = fields.every(field => !form.formState.errors[field]);
-    
-    if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
-    } else {
-      form.trigger(fields);
+  const handleNextStep = async () => {
+    const isValid = await isStepValid(currentStep);
+    if (isValid && currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+      setCompletedSteps([...completedSteps, currentStep]);
     }
   };
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 0));
-  };
+  const onSubmit: SubmitHandler<OrderFormData> = async (data) => {
+    try {
+      if (!selectedTest) {
+        toast.error('Please select a blood test');
+        return;
+      }
 
-  const getFieldsForStep = (step: number): Array<keyof OrderFormData> => {
-    switch (step) {
-      case 0:
-        return ['patientName', 'patientEmail', 'patientDateOfBirth', 'patientMobile'];
-      case 1:
-        return ['testSlug', 'notes'];
-      case 2:
-        return ['createAccount', 'password'];
-      case 3:
-        return ['shippingAddress'];
-      default:
-        return [];
+      setIsLoading(true);
+      
+      const requestData = {
+        fullName: data.patientName,
+        email: data.patientEmail,
+        dateOfBirth: data.patientDateOfBirth,
+        mobile: data.patientMobile,
+        testSlug: selectedTest.slug,
+        testName: selectedTest.name,
+        stripePriceId: selectedTest.stripePriceId,
+        notes: data.notes,
+        createAccount: data.createAccount,
+        password: data.createAccount ? data.password : undefined,
+        shippingAddress: data.shippingAddress,
+        successUrl: `${window.location.origin}/order-success`,
+        cancelUrl: window.location.href
+      };
+
+      console.log('Full request data:', requestData);
+
+      console.log('Sending checkout request:', requestData);
+      
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('Checkout API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData
+        });
+        throw new Error(responseData.error || 'Failed to create checkout session');
+      }
+
+      if (!responseData.url) {
+        throw new Error('No checkout URL returned from the server');
+      }
+
+      console.log('Redirecting to checkout:', responseData.url);
+      window.location.href = responseData.url;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      toast.error(errorMessage);
+      console.error('Checkout error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          {steps.map((step, idx) => (
-            <div key={step} className="flex items-center">
-              <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center
-                ${idx <= currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200'}
-              `}>
-                {idx + 1}
-              </div>
-              {idx < steps.length - 1 && (
-                <div className={`
-                  h-1 w-full mx-2
-                  ${idx < currentStep ? 'bg-blue-600' : 'bg-gray-200'}
-                `} />
+    <div className={styles.formContainer}>
+      {/* Progress Bar */}
+      <div className={styles.progressBar}>
+        {steps.map((step, index) => (
+          <div key={step.title} className={styles.progressStep}>
+            <div className={cn(styles.stepIcon, {
+              [styles.completed]: completedSteps.includes(index),
+              [styles.active]: currentStep === index
+            })}>
+              {completedSteps.includes(index) ? (
+                <Check className="w-5 h-5" />
+              ) : (
+                <span>{index + 1}</span>
               )}
             </div>
-          ))}
-        </div>
-        <div className="flex justify-between mt-2">
-          {steps.map((step) => (
-            <span key={step} className="text-sm text-gray-600">
-              {step}
-            </span>
-          ))}
-        </div>
+            <div className={styles.stepInfo}>
+              <div className={styles.stepTitle}>{step.title}</div>
+              <div className={styles.stepDescription}>{step.description}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={styles.form}>
         {/* Step 1: Personal Details */}
         {currentStep === 0 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
+          <div className={styles.formSection}>
+            <h2 className={styles.formTitle}>{steps[currentStep].title}</h2>
+            <p className={styles.formSubtitle}>{steps[currentStep].description}</p>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Full Name</label>
+              <div className={styles.inputHint}>Enter your name as it appears on your ID</div>
               <input
                 type="text"
+                id="patientName"
                 {...form.register('patientName')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                className={styles.input}
               />
               {form.formState.errors.patientName && (
-                <p className="mt-1 text-sm text-red-600">
-                  {form.formState.errors.patientName.message}
-                </p>
+                <span className={styles.error}>{form.formState.errors.patientName.message}</span>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Email Address</label>
+              <div className={styles.inputHint}>We'll send your results and order updates here</div>
               <input
                 type="email"
+                id="patientEmail"
                 {...form.register('patientEmail')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                className={styles.input}
               />
               {form.formState.errors.patientEmail && (
-                <p className="mt-1 text-sm text-red-600">
-                  {form.formState.errors.patientEmail.message}
-                </p>
+                <span className={styles.error}>{form.formState.errors.patientEmail.message}</span>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Date of Birth
-              </label>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Date of Birth</label>
+              <div className={styles.inputHint}>Required by our clinicians to issue your prescription</div>
               <input
                 type="date"
+                id="patientDateOfBirth"
                 {...form.register('patientDateOfBirth')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                className={styles.input}
               />
               {form.formState.errors.patientDateOfBirth && (
-                <p className="mt-1 text-sm text-red-600">
-                  {form.formState.errors.patientDateOfBirth.message}
-                </p>
+                <span className={styles.error}>{form.formState.errors.patientDateOfBirth.message}</span>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Mobile (Optional)
-              </label>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Mobile Number</label>
+              <div className={styles.inputHint}>For delivery updates and important notifications</div>
               <input
                 type="tel"
+                id="patientMobile"
                 {...form.register('patientMobile')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                className={styles.input}
               />
+              {form.formState.errors.patientMobile && (
+                <span className={styles.error}>{form.formState.errors.patientMobile.message}</span>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 2: Choose Test */}
+        {/* Step 2: Test Selection */}
         {currentStep === 1 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Select Blood Test
-              </label>
+          <div className={styles.formSection}>
+            <h2 className={styles.formTitle}>{steps[currentStep].title}</h2>
+            <p className={styles.formSubtitle}>{steps[currentStep].description}</p>
+            
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Select Blood Test</label>
+              <div className={styles.inputHint}>Choose from our range of comprehensive blood tests</div>
               <select
                 {...form.register('testSlug')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                className={styles.select}
+                onChange={(e) => {
+                  form.setValue('testSlug', e.target.value);
+                  const selectedTest = bloodTests.find(test => test.slug === e.target.value);
+                  if (selectedTest) {
+                    // You could add additional logic here if needed
+                  }
+                }}
               >
                 <option value="">Select a test...</option>
-                {/* Add blood test options dynamically */}
+                {bloodTests.map((test) => (
+                  <option key={test.id} value={test.slug}>
+                    {test.name} - £{test.price}
+                  </option>
+                ))}
               </select>
               {form.formState.errors.testSlug && (
-                <p className="mt-1 text-sm text-red-600">
-                  {form.formState.errors.testSlug.message}
-                </p>
+                <span className={styles.error}>{form.formState.errors.testSlug.message}</span>
+              )}
+
+              {form.watch('testSlug') && (
+                <div className={styles.selectedTestInfo}>
+                  {(() => {
+                    const test = bloodTests.find(t => t.slug === form.watch('testSlug'));
+                    return test ? (
+                      <p className={styles.testDescription}>{test.description}</p>
+                    ) : null;
+                  })()}
+                </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Additional Notes (Optional)
-              </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="notes">Additional Notes (Optional)</label>
+              <div className={styles.inputHint}>Any specific requirements or information we should know</div>
               <textarea
+                id="notes"
                 {...form.register('notes')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                rows={3}
+                className={styles.textarea}
+                placeholder="Enter any additional notes here..."
               />
             </div>
           </div>
         )}
 
-        {/* Step 3: Account Setup */}
+        {/* Step 3: Shipping Address */}
         {currentStep === 2 && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg mb-4">
-              <p className="text-sm text-blue-700">
-                Create an account to track your order and access test results later
-              </p>
+          <div className={styles.formSection}>
+            <h2 className={styles.formTitle}>{steps[currentStep].title}</h2>
+            <p className={styles.formSubtitle}>{steps[currentStep].description}</p>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Delivery Address</label>
+              <div className={styles.inputHint}>Enter your address for test kit delivery</div>
+              <AddressAutocomplete
+                onAddressSelect={(address) => {
+                  form.setValue('shippingAddress.line1', address.line1);
+                  if (address.line2) {
+                    form.setValue('shippingAddress.line2', address.line2);
+                  }
+                  form.setValue('shippingAddress.city', address.city);
+                  form.setValue('shippingAddress.state', address.state);
+                  form.setValue('shippingAddress.postalCode', address.postalCode);
+                  form.setValue('shippingAddress.country', address.country);
+                }}
+                error={form.formState.errors.shippingAddress?.line1?.message}
+              />
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                {...form.register('createAccount')}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600"
-              />
-              <label className="ml-2 block text-sm text-gray-700">
-                Create an account for faster checkout and order tracking
-              </label>
+            {/* Show the complete address if all fields are filled */}
+            {form.watch('shippingAddress.line1') && (
+              <div className={styles.addressSummary}>
+                <div className={styles.addressLine}>{form.watch('shippingAddress.line1')}</div>
+                {form.watch('shippingAddress.line2') && (
+                  <div className={styles.addressLine}>{form.watch('shippingAddress.line2')}</div>
+                )}
+                <div className={styles.addressLine}>
+                  {form.watch('shippingAddress.city')}
+                  {form.watch('shippingAddress.state') && `, ${form.watch('shippingAddress.state')}`}
+                </div>
+                <div className={styles.addressLine}>{form.watch('shippingAddress.postalCode')}</div>
+                <div className={styles.addressLine}>{form.watch('shippingAddress.country')}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 4: Account Setup */}
+        {currentStep === 3 && (
+          <div className={styles.formSection}>
+            <h2 className={styles.formTitle}>{steps[currentStep].title}</h2>
+            <p className={styles.formSubtitle}>{steps[currentStep].description}</p>
+
+            <div className={styles.inputGroup}>
+              <div className={styles.checkboxGroup}>
+                <input
+                  type="checkbox"
+                  id="createAccount"
+                  {...form.register('createAccount')}
+                  className={styles.checkbox}
+                />
+                <label htmlFor="createAccount" className={styles.checkboxLabel}>
+                  Create an account to track your orders and access your results
+                </label>
+              </div>
             </div>
 
             {form.watch('createAccount') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Password</label>
+                <div className={styles.inputHint}>Choose a secure password for your account</div>
                 <input
                   type="password"
+                  id="password"
                   {...form.register('password')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  placeholder="At least 8 characters"
+                  className={styles.input}
+                  placeholder="Enter a secure password"
                 />
                 {form.formState.errors.password && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {form.formState.errors.password.message}
-                  </p>
+                  <span className={styles.error}>{form.formState.errors.password.message}</span>
                 )}
               </div>
             )}
           </div>
         )}
 
-        {/* Step 4: Shipping Address */}
-        {currentStep === 3 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Address Line 1
-              </label>
-              <input
-                type="text"
-                {...form.register('shippingAddress.line1')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
-              {form.formState.errors.shippingAddress?.line1 && (
-                <p className="mt-1 text-sm text-red-600">
-                  {form.formState.errors.shippingAddress.line1.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Address Line 2 (Optional)
-              </label>
-              <input
-                type="text"
-                {...form.register('shippingAddress.line2')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  City
-                </label>
-                <input
-                  type="text"
-                  {...form.register('shippingAddress.city')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-                {form.formState.errors.shippingAddress?.city && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {form.formState.errors.shippingAddress.city.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  County/State
-                </label>
-                <input
-                  type="text"
-                  {...form.register('shippingAddress.state')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-                {form.formState.errors.shippingAddress?.state && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {form.formState.errors.shippingAddress.state.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Postal Code
-                </label>
-                <input
-                  type="text"
-                  {...form.register('shippingAddress.postalCode')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-                {form.formState.errors.shippingAddress?.postalCode && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {form.formState.errors.shippingAddress.postalCode.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  {...form.register('shippingAddress.country')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Navigation Buttons */}
-        <div className="flex justify-between pt-4">
-          <button
-            type="button"
-            onClick={prevStep}
-            disabled={currentStep === 0}
-            className={`
-              px-4 py-2 rounded-md text-sm font-medium
-              ${currentStep === 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }
-            `}
-          >
-            Previous
-          </button>
+        <div className={styles.buttonGroup}>
+          {currentStep > 0 && (
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              className={styles.buttonSecondary}
+            >
+              Previous
+            </button>
+          )}
 
           {currentStep < steps.length - 1 ? (
             <button
               type="button"
-              onClick={nextStep}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+              onClick={handleNextStep}
+              className={styles.buttonPrimary}
             >
               Next
             </button>
           ) : (
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+              className={styles.buttonPrimary}
+              disabled={isLoading}
             >
-              Proceed to Payment
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Proceed to Payment
+                </>
+              )}
             </button>
           )}
         </div>

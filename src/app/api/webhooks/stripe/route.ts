@@ -1,12 +1,15 @@
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
-import { headers } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { OrderStatus, Prisma } from '@prisma/client';
+import { JsonValue } from '@prisma/client/runtime/library';
 import { sendEmail } from '@/lib/services/email';
+import { createPatientAccount } from '@/lib/services/patient';
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+// Environment variables
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!;
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL;
 
 if (!STRIPE_SECRET_KEY) {
@@ -18,7 +21,7 @@ if (!STRIPE_WEBHOOK_SECRET) {
 }
 
 const stripeClient = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16' as const
+  apiVersion: '2025-04-30.basil' as const
 });
 
 type StripeCheckoutSession = Stripe.Checkout.Session & {
@@ -53,16 +56,51 @@ type StripeShippingAddress = {
   country: string;
 };
 
-type Order = {
+interface Order {
   id: string;
-  status: string;
+  status: OrderStatus;
+  paymentId: string | null;
+  stripeSessionId: string | null;
+  shippingAddress: JsonValue;
   patientEmail: string;
   patientName: string;
-  patientDateOfBirth: string;
   testName: string;
-  notes: string | null;
-  shippingAddress?: string;
-  stripePaymentIntentId?: string;
+  createAccount: boolean;
+  dateOfBirth: string | null;
+}
+
+interface StripeSession extends Omit<Stripe.Checkout.Session, 'payment_intent' | 'metadata' | 'shipping_details'> {
+  shipping_details?: {
+    address?: {
+      line1?: string;
+      line2?: string | null;
+      city?: string;
+      state?: string | null;
+      postal_code?: string;
+      country?: string;
+    };
+  };
+  metadata: {
+    orderId: string;
+    password?: string;
+  } | null;
+  payment_intent?: string | Stripe.PaymentIntent;
+}
+
+type ShippingAddress = {
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string | null;
+  postal_code: string;
+  country: string;
+};
+
+type CreatePatientAccountParams = {
+  email: string;
+  name: string;
+  dateOfBirth?: string;
+  password?: string;
 };
 
 type OrderWithRelations = Order & {
@@ -77,27 +115,32 @@ type OrderWithRelations = Order & {
 };
 
 type OrderWithShipping = Order & {
-  shippingAddress: string | null;
+  shippingAddress: ShippingAddress | null;
 };
 
 type StripeShippingDetails = {
-  name: string;
-  address: {
-    line1: string;
-    line2: string | null;
-    city: string;
-    state: string | null;
-    postal_code: string;
-    country: string;
-  };
+  address?: ShippingAddress;
 };
 
-type WebhookError = {
+interface WebhookErrorParams {
   message: string;
+  code: string;
   statusCode: number;
-  details?: unknown;
-};
+  name?: string;
+}
 
+class WebhookError extends Error {
+  code: string;
+  statusCode: number;
+  name: string;
+
+  constructor({ message, code, statusCode, name }: WebhookErrorParams) {
+    super(message);
+    this.code = code;
+    this.statusCode = statusCode;
+    this.name = name ?? 'WebhookError';
+  }
+}
 type EmailParams = {
   to: string;
   subject: string;
@@ -123,20 +166,15 @@ type SendOrderNotificationEmailParams = {
 const orderSelect = {
   id: true,
   status: true,
+  stripeSessionId: true,
+  paymentId: true,
+  shippingAddress: true,
   patientEmail: true,
   patientName: true,
   testName: true,
-  paymentId: true,
-  stripeSessionId: true,
-  createdAt: true,
-  patientDateOfBirth: true,
-  internalNotes: true,
-  shippingAddress: true
-} as const;
-
-type OrderSelect = Prisma.OrderGetPayload<{
-  select: typeof orderSelect;
-}>;
+  createAccount: true,
+  dateOfBirth: true
+} as const satisfies Record<keyof Order, boolean>;
 
 const sendPaymentConfirmationEmail = async (params: SendPaymentConfirmationEmailParams) => {
   const emailParams: EmailParams = {
@@ -209,215 +247,184 @@ const handleOrderAlreadyPaid = (orderId: string): NextResponse => {
 // Keep track of processed sessions to avoid duplicates
 const processedSessions = new Set<string>();
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  let event: Stripe.Event;
-  const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-  console.log('=== STRIPE WEBHOOK RECEIVED ===');
-  
+const verifyWebhookSignature = async (request: Request): Promise<Stripe.Event> => {
+  const body = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    const error: WebhookError = {
+      message: 'No Stripe signature found',
+      code: 'missing_signature',
+      statusCode: 400
+    };
+    throw error;
+  }
+
+  try {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      const error: WebhookError = {
+        message: 'Missing Stripe webhook secret',
+        code: 'missing_webhook_secret',
+        statusCode: 500
+      };
+      throw error;
+    }
+
+    return stripeClient.webhooks.constructEvent(
+      body,
+      signature,
+      webhookSecret
+    );
+  } catch (err) {
+    const error: WebhookError = {
+      message: err instanceof Error ? err.message : 'Invalid signature',
+      code: 'invalid_signature',
+      statusCode: 400
+    };
+    console.error('Error verifying webhook signature:', error);
+    throw error;
+  }
+};
+
+export async function POST(request: Request) {
   if (!STRIPE_WEBHOOK_SECRET) {
     console.error('Webhook secret is not set');
-    return NextResponse.json({ error: 'Webhook secret is not set' }, { status: 500 });
+    return new Response('Webhook secret is not set', { status: 500 });
   }
 
+  let event: Stripe.Event;
+
   try {
-    console.log('Verifying Stripe signature...');
-    const sig = req.headers.get('stripe-signature');
-    if (!sig) {
-      console.error('No Stripe signature found in headers');
-      throw new Error('No Stripe signature found');
+    const body = await request.text();
+    const signature = request.headers.get('stripe-signature');
+
+    if (!signature) {
+      throw new WebhookError({
+        message: 'No Stripe signature found',
+        code: 'missing_signature',
+        statusCode: 400,
+        name: 'WebhookError'
+      });
     }
 
-    const body = await req.text();
     event = stripeClient.webhooks.constructEvent(
       body,
-      sig,
+      signature,
       STRIPE_WEBHOOK_SECRET
     );
-    console.log('Webhook verified. Event type:', event.type);
-  } catch (error) {
-    console.error('Error constructing webhook event:', error);
-    return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 400 });
-  }
 
-  try {
-    console.log('✅ Successfully constructed event:', event.type);
-
-    // Handle checkout session completed event
-    if (event.type === 'checkout.session.completed') {
-    // Retrieve full session data
-    const sessionId = event.data.object.id;
-    const session = await stripeClient.checkout.sessions.retrieve(sessionId, {
-      expand: ['shipping', 'shipping_details', 'shipping_address', 'customer']
-    }) as StripeCheckoutSession;
-    const orderId = session.metadata?.orderId;
-    const paymentIntent = session.payment_intent;
-
-    if (!orderId || !paymentIntent) {
-      console.log('❌ Missing orderId or paymentIntent in session:', session.id);
-      return NextResponse.json(
-        { error: { message: 'Missing orderId or paymentIntent in session' } },
-        { status: 400 }
-      );
-    }
-
-    // Skip if session was already processed
-    if (processedSessions.has(session.id)) {
-      console.log('ℹ️ Session already processed:', session.id);
-      return NextResponse.json({ received: true });
-    }
-
-    // Get order from database
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: orderSelect,
-    });
-
-    if (!order) {
-      return handleOrderNotFound(orderId);
-    }
-
-    // Skip if order is already paid
-    if (order.status === 'PAID') {
-      console.log('ℹ️ Order already paid:', orderId);
-      return NextResponse.json({ received: true });
-    }
-
-    console.log('=== PROCESSING CHECKOUT SESSION ===');
-    console.log('Session details:', {
-      id: session.id,
-      customer_details: session.customer_details,
-      payment_status: session.payment_status,
-      mode: session.mode,
-      metadata: session.metadata
-    });
-
-    console.log('=== DEBUG: SHIPPING ADDRESS HANDLING ===');
-    console.log('1. Full session:', {
-      id: session.id,
-      shipping: session.shipping,
-      customer: session.customer,
-      customer_details: session.customer_details,
-      metadata: session.metadata
-    });
-
-    // Get shipping details from session
-    const shippingAddress = session.customer_details?.address;
-    console.log('2. Shipping address:', shippingAddress);
-    
-    // Log the current order state
-    const currentOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: { id: true, shippingAddress: true }
-    });
-    console.log('4. Current order state:', currentOrder);
-
-    // Save shipping address if present
-    if (shippingAddress) {
-      const shippingData = {
-        line1: shippingAddress.line1,
-        line2: shippingAddress.line2 || null,
-        city: shippingAddress.city,
-        state: shippingAddress.state || null,
-        postal_code: shippingAddress.postal_code,
-        country: shippingAddress.country
-      };
-      
-      console.log('5. Saving shipping data:', shippingData);
-      
-      try {
-        const updatedOrder = await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            shippingAddress: shippingData
-          },
-          select: {
-            id: true,
-            shippingAddress: true
-          }
-        });
-        console.log('6. Order updated with shipping address:', updatedOrder);
-      } catch (error) {
-        console.error('Error updating order with shipping address:', {
-          error,
-          orderId,
-          shippingData
-        });
-        throw error;
-      }
-      
-      // Verify the update
-      const updatedOrder = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { id: true, shippingAddress: true }
+    if (!event?.data?.object) {
+      throw new WebhookError({
+        message: 'Invalid event data',
+        code: 'invalid_event',
+        statusCode: 400,
+        name: 'WebhookError'
       });
-      console.log('6. Order after update:', updatedOrder);
     }
 
-    // Initialize email promises array
-    const emailPromises = [];
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as StripeSession;
 
-    // Add customer confirmation email
-    if (order.patientEmail) {
-      emailPromises.push(
-        sendPaymentConfirmationEmail({
-          email: order.patientEmail,
-          name: order.patientName || '',
-          testName: order.testName || '',
-          orderId: order.id,
-          shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : ''
-        })
-      );
-    }
-
-    // Add admin notification email
-    const supportEmail = process.env.SUPPORT_EMAIL;
-    if (supportEmail) {
-      emailPromises.push(
-        sendOrderNotificationEmail({
-          orderId: order.id,
-          name: order.patientName || '',
-          testName: order.testName || '',
-          shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : ''
-        })
-      );
-    }
-
-    // Send all emails and update order
-    try {
-      // Update order status
-      await prisma.order.update({
-        where: { id: orderId },
-        data: {
-          status: 'PAID',
-          paymentId: paymentIntent
+        if (!session?.metadata?.orderId) {
+          throw new WebhookError({
+            message: 'Missing orderId in session metadata',
+            code: 'missing_order_id',
+            statusCode: 400,
+            name: 'WebhookError'
+          });
         }
-      });
-      console.log('Order updated with shipping address:', {
-        orderId: order.id,
-        shippingAddress: order.shippingAddress
-      });
 
-      // Send notification emails
-      await Promise.all(emailPromises);
-      console.log('All notification emails sent successfully');
+        const order = await prisma.order.findUnique({
+          where: { id: session.metadata.orderId },
+          select: orderSelect
+        });
 
-      return NextResponse.json({ received: true });
-    } catch (error) {
-      console.error('Error processing order:', error instanceof Error ? error.message : 'Unknown error');
-      return NextResponse.json(
-        { error: { message: 'Error processing order', code: 500 } },
-        { status: 500 }
-      );
+        if (!order) {
+          throw new WebhookError({
+            message: 'Order not found',
+            code: 'order_not_found',
+            statusCode: 404,
+            name: 'WebhookError'
+          });
+        }
+
+        const shippingDetails = session.shipping_details;
+        const shippingAddress = shippingDetails?.address;
+
+        const formattedShippingAddress: ShippingAddress | null = shippingAddress ? {
+          line1: shippingAddress.line1 ?? '',
+          line2: shippingAddress.line2 ?? null,
+          city: shippingAddress.city ?? '',
+          state: shippingAddress.state ?? null,
+          postal_code: shippingAddress.postal_code ?? '',
+          country: shippingAddress.country ?? ''
+        } : null;
+
+        // Create patient account if needed
+        if (order.createAccount && order.dateOfBirth && session.metadata.password) {
+          try {
+            await createPatientAccount({
+              email: order.patientEmail,
+              name: order.patientName,
+              dateOfBirth: order.dateOfBirth,
+              password: session.metadata.password
+            });
+          } catch (error) {
+            console.error('Error creating patient account:', error);
+          }
+        }
+
+        const updateData: Prisma.OrderUpdateInput = {
+          status: 'PAID',
+          stripeSessionId: session.id,
+          paymentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
+          shippingAddress: formattedShippingAddress ? formattedShippingAddress as Prisma.JsonObject : Prisma.JsonNull,
+          updatedAt: new Date()
+        };
+
+        const updatedOrder = await prisma.order.update({
+          where: { id: order.id },
+          data: updateData,
+          select: orderSelect
+        });
+
+        // Send confirmation emails
+        if (updatedOrder.patientEmail && updatedOrder.patientName && updatedOrder.testName) {
+          await sendPaymentConfirmationEmail({
+            email: updatedOrder.patientEmail,
+            name: updatedOrder.patientName,
+            testName: updatedOrder.testName,
+            orderId: updatedOrder.id,
+            shippingAddress: updatedOrder.shippingAddress ? String(updatedOrder.shippingAddress) : ''
+          });
+
+          const supportEmail = process.env.SUPPORT_EMAIL;
+          if (supportEmail) {
+            await sendOrderNotificationEmail({
+              orderId: updatedOrder.id,
+              name: updatedOrder.patientName,
+              testName: updatedOrder.testName,
+              shippingAddress: updatedOrder.shippingAddress ? String(updatedOrder.shippingAddress) : ''
+            });
+          }
+        }
+        return new Response('Webhook processed successfully', { status: 200 });
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+        return new Response(`Unhandled event type: ${event.type}`, { status: 200 });
     }
-    } else {
-      console.log('Skipping non-checkout event:', event.type);
-      return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    if (err instanceof WebhookError) {
+      console.error('Webhook error:', err);
+      return new Response(err.message, { status: err.statusCode });
     }
-  } catch (err: any) {
-    console.error('Error in webhook handler:', {
-      error: err.message,
-      stack: err.stack
-    });
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const error = err as Error;
+    console.error('Error processing webhook:', error.message);
+    return new Response('Error processing webhook', { status: 500 });
   }
+}
 }

@@ -1,14 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { 
   CreditCard, 
   Plus,
-  CheckCircle2,
+  Trash2,
+  Star,
+  Loader2,
+  AlertCircle,
   X,
   Calendar,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react';
+import { CardIcon } from '../../../components/payment/CardIcon';
+import { AddPaymentMethodModal } from '../../../components/payment/AddPaymentMethodModal';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface PaymentMethod {
   id: string;
@@ -20,32 +28,34 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
 export default function PaymentMethodsPage() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'card',
-      brand: 'visa',
-      last4: '4242',
-      expMonth: 12,
-      expYear: 2025,
-      isDefault: true,
-    },
-    {
-      id: '2',
-      type: 'card',
-      brand: 'mastercard',
-      last4: '8888',
-      expMonth: 3,
-      expYear: 2026,
-      isDefault: false,
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
 
-  const handleDelete = (method: PaymentMethod) => {
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await fetch('/api/payment-methods');
+      if (!response.ok) throw new Error('Failed to fetch payment methods');
+      const data = await response.json();
+      setPaymentMethods(data.paymentMethods);
+    } catch (error) {
+      toast.error('Failed to load payment methods');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, []);
+
+  const handleDelete = async (method: PaymentMethod) => {
     if (method.isDefault) return;
     setSelectedMethod(method);
     setShowDeleteModal(true);
@@ -53,27 +63,52 @@ export default function PaymentMethodsPage() {
 
   const confirmDelete = async () => {
     if (!selectedMethod) return;
-    // TODO: API call to delete payment method
-    setPaymentMethods(methods => 
-      methods.filter(m => m.id !== selectedMethod.id)
-    );
-    setShowDeleteModal(false);
-    setSelectedMethod(null);
+    try {
+      const response = await fetch('/api/payment-methods', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethodId: selectedMethod.id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to remove payment method');
+      
+      setPaymentMethods(methods => 
+        methods.filter(m => m.id !== selectedMethod.id)
+      );
+      setShowDeleteModal(false);
+      setSelectedMethod(null);
+      toast.success('Payment method removed successfully');
+    } catch (error) {
+      toast.error('Failed to remove payment method');
+      console.error(error);
+    }
   };
 
   const setAsDefault = async (methodId: string) => {
-    // TODO: API call to set default payment method
-    setPaymentMethods(methods =>
-      methods.map(method => ({
-        ...method,
-        isDefault: method.id === methodId,
-      }))
-    );
+    try {
+      const response = await fetch('/api/payment-methods/default', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethodId: methodId }),
+      });
+
+      if (!response.ok) throw new Error('Failed to set default payment method');
+
+      setPaymentMethods(methods =>
+        methods.map(method => ({
+          ...method,
+          isDefault: method.id === methodId,
+        }))
+      );
+      toast.success('Default payment method updated');
+    } catch (error) {
+      toast.error('Failed to update default payment method');
+      console.error(error);
+    }
   };
 
   const getCardIcon = (brand: string) => {
-    // In a real app, you'd import and use actual card brand SVGs
-    return <CreditCard className="h-6 w-6 text-gray-400" />;
+    return <CardIcon brand={brand} />;
   };
 
   const formatExpiry = (month: number, year: number) => {
@@ -88,77 +123,93 @@ export default function PaymentMethodsPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="md:flex md:items-center md:justify-between mb-6">
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[200px]">
+          <Loader2 className="h-8 w-8 animate-spin text-[#203749]" />
+        </div>
+      ) : (
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Payment Methods</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your saved payment methods
-          </p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <button
-            onClick={() => {}}  // TODO: Open Stripe Elements modal
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Payment Method
-          </button>
-        </div>
-      </div>
+          <div className="md:flex md:items-center md:justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Payment Methods</h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Add and manage your payment methods
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <Elements stripe={stripePromise}>
+                <AddPaymentMethodModal onSuccess={fetchPaymentMethods} />
+              </Elements>
+            </div>
+          </div>
 
-      <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-        <ul className="divide-y divide-gray-200">
-          {paymentMethods.map((method) => (
-            <li key={method.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center min-w-0 flex-1">
-                  {getCardIcon(method.brand)}
-                  <div className="ml-4">
-                    <div className="flex items-center">
+          {paymentMethods.length === 0 ? (
+            <div className="text-center py-12">
+              <CreditCard className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-semibold text-gray-900">
+                No payment methods
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Add a payment method to get started
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
+              {paymentMethods.map((method) => (
+                <div
+                  key={method.id}
+                  className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center space-x-3">
+                    {getCardIcon(method.brand)}
+                    <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {method.brand.charAt(0).toUpperCase() + method.brand.slice(1)} •••• {method.last4}
+                        {method.brand.charAt(0).toUpperCase() + method.brand.slice(1)}
+                        <span className="mx-1">•••• {method.last4}</span>
+                        {method.isDefault && (
+                          <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full">
+                            Default
+                          </span>
+                        )}
                       </p>
-                      {method.isDefault && (
-                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-                          Default
-                        </span>
-                      )}
-                      {isExpired(method.expMonth, method.expYear) && (
-                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Expired
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1 flex items-center text-sm text-gray-500">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Expires {formatExpiry(method.expMonth, method.expYear)}
+                      <p className="text-sm text-gray-500">
+                        Expires {formatExpiry(method.expMonth, method.expYear)}
+                        {isExpired(method.expMonth, method.expYear) && (
+                          <span className="ml-2 text-xs text-red-600">
+                            Expired
+                          </span>
+                        )}
+                      </p>
                     </div>
                   </div>
-                </div>
-                <div className="ml-4 flex items-center space-x-4">
-                  {!method.isDefault && !isExpired(method.expMonth, method.expYear) && (
-                    <button
-                      onClick={() => setAsDefault(method.id)}
-                      className="text-sm text-teal-600 hover:text-teal-800"
-                    >
-                      Set as default
-                    </button>
-                  )}
-                  {!method.isDefault && (
+                  <div className="flex items-center space-x-2">
+                    {!method.isDefault && (
+                      <button
+                        onClick={() => setAsDefault(method.id)}
+                        className="p-1 text-gray-400 hover:text-[#203749] transition-colors"
+                        title="Set as default"
+                      >
+                        <Star className="h-5 w-5" />
+                      </button>
+                    )}
+                    {method.isDefault && (
+                      <Star className="h-5 w-5 text-[#203749] fill-current" />
+                    )}
                     <button
                       onClick={() => handleDelete(method)}
-                      className="text-sm text-red-600 hover:text-red-800"
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={method.isDefault}
+                      title={method.isDefault ? 'Cannot delete default payment method' : 'Delete payment method'}
                     >
-                      Remove
+                      <Trash2 className="h-5 w-5" />
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

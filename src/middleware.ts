@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifySessionToken, verifyClientToken } from '@/lib/auth'
+import { verifySessionToken } from '@/lib/auth'
 
 export async function middleware(request: NextRequest) {
-  console.log('Middleware executing for path:', request.nextUrl.pathname);
+  console.log('=== MIDDLEWARE DEBUG ===');
+  console.log('Path:', request.nextUrl.pathname);
+  console.log('Method:', request.method);
+  console.log('Cookies:', request.cookies.getAll().map(c => ({ name: c.name, value: c.value })));
+  console.log('Headers:', Object.fromEntries(request.headers.entries()));
   
   // Don't protect public pages
   if (
     request.nextUrl.pathname === '/admin/login' ||
     request.nextUrl.pathname === '/login' ||
-    request.nextUrl.pathname === '/register'
+    request.nextUrl.pathname === '/register' ||
+    request.nextUrl.pathname === '/forgot-password' ||
+    request.nextUrl.pathname === '/reset-password'
   ) {
     return NextResponse.next()
   }
@@ -35,17 +41,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Protect client routes
-  if (request.nextUrl.pathname.startsWith('/client')) {
-    const token = request.cookies.get('eden_client_token')?.value
+  // Protect client routes, change-password, and payment methods API
+  if (
+    request.nextUrl.pathname.startsWith('/client') ||
+    request.nextUrl.pathname === '/change-password' ||
+    request.nextUrl.pathname.startsWith('/api/payment-methods')
+  ) {
+    const token = request.cookies.get('eden_patient_token')?.value
+    console.log('Patient token present:', !!token);
 
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
     try {
-      const user = await verifyClientToken(token)
-      if (!user) {
+      const user = await verifySessionToken(token)
+      console.log('Session verification result:', { 
+        success: !!user, 
+        role: user?.role,
+        email: user?.email,
+        isPatient: user?.role === 'PATIENT',
+        patientId: user?.role === 'PATIENT' ? (user as { id: string }).id : undefined
+      });
+      if (!user || user.role !== 'PATIENT') {
         return NextResponse.redirect(new URL('/login', request.url))
       }
     } catch (error) {
@@ -60,5 +78,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/client/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/client/:path*',
+    '/change-password',
+    '/api/payment-methods(.*)*'
+  ],
 }

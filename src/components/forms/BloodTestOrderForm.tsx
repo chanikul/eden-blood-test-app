@@ -100,6 +100,9 @@ export function BloodTestOrderForm({ tests, onSuccess, onError }: BloodTestOrder
         stripePriceId: selectedTest.stripePriceId,
         successUrl: `${window.location.origin}/order-success`,
         cancelUrl: window.location.href,
+        createAccount: data.createAccount,
+        password: data.password,
+        shippingAddress: data.shippingAddress
       };
 
       console.log('Request data:', requestData);
