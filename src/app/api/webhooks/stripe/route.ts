@@ -6,6 +6,9 @@ import { OrderStatus, Prisma } from '@prisma/client';
 import { JsonValue } from '@prisma/client/runtime/library';
 import { sendEmail } from '@/lib/services/email';
 import { createPatientAccount } from '@/lib/services/patient';
+import { generateOrderConfirmationEmailHtml } from '@/lib/email-templates/order-confirmation';
+import { generateWelcomeEmail } from '@/lib/email-templates/welcome';
+import { generateAdminNotificationEmail } from '@/lib/email-templates/admin-notification';
 
 // Environment variables
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!;
@@ -56,7 +59,42 @@ type StripeShippingAddress = {
   country: string;
 };
 
-interface Order {
+const orderSelect = {
+  select: {
+    id: true,
+    status: true,
+    paymentId: true,
+    stripeSessionId: true,
+    shippingAddress: true,
+    patientEmail: true,
+    patientName: true,
+    patientDateOfBirth: true,
+    patientMobile: true,
+    testName: true,
+    createAccount: true,
+    createdAt: true,
+    updatedAt: true,
+    notes: true,
+    internalNotes: true,
+    dispatchedAt: true,
+    dispatchedById: true,
+    bloodTestId: true,
+    clientId: true,
+  }
+} satisfies Prisma.OrderDefaultArgs;
+
+type OrderSelect = Prisma.OrderGetPayload<typeof orderSelect> & {
+  patientDateOfBirth: string;
+  patientMobile: string | null;
+};
+
+type OrderWithAmount = OrderSelect & {
+  amount: number;
+};
+
+type Order = OrderSelect;
+
+interface OrderInput extends Prisma.OrderGetPayload<typeof orderSelect> {
   id: string;
   status: OrderStatus;
   paymentId: string | null;
@@ -163,18 +201,33 @@ type SendOrderNotificationEmailParams = {
   testName: string;
 };
 
-const orderSelect = {
-  id: true,
-  status: true,
-  stripeSessionId: true,
-  paymentId: true,
-  shippingAddress: true,
-  patientEmail: true,
-  patientName: true,
-  testName: true,
-  createAccount: true,
-  dateOfBirth: true
-} as const satisfies Record<keyof Order, boolean>;
+
+
+async function sendWelcomeEmail({
+  email,
+  name,
+  password,
+  order,
+}: {
+  email: string;
+  name: string;
+  password?: string;
+  order: Order;
+}) {
+  const { subject, html } = generateWelcomeEmail({
+    order,
+    email,
+    password,
+    name,
+  });
+
+  await sendEmail({
+    to: email,
+    subject,
+    html,
+    text: 'Welcome to Eden Clinic! Your account has been created.',
+  });
+}
 
 const sendPaymentConfirmationEmail = async (params: SendPaymentConfirmationEmailParams) => {
   const emailParams: EmailParams = {
@@ -252,23 +305,23 @@ const verifyWebhookSignature = async (request: Request): Promise<Stripe.Event> =
   const signature = request.headers.get('stripe-signature');
 
   if (!signature) {
-    const error: WebhookError = {
+    throw new WebhookError({
       message: 'No Stripe signature found',
       code: 'missing_signature',
-      statusCode: 400
-    };
-    throw error;
+      statusCode: 400,
+      name: 'WebhookError'
+    });
   }
 
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      const error: WebhookError = {
+      throw new WebhookError({
         message: 'Missing Stripe webhook secret',
         code: 'missing_webhook_secret',
-        statusCode: 500
-      };
-      throw error;
+        statusCode: 500,
+        name: 'WebhookError'
+      });
     }
 
     return stripeClient.webhooks.constructEvent(
@@ -277,11 +330,12 @@ const verifyWebhookSignature = async (request: Request): Promise<Stripe.Event> =
       webhookSecret
     );
   } catch (err) {
-    const error: WebhookError = {
+    const error = new WebhookError({
       message: err instanceof Error ? err.message : 'Invalid signature',
       code: 'invalid_signature',
-      statusCode: 400
-    };
+      statusCode: 400,
+      name: 'WebhookError'
+    });
     console.error('Error verifying webhook signature:', error);
     throw error;
   }
@@ -296,6 +350,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
+    // Handle errors
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
@@ -337,8 +392,8 @@ export async function POST(request: Request) {
         }
 
         const order = await prisma.order.findUnique({
-          where: { id: session.metadata.orderId },
-          select: orderSelect
+          where: { stripeSessionId: session.id },
+          ...orderSelect
         });
 
         if (!order) {
@@ -362,69 +417,209 @@ export async function POST(request: Request) {
           country: shippingAddress.country ?? ''
         } : null;
 
-        // Create patient account if needed
-        if (order.createAccount && order.dateOfBirth && session.metadata.password) {
+        // Create patient account and address if needed
+        let clientUser = null;
+        if (order.createAccount && order.patientDateOfBirth && session.metadata.password) {
           try {
-            await createPatientAccount({
+            // Create the user account
+            // First create the user account using the existing function
+            clientUser = await createPatientAccount({
               email: order.patientEmail,
               name: order.patientName,
-              dateOfBirth: order.dateOfBirth,
+              dateOfBirth: order.patientDateOfBirth,
               password: session.metadata.password
             });
+
+            if (!clientUser) {
+              throw new Error('Failed to create client user');
+            }
+
+            console.log('Created client user:', {
+              id: clientUser.id,
+              email: clientUser.email,
+              name: clientUser.name
+            });
           } catch (error) {
-            console.error('Error creating patient account:', error);
+            console.error('Error creating client user:', error);
+            // Don't throw - we still want to process the order
+          }
+        }
+
+        // Create address record if shipping details exist
+        let address = null;
+        if (formattedShippingAddress) {
+          try {
+            if (clientUser) {
+              // Only create address if we have a user
+              address = await prisma.address.create({
+                data: {
+                  type: 'SHIPPING',
+                  name: order.patientName,
+                  line1: formattedShippingAddress.line1,
+                  line2: formattedShippingAddress.line2,
+                  city: formattedShippingAddress.city,
+                  postcode: formattedShippingAddress.postal_code,
+                  country: formattedShippingAddress.country,
+                  isDefault: true,
+                  clientId: clientUser.id
+                }
+              });
+            }
+
+            if (address) {
+              console.log('Created address:', {
+                id: address.id,
+                line1: address.line1,
+                city: address.city,
+                type: address.type,
+                clientId: address.clientId
+              });
+            }
+          } catch (error) {
+            console.error('Error creating address:', error);
+            // Don't throw - we still want to process the order
           }
         }
 
         const updateData: Prisma.OrderUpdateInput = {
           status: 'PAID',
           stripeSessionId: session.id,
-          paymentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
+          paymentId: session.payment_intent as string,
           shippingAddress: formattedShippingAddress ? formattedShippingAddress as Prisma.JsonObject : Prisma.JsonNull,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // Link the order to the user and address if they were created
+          ...(clientUser && { clientId: clientUser.id })
         };
+
+        console.log('Updating order with:', {
+          orderId: order.id,
+          clientId: clientUser?.id,
+          hasShippingAddress: !!formattedShippingAddress,
+          status: 'PAID'
+        });
 
         const updatedOrder = await prisma.order.update({
           where: { id: order.id },
-          data: updateData,
-          select: orderSelect
+          data: {
+            status: 'PAID',
+            paymentId: session.payment_intent as string,
+          },
+          ...orderSelect
         });
 
-        // Send confirmation emails
-        if (updatedOrder.patientEmail && updatedOrder.patientName && updatedOrder.testName) {
-          await sendPaymentConfirmationEmail({
-            email: updatedOrder.patientEmail,
-            name: updatedOrder.patientName,
-            testName: updatedOrder.testName,
-            orderId: updatedOrder.id,
-            shippingAddress: updatedOrder.shippingAddress ? String(updatedOrder.shippingAddress) : ''
-          });
+        // No need to update patient date of birth as it's part of the order
 
-          const supportEmail = process.env.SUPPORT_EMAIL;
-          if (supportEmail) {
-            await sendOrderNotificationEmail({
-              orderId: updatedOrder.id,
-              name: updatedOrder.patientName,
-              testName: updatedOrder.testName,
-              shippingAddress: updatedOrder.shippingAddress ? String(updatedOrder.shippingAddress) : ''
+        // Update client profile if needed
+        if (updatedOrder.clientId && updatedOrder.createAccount) {
+          const clientUserData = {
+            dateOfBirth: updatedOrder.patientDateOfBirth,
+            mobile: updatedOrder.patientMobile ?? '',
+            name: updatedOrder.patientName,
+            email: updatedOrder.patientEmail,
+          } satisfies Prisma.ClientUserUpdateInput;
+
+          await prisma.clientUser.update({
+            where: { id: updatedOrder.clientId },
+            data: clientUserData,
+          });
+        }
+
+        // Create shipping address if provided
+        if (updatedOrder.shippingAddress && updatedOrder.createAccount && updatedOrder.clientId) {
+          try {
+            const address = JSON.parse(updatedOrder.shippingAddress as string);
+            await prisma.address.create({
+              data: {
+                type: 'SHIPPING',
+                name: updatedOrder.patientName,
+                line1: address.line1,
+                line2: address.line2 || null,
+                city: address.city,
+                postcode: address.postal_code,
+                country: address.country,
+                isDefault: true,
+                clientId: updatedOrder.clientId,
+              },
             });
+            console.log(`Created address for order ${updatedOrder.id}`);
+          } catch (error) {
+            console.error('Error creating address:', error);
           }
         }
-        return new Response('Webhook processed successfully', { status: 200 });
-      }
 
+        // Send welcome email if account was created
+        if (updatedOrder.createAccount) {
+          try {
+            await sendWelcomeEmail({
+              email: updatedOrder.patientEmail,
+              name: updatedOrder.patientName,
+              password: session.metadata?.password,
+              order: updatedOrder,
+            });
+          } catch (error) {
+            console.error('Error sending welcome email:', error);
+          }
+        }
+
+        // Send confirmation email
+        try {
+          await sendPaymentConfirmationEmail({
+            email: updatedOrder.patientEmail,
+            orderId: updatedOrder.id,
+            name: updatedOrder.patientName,
+            shippingAddress: updatedOrder.shippingAddress as string,
+            testName: updatedOrder.testName,
+          });
+        } catch (error) {
+          console.error('Error sending confirmation email:', error);
+        }
+
+        // Send admin notification
+        try {
+          // Get amount from Stripe session
+          const paymentIntent = typeof session.payment_intent === 'string' 
+            ? await stripeClient.paymentIntents.retrieve(session.payment_intent)
+            : session.payment_intent;
+
+          const orderWithAmount = {
+            ...updatedOrder,
+            amount: paymentIntent?.amount ?? 0
+          };
+
+          const { subject, html } = generateAdminNotificationEmail({
+            order: orderWithAmount,
+            customerEmail: updatedOrder.patientEmail,
+            customerName: updatedOrder.patientName,
+            shippingAddress: updatedOrder.shippingAddress as string,
+            accountCreated: updatedOrder.createAccount,
+          });
+
+          await sendEmail({
+            to: SUPPORT_EMAIL || 'support@edenclinic.co.uk',
+            subject,
+            html,
+            text: `New order received: ${updatedOrder.id}`,
+          });
+        } catch (error) {
+          console.error('Error sending admin notification:', error);
+        }
+
+        return new Response('Webhook processed successfully', { status: 200 });
+      } catch (error) {
+        console.error('Error processing webhook:', error);
+        return new Response('Error processing webhook', { status: 500 });
+      }
       default:
-        console.log(`Unhandled event type: ${event.type}`);
-        return new Response(`Unhandled event type: ${event.type}`, { status: 200 });
+        try {
+          console.log(`Unhandled event type: ${event.type}`);
+          return new Response(`Unhandled event type: ${event.type}`, { status: 200 });
+        } catch (error) {
+          console.error('Error handling unhandled event type:', error);
+          return new Response('Error handling unhandled event type', { status: 500 });
+        }
     }
-  } catch (err: unknown) {
-    if (err instanceof WebhookError) {
-      console.error('Webhook error:', err);
-      return new Response(err.message, { status: err.statusCode });
-    }
-    const error = err as Error;
-    console.error('Error processing webhook:', error.message);
-    return new Response('Error processing webhook', { status: 500 });
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response('Error', { status: 500 });
   }
-}
 }

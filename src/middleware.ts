@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifySessionToken } from '@/lib/auth'
+import { jwtVerify } from 'jose'
 
 export async function middleware(request: NextRequest) {
   console.log('=== MIDDLEWARE DEBUG ===');
@@ -29,8 +29,17 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const user = await verifySessionToken(token)
-      if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(process.env.JWT_SECRET || '')
+      )
+      
+      if (
+        typeof payload !== 'object' ||
+        !payload ||
+        !('role' in payload) ||
+        !['ADMIN', 'SUPER_ADMIN'].includes(String(payload.role))
+      ) {
         return NextResponse.redirect(new URL('/admin/login', request.url))
       }
     } catch (error) {
@@ -55,15 +64,25 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const user = await verifySessionToken(token)
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(process.env.JWT_SECRET || '')
+      )
+      
       console.log('Session verification result:', { 
-        success: !!user, 
-        role: user?.role,
-        email: user?.email,
-        isPatient: user?.role === 'PATIENT',
-        patientId: user?.role === 'PATIENT' ? (user as { id: string }).id : undefined
+        success: !!payload,
+        role: payload?.role,
+        email: payload?.email,
+        isPatient: payload?.role === 'PATIENT',
+        patientId: payload?.role === 'PATIENT' ? String(payload.id) : undefined
       });
-      if (!user || user.role !== 'PATIENT') {
+
+      if (
+        typeof payload !== 'object' ||
+        !payload ||
+        !('role' in payload) ||
+        String(payload.role) !== 'PATIENT'
+      ) {
         return NextResponse.redirect(new URL('/login', request.url))
       }
     } catch (error) {
