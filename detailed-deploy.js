@@ -69,7 +69,7 @@ try {
 // Step 5: Deploy to Netlify
 console.log('\u001b[35m=== DEPLOYING TO NETLIFY ===\u001b[0m');
 
-const SITE_ID = '25c8097e-f765-402a-91cc-b1bd8b5fa1f5';
+const SITE_ID = 'eden-clinic-blood-test-u8ft1';
 
 try {
   // Deploy the site
