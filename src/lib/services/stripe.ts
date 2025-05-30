@@ -21,7 +21,7 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil'
+  apiVersion: '2022-11-15'
 });
 
 interface StripeMode {
@@ -32,6 +32,11 @@ interface StripeMode {
 interface SyncResult {
   success: boolean;
   message: string;
+  details: {
+    created: number;
+    updated: number;
+    archived: number;
+  };
   products: Array<{
     name: string;
     oldPrice?: number;
@@ -138,9 +143,15 @@ export async function syncStripeProducts(): Promise<SyncResult> {
           continue;
         }
 
-        // Try to find existing blood test
+        // Try to find existing blood test by product ID or slug
+        const slug = slugify(product.name, { lower: true });
         const existingTest = await prisma.bloodTest.findFirst({
-          where: { stripeProductId: product.id }
+          where: {
+            OR: [
+              { stripeProductId: product.id },
+              { slug: slug }
+            ]
+          }
         });
 
         let bloodTest;
@@ -154,7 +165,7 @@ export async function syncStripeProducts(): Promise<SyncResult> {
               price: priceAmount,
               stripePriceId: price.id,
               isActive: link.active,
-              slug: slugify(product.name, { lower: true })
+              slug: slug
             }
           });
         } else {
@@ -167,7 +178,7 @@ export async function syncStripeProducts(): Promise<SyncResult> {
               stripeProductId: product.id,
               stripePriceId: price.id,
               isActive: link.active,
-              slug: slugify(product.name, { lower: true })
+              slug: slug
             }
           });
         }
@@ -184,7 +195,7 @@ export async function syncStripeProducts(): Promise<SyncResult> {
         console.log(`Created: ${bloodTest.name} at £${bloodTest.price}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Error processing ${product.name}:`, errorMessage);
+        console.error(`Error processing link ${link.id}:`, errorMessage);
         // Skip this product but continue with others
         continue;
       }
@@ -193,9 +204,19 @@ export async function syncStripeProducts(): Promise<SyncResult> {
     const successMessage = `Successfully synced ${changes.length} blood tests`;
     console.log('\n' + successMessage);
 
+    // Calculate sync details
+    const details = changes.reduce(
+      (acc, curr) => {
+        acc[curr.status] += 1;
+        return acc;
+      },
+      { created: 0, updated: 0, archived: 0 }
+    );
+
     return {
       success: true,
       message: successMessage,
+      details,
       products: changes
     };
 
@@ -206,6 +227,7 @@ export async function syncStripeProducts(): Promise<SyncResult> {
     return {
       success: false,
       message: `Sync failed: ${errorMessage}`,
+      details: { created: 0, updated: 0, archived: 0 },
       products: []
     };
   }

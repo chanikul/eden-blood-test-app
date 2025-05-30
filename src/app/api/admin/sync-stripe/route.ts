@@ -43,17 +43,32 @@ export async function POST(request: Request) {
     const result = await syncStripeProducts();
     console.log('Sync completed:', result);
 
-    // Verify database state after sync
-    // const activeTests = await prisma.bloodTest.findMany({
-    //   where: { isActive: true },
-    // });
-    // console.log('\nActive blood tests after sync:', activeTests.map(test => ({
-    //   name: test.name,
+    const summary = {
+      success: result.success,
+      message: result.message,
+      details: {
+        created: result.products.filter(p => p.status === 'created').length,
+        updated: result.products.filter(p => p.status === 'updated').length,
+        archived: result.products.filter(p => p.status === 'archived').length,
+      },
+      products: result.products.map(p => ({
+        name: p.name,
+        status: p.status,
+        oldPrice: p.oldPrice ? (p.oldPrice / 100).toFixed(2) : undefined,
+        newPrice: (p.newPrice / 100).toFixed(2),
+      })),
+    };
+
     //   price: test.price,
     //   stripePriceId: test.stripePriceId,
     // })));
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      message: `Sync completed: ${summary.details.created} created, ${summary.details.updated} updated, ${summary.details.archived} archived`,
+      success: summary.success,
+      details: summary.details,
+      products: summary.products,
+    });
   } catch (error) {
     console.error('Error syncing products:', error);
     return NextResponse.json(
