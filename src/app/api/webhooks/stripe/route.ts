@@ -6,6 +6,8 @@ import { generateWelcomeEmail } from '@/lib/email-templates/welcome';
 import { generateOrderConfirmationEmail } from '@/lib/email-templates/order-confirmation';
 import { generateAdminNotificationEmail } from '@/lib/email-templates/admin-notification';
 import { sendEmail } from '@/lib/services/email';
+import { createPatientAccount } from '@/lib/services/patient';
+// Keep bcrypt as fallback
 import bcrypt from 'bcryptjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -138,11 +140,10 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
     let clientId = order.clientId;
     
     if (createAccount === 'true' && password && !clientId) {
-      console.log('Creating user account as requested in metadata');
+      console.log('=== ACCOUNT CREATION REQUESTED ===');
+      console.log('Creating patient account with Supabase Auth integration');
+      
       try {
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
         // Look for existing user with this email
         const existingUser = await prisma.clientUser.findUnique({
           where: { email: order.patientEmail }
@@ -157,96 +158,58 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
           });
           console.log('Order linked to existing user:', existingUser.id);
         } else {
-          // Create new user
-          const newUser = await prisma.clientUser.create({
-            data: {
-              email: order.patientEmail,
-              name: order.patientName,
-              passwordHash: hashedPassword,
-              dateOfBirth: order.patientDateOfBirth,
-              mobile: order.patientMobile,
-              active: true,
-              stripeCustomerId: session.customer as string,
-            }
+          // Use the dedicated service function to create a complete account
+          // This handles Supabase Auth, ClientUser creation, and Address creation
+          console.log('Creating new patient account with complete flow...');
+          
+          // Process the shipping address
+          const patientAddress = shippingAddress ? {
+            line1: shippingAddress.line1 || '',
+            line2: shippingAddress.line2 || undefined,
+            city: shippingAddress.city || '',
+            postalCode: shippingAddress.postal_code || shippingAddress.postalCode || '',
+            country: shippingAddress.country || 'GB'
+          } : undefined;
+          
+          console.log('Using patient address:', patientAddress);
+          
+          // Create the complete user account (Supabase Auth + Database + Address)
+          const newUser = await createPatientAccount({
+            name: order.patientName,
+            email: order.patientEmail,
+            dateOfBirth: order.patientDateOfBirth,
+            password: password,
+            mobile: order.patientMobile,
+            address: patientAddress,
+            orders: [{
+              id: order.id,
+              testName: order.testName,
+              status: 'PAID',
+              createdAt: new Date()
+            }]
           });
+          
           clientId = newUser.id;
           
-          // Link order to new user
-          await prisma.order.update({
-            where: { id: order.id },
-            data: { clientId: newUser.id }
-          });
-          
-          console.log('Created new user account:', {
+          console.log('✅ Complete patient account created successfully:', {
             userId: newUser.id,
             email: newUser.email,
+            hasAddress: !!patientAddress
           });
           
-          // Save shipping address if present
-          if (shippingAddress) {
-            try {
-              // Standardize shipping address fields to ensure consistency
-              const standardizedAddress = {
-                type: 'SHIPPING' as const, // Use const assertion to match the AddressType enum
-                name: order.patientName,
-                line1: shippingAddress.line1 || '',
-                line2: shippingAddress.line2 || null,
-                city: shippingAddress.city || '',
-                postcode: shippingAddress.postal_code || shippingAddress.postalCode || '',
-                country: shippingAddress.country || 'GB',
-                isDefault: true,
-                clientId: newUser.id,
-              };
-              
-              console.log('Creating standardized shipping address:', standardizedAddress);
-              
-              const address = await prisma.address.create({
-                data: standardizedAddress
-              });
-              console.log('Created shipping address:', address.id);
-            } catch (error) {
-              console.error('Error creating shipping address:', error);
-              // Don't fail the entire process if address creation fails
-            }
-          }
-          
-          // Send welcome email
-          try {
-            const { subject, html } = await generateWelcomeEmail({
-              name: order.patientName,
-              email: order.patientEmail,
-              password: password,
-              order: {
-                id: order.id,
-                patientName: order.patientName,
-                patientEmail: order.patientEmail,
-                bloodTest: {
-                  name: order.testName
-                }
-              }
-            });
-            
-            await sendEmail({
-              to: order.patientEmail,
-              subject,
-              text: `Welcome to Eden Clinic! Your account has been created. Email: ${order.patientEmail}, Password: ${password}`,
-              html,
-            });
-            
-            console.log('Welcome email sent to:', order.patientEmail);
-          } catch (error) {
-            console.error('Error sending welcome email:', error);
-            // Don't fail the entire process if email sending fails
-          }
+          // Note: Welcome email is sent by createPatientAccount function
+          console.log('Welcome email triggered through patient account creation');
         }
       } catch (error) {
-        console.error('Error creating user account:', error);
-        // Continue processing, just log the error
+        console.error('❌ Error creating patient account:', error);
+        // Continue processing so order confirmation still works
       }
     }
 
     // Send order confirmation email to customer
     try {
+      console.log('📧 [EMAIL 1/3] Generating order confirmation email for customer...');
+      
       const { subject, html } = await generateOrderConfirmationEmail({
         name: order.patientName,
         orderId: order.id,
@@ -265,6 +228,8 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
         }),
       });
 
+      console.log('📧 [EMAIL 1/3] Styled confirmation email generated, sending via SendGrid...');
+      
       await sendEmail({
         to: order.patientEmail,
         subject,
@@ -272,14 +237,15 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
         html,
       });
 
-      console.log('Order confirmation email sent to:', order.patientEmail);
+      console.log('✅ [EMAIL 1/3] Order confirmation email sent successfully to:', order.patientEmail);
     } catch (error) {
-      console.error('Error sending order confirmation email:', error);
+      console.error('❌ [EMAIL 1/3] Error sending order confirmation email:', error);
       // Continue processing, just log the error
     }
 
     // Send admin notification email
     try {
+      console.log('📧 [EMAIL 2/3] Generating admin notification email...');
       const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL;
       if (adminEmail) {
         const { subject, html } = await generateAdminNotificationEmail({
@@ -297,6 +263,8 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
           paymentStatus: 'paid',
         });
 
+        console.log('📧 [EMAIL 2/3] Styled admin notification email generated, sending to:', adminEmail);
+        
         await sendEmail({
           to: adminEmail,
           subject,
@@ -304,12 +272,12 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
           html,
         });
 
-        console.log('Admin notification email sent to:', adminEmail);
+        console.log('✅ [EMAIL 2/3] Admin notification email sent successfully to:', adminEmail);
       } else {
-        console.warn('No admin email configured for notifications');
+        console.warn('⚠️ [EMAIL 2/3] No admin email configured for notifications. Set ADMIN_EMAIL or SUPPORT_EMAIL in .env');
       }
     } catch (error) {
-      console.error('Error sending admin notification email:', error);
+      console.error('❌ [EMAIL 2/3] Error sending admin notification email:', error);
       // Continue processing, just log the error
     }
 
