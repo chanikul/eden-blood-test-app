@@ -2,7 +2,7 @@ import { Order } from '@prisma/client';
 import { renderAsync } from '@react-email/render';
 import WelcomeEmail from './welcome-email';
 
-interface WelcomeEmailProps {
+export interface WelcomeEmailProps {
   order: Order;
   email: string;
   password?: string;

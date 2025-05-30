@@ -1,12 +1,4 @@
-interface ShippingAddress {
-  name: string;
-  line1: string;
-  line2?: string | null;
-  city: string;
-  state?: string | null;
-  postal_code: string;
-  country: string;
-}
+import { EmailTemplateResponse, OrderConfirmationEmailProps } from './types';
 
 export const formatShippingAddress = (shippingAddress?: string): string => {
   if (!shippingAddress) return '';
@@ -28,7 +20,7 @@ export const formatShippingAddress = (shippingAddress?: string): string => {
 import { renderAsync } from '@react-email/render';
 import OrderConfirmationEmail from './order-confirmation-email';
 
-export async function generateOrderConfirmationEmail({
+export const generateOrderConfirmationEmail = async ({
   name,
   orderId,
   testName,
@@ -38,21 +30,9 @@ export async function generateOrderConfirmationEmail({
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }),
-}: {
-  name: string;
-  orderId: string;
-  testName: string;
-  shippingAddress: {
-    line1: string;
-    line2?: string;
-    city: string;
-    postcode: string;
-  };
-  orderStatus?: string;
-  orderDate?: string;
-}) {
-  return await renderAsync(
+  })
+}: OrderConfirmationEmailProps): Promise<EmailTemplateResponse> => {
+  const html = await renderAsync(
     OrderConfirmationEmail({
       name,
       orderId,

@@ -33,7 +33,7 @@ if (!STRIPE_WEBHOOK_SECRET) {
 }
 
 const stripeClient = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: '2022-11-15'
+  apiVersion: '2022-11-15' as const
 });
 
 type StripeCheckoutSession = Stripe.Checkout.Session & {
@@ -224,8 +224,9 @@ async function sendWelcomeEmail({
   email,
   name,
   password,
-}: WelcomeEmailProps) {
-  const welcomeEmailData: EmailTemplateResponse = await sendWelcomeEmail({
+  order,
+}: WelcomeEmailProps): Promise<void> {
+  const welcomeEmailData = await generateWelcomeEmail({
     email,
     name,
     password
@@ -364,10 +365,14 @@ export async function POST(request: Request) {
   try {
     // Handle errors
     const body = await request.text();
+    const signature = request.headers.get('stripe-signature');
+    if (!signature) {
+      throw new Error('No signature found');
+    }
     event = stripeClient.webhooks.constructEvent(
       body,
-      signature || '',
-      process.env.STRIPE_WEBHOOK_SECRET || ''
+      signature,
+      STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
     console.error('Error verifying webhook signature:', err);
@@ -383,14 +388,15 @@ export async function POST(request: Request) {
   try {
     // Get or create user account
     let clientUser = null;
-    if (session.metadata?.createAccount === 'true' && session.metadata?.password) {
+    const metadata = session.metadata as { orderId: string; password?: string; createAccount?: string; orderName?: string } | null;
+if (!metadata?.orderId) {
       try {
         const order = await prisma.order.findUnique({
-          where: { id: session.metadata.orderId }
+          where: { id: metadata.orderId }
         });
 
         if (!order) {
-          throw new Error(`Order not found: ${session.metadata.orderId}`);
+          return handleOrderNotFound(metadata.orderId);
         }
 
         clientUser = await createPatientAccount({
@@ -410,83 +416,96 @@ export async function POST(request: Request) {
         const shippingDetails = session.shipping_details;
         const shippingAddress = shippingDetails.address;
 
-        const formattedShippingAddress: ShippingAddress | null = shippingAddress ? {
-          line1: shippingAddress.line1 ?? '',
-          line2: shippingAddress.line2 ?? undefined,
-          city: shippingAddress.city ?? '',
-          state: shippingAddress.state ?? undefined,
-          postal_code: shippingAddress.postal_code ?? '',
-          country: shippingAddress.country ?? ''
-        } : null;
+        if (shippingAddress) {
+          const formattedShippingAddress: ShippingAddress = {
+            line1: shippingAddress.line1 ?? '',
+            line2: shippingAddress.line2 ?? undefined,
+            city: shippingAddress.city ?? '',
+            state: shippingAddress.state ?? undefined,
+            postal_code: shippingAddress.postal_code ?? '',
+            country: shippingAddress.country ?? ''
+          };
 
-        await prisma.address.create({
-          data: {
-            line1: formattedShippingAddress.line1,
-            line2: formattedShippingAddress.line2,
-            city: formattedShippingAddress.city,
-            postcode: formattedShippingAddress.postal_code,
-            country: formattedShippingAddress.country,
-            type: 'SHIPPING',
-            name: session.metadata.orderName,
-            isDefault: true,
-            clientId: clientUser.id
-          }
-        });
+          await prisma.address.create({
+            data: {
+              line1: formattedShippingAddress.line1,
+              line2: formattedShippingAddress.line2,
+              city: formattedShippingAddress.city,
+              postcode: formattedShippingAddress.postal_code,
+              country: formattedShippingAddress.country,
+              type: 'SHIPPING',
+              name: metadata?.orderName ?? 'Default Address',
+              isDefault: true,
+              clientId: clientUser.id
+            }
+          });
+        }
       } catch (error) {
-        console.error('Error creating address:', error);
+        console.error('Error creating shipping address:', error);
       }
     }
 
-    // Update order status
+    // Update order status and send emails
     const order = await prisma.order.findUnique({
-      where: { id: session.metadata.orderId }
+      where: { id: metadata?.orderId },
+      include: {
+        bloodTest: true
+      }
     });
 
     if (!order) {
-      throw new Error(`Order not found: ${session.metadata.orderId}`);
+      throw new Error(`Order not found: ${metadata?.orderId}`);
     }
 
+    // Update order status
     await prisma.order.update({
       where: { id: order.id },
       data: {
         status: 'PAID',
         paymentId: session.payment_intent as string,
-        paidAt: new Date()
+        status: 'PAID',
+        paymentId: session.payment_intent as string
       }
     });
 
-    // Send welcome email
-    try {
-      const welcomeEmailData = await generateWelcomeEmail({
-        email: order.patientEmail,
-        name: order.patientName,
-        password: session.metadata.password,
-        order: order
-      });
+    // Send welcome email if account was created
+    if (metadata?.createAccount === 'true' && metadata?.password) {
+      try {
+        const welcomeEmailResponse = await generateWelcomeEmail({
+          email: order.patientEmail,
+          name: order.patientName,
+          password: metadata.password,
+          order
+        });
 
-      await sendEmail({
-        to: order.patientEmail,
-        subject: welcomeEmailData.subject,
-        html: welcomeEmailData.html,
-        text: 'Welcome to Eden Clinic'
-      });
-    } catch (error) {
-      console.error('Error sending welcome email:', error);
+        await sendEmail({
+          to: order.patientEmail,
+          subject: welcomeEmailResponse.subject,
+          html: welcomeEmailResponse.html,
+          text: 'Welcome to Eden Clinic'
+        });
+      } catch (error) {
+        console.error('Error sending welcome email:', error);
+      }
     }
 
     // Send order confirmation email
     try {
-      const emailShippingAddress: EmailShippingAddress = {
-        line1: session.shipping_details.address.line1 || '',
-        line2: session.shipping_details.address.line2,
-        city: session.shipping_details.address.city || '',
-        postcode: session.shipping_details.address.postal_code || ''
+      const emailShippingAddress: EmailShippingAddress = session.shipping_details?.address ? {
+        line1: session.shipping_details.address.line1 ?? '',
+        line2: session.shipping_details.address.line2 ?? undefined,
+        city: session.shipping_details.address.city ?? '',
+        postcode: session.shipping_details.address.postal_code ?? ''
+      } : {
+        line1: '',
+        city: '',
+        postcode: ''
       };
 
-      const emailData = await generateOrderConfirmationEmail({
+      const confirmationEmail = await generateOrderConfirmationEmail({
         name: order.patientName,
         orderId: order.id,
-        testName: order.testName,
+        testName: order.bloodTest.name,
         shippingAddress: emailShippingAddress,
         orderStatus: 'Confirmed',
         orderDate: new Date().toLocaleDateString('en-GB')
@@ -494,34 +513,32 @@ export async function POST(request: Request) {
 
       await sendEmail({
         to: order.patientEmail,
-        subject: emailData.subject,
-        html: emailData.html,
+        subject: confirmationEmail.subject,
+        html: confirmationEmail.html,
         text: `Order confirmation for order ${order.id}`
       });
-    } catch (error) {
-      console.error('Error sending order confirmation email:', error);
-    }
 
-    // Send admin notification email
-    try {
-      const adminEmailHtml = await generateAdminNotificationEmail({
+      // Send admin notification email
+      const adminEmail = await generateAdminNotificationEmail({
         email: order.patientEmail,
         name: order.patientName,
         orderId: order.id,
-        testName: order.testName,
+        testName: order.bloodTest.name,
         shippingAddress: emailShippingAddress,
-        notes: order.notes || undefined,
+        notes: order.notes ?? undefined,
         paymentStatus: 'PAID'
       });
 
-      await sendEmail({
-        to: process.env.SUPPORT_EMAIL || '',
-        subject: 'New Order Notification - Eden Clinic',
-        html: adminEmailHtml,
-        text: `New order notification: ${order.id}`
-      });
+      if (SUPPORT_EMAIL) {
+        await sendEmail({
+          to: SUPPORT_EMAIL,
+          subject: adminEmail.subject,
+          html: adminEmail.html,
+          text: `New order notification: ${order.id}`
+        });
+      }
     } catch (error) {
-      console.error('Error sending admin notification email:', error);
+      console.error('Error sending order emails:', error);
     }
 
     return new Response('Webhook processed successfully', { status: 200 });
