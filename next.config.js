@@ -2,12 +2,12 @@
 const path = require('path');
 
 const nextConfig = {
-  swcMinify: false,
   reactStrictMode: true,
   output: 'standalone',
   experimental: {
     optimizeCss: true,
     serverComponentsExternalPackages: ['stripe'],
+    serverActions: true, // Enable Server Actions feature flag
   },
   swcMinify: true,
   env: {
@@ -19,9 +19,6 @@ const nextConfig = {
     SUPPORT_EMAIL: process.env.SUPPORT_EMAIL,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     JWT_SECRET: process.env.JWT_SECRET,
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['stripe'],
   },
 
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
