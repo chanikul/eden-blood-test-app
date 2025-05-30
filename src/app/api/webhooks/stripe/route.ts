@@ -139,9 +139,23 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
     // Create user account if requested
     let clientId = order.clientId;
     
+    // Log values for debugging
+    console.log('🔑 [AUTH CHECK] Account creation parameters:', {
+      createAccount,
+      passwordProvided: !!password,
+      clientIdExists: !!clientId,
+      email: order.patientEmail
+    });
+    
     if (createAccount === 'true' && password && !clientId) {
-      console.log('=== ACCOUNT CREATION REQUESTED ===');
-      console.log('Creating patient account with Supabase Auth integration');
+      console.log('🔑 [AUTH INIT] ===== ACCOUNT CREATION REQUESTED =====');
+      console.log('🔑 [AUTH INIT] Patient account details:', {
+        name: order.patientName,
+        email: order.patientEmail,
+        passwordLength: password ? password.length : 0,
+        dateOfBirth: order.patientDateOfBirth,
+        mobile: order.patientMobile
+      });
       
       try {
         // Look for existing user with this email

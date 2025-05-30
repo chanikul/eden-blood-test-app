@@ -31,6 +31,17 @@ interface CreatePatientAccountParams {
 }
 
 export async function createPatientAccount(params: CreatePatientAccountParams) {
+  console.log('📝 [PATIENT SERVICE] createPatientAccount called with parameters:', {
+    name: params.name,
+    email: params.email,
+    dateOfBirth: params.dateOfBirth,
+    passwordProvided: !!params.password,
+    mobileProvided: !!params.mobile,
+    addressProvided: !!params.address,
+    ordersProvided: !!params.orders,
+    orderCount: params.orders?.length || 0
+  });
+  
   try {
     console.log('🔑 [AUTH 1/3] Hashing password for new account...');
     // Hash the provided password

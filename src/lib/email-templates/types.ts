@@ -5,18 +5,22 @@ export interface EmailTemplateResponse {
 
 export interface EmailShippingAddress {
   line1: string;
-  line2?: string;
+  line2?: string | undefined;
   city: string;
   postcode: string;
+  country?: string;
 }
+
+// Make the shipping address optional in these interfaces for better flexibility
 
 export interface OrderConfirmationEmailProps {
   name: string;
   orderId: string;
   testName: string;
-  shippingAddress: EmailShippingAddress;
+  shippingAddress?: EmailShippingAddress;
   orderStatus?: string;
   orderDate?: string;
+  isHomeKit?: boolean;
 }
 
 export interface AdminNotificationEmailProps {
@@ -24,9 +28,10 @@ export interface AdminNotificationEmailProps {
   name: string;
   orderId: string;
   testName: string;
-  shippingAddress: EmailShippingAddress;
+  shippingAddress?: EmailShippingAddress | string;
   notes?: string;
-  paymentStatus: string;
+  paymentStatus?: string;
+  dateOfBirth?: string;
 }
 
 export interface WelcomeEmailProps {
