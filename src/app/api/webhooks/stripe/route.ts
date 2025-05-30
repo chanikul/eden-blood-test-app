@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { buffer } from 'micro';
+// Using raw buffer from req.text() instead of micro package
 import { prisma } from '@/lib/prisma';
 import { generateWelcomeEmail } from '@/lib/email-templates/welcome';
 import { generateOrderConfirmationEmail } from '@/lib/email-templates/order-confirmation';
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       created: new Date(event.created * 1000).toISOString(),
       data: {
         object: {
-          id: event.data.object.id,
+          id: (event.data.object as any).id,
         }
       }
     });
@@ -130,8 +130,8 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
     let shippingAddress = order.shippingAddress as any;
 
     // If a shipping address doesn't exist on the order but exists in session, use that
-    if (!shippingAddress && session.shipping) {
-      shippingAddress = session.shipping.address;
+    if (!shippingAddress && (session as any).shipping) {
+      shippingAddress = (session as any).shipping.address;
     }
 
     // Create user account if requested
@@ -215,7 +215,15 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
             const { subject, html } = await generateWelcomeEmail({
               name: order.patientName,
               email: order.patientEmail,
-              tempPassword: password,
+              password: password,
+              order: {
+                id: order.id,
+                patientName: order.patientName,
+                patientEmail: order.patientEmail,
+                bloodTest: {
+                  name: order.testName
+                }
+              }
             });
             
             await sendEmail({
