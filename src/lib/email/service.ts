@@ -25,7 +25,7 @@ interface EmailParams {
 }
 
 // Common email sender function
-async function sendEmail({ to, subject, text, html }: EmailParams) {
+export async function sendEmail({ to, subject, text, html }: EmailParams) {
   // Determine email type for logging
   let emailType = 'UNKNOWN';
   if (subject.includes('Welcome')) emailType = '[EMAIL 3/3] WELCOME';
