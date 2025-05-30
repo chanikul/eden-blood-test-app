@@ -9,7 +9,7 @@ import { sendEmail } from '@/lib/services/email';
 import bcrypt from 'bcryptjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2022-11-15',
+  apiVersion: '2025-04-30.basil',
 });
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -185,23 +185,18 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
           // Save shipping address if present
           if (shippingAddress) {
             try {
-              // Standardize shipping address fields to ensure consistency
-              const standardizedAddress = {
-                type: 'SHIPPING' as const, // Use const assertion to match the AddressType enum
-                name: order.patientName,
-                line1: shippingAddress.line1 || '',
-                line2: shippingAddress.line2 || null,
-                city: shippingAddress.city || '',
-                postcode: shippingAddress.postal_code || shippingAddress.postalCode || '',
-                country: shippingAddress.country || 'GB',
-                isDefault: true,
-                clientId: newUser.id,
-              };
-              
-              console.log('Creating standardized shipping address:', standardizedAddress);
-              
               const address = await prisma.address.create({
-                data: standardizedAddress
+                data: {
+                  type: 'SHIPPING',
+                  name: order.patientName,
+                  line1: shippingAddress.line1,
+                  line2: shippingAddress.line2,
+                  city: shippingAddress.city,
+                  postcode: shippingAddress.postal_code || shippingAddress.postalCode,
+                  country: shippingAddress.country,
+                  isDefault: true,
+                  clientId: newUser.id,
+                }
               });
               console.log('Created shipping address:', address.id);
             } catch (error) {

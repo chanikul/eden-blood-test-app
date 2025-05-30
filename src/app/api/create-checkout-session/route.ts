@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
+  apiVersion: '2022-11-15',
 }) as Stripe;
 
 const requestSchema = z.object({
@@ -83,6 +83,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Create an order record
     let order;
     try {
+      // Standardize shipping address format to ensure consistency
+      const standardizedShippingAddress = {
+        line1: data.shippingAddress.line1,
+        line2: data.shippingAddress.line2 || null,
+        city: data.shippingAddress.city,
+        state: data.shippingAddress.state || null,
+        postal_code: data.shippingAddress.postalCode, // Ensure consistent naming (postal_code)
+        country: data.shippingAddress.country
+      };
+
+      console.log('Creating order with standardized shipping address:', standardizedShippingAddress);
+      
       order = await prisma.order.create({
         data: {
           patientName: data.fullName,
@@ -93,8 +105,14 @@ export async function POST(request: Request): Promise<NextResponse> {
           notes: data.notes,
           bloodTestId: bloodTest.id,
           createAccount: data.createAccount,
-          shippingAddress: data.shippingAddress
+          shippingAddress: standardizedShippingAddress
         }
+      });
+
+      console.log('Order created successfully:', {
+        orderId: order.id,
+        patientEmail: order.patientEmail,
+        createAccount: order.createAccount
       });
     } catch (error: any) {
       console.error('Error creating order:', error);

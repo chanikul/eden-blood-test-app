@@ -33,5 +33,12 @@ export interface WelcomeEmailProps {
   email: string;
   name: string;
   password: string;
-  order: any; // TODO: Replace with proper Order type
+  order: {
+    id: string;
+    patientName: string;
+    patientEmail: string;
+    bloodTest?: {
+      name: string;
+    };
+  };
 }

@@ -1,28 +1,18 @@
 import { renderAsync } from '@react-email/render';
 import AdminNotificationEmail from './admin-notification-email';
+import { AdminNotificationEmailProps, EmailTemplateResponse } from './types';
 
-export async function generateAdminNotificationEmail({
-  name,
-  email,
-  orderId,
-  testName,
-  shippingAddress,
-  notes,
-  paymentStatus = 'pending',
-}: {
-  name: string;
-  email: string;
-  orderId: string;
-  testName: string;
-  shippingAddress: {
-    line1: string;
-    line2?: string;
-    city: string;
-    postcode: string;
-  };
-  notes?: string;
-  paymentStatus?: string;
-}) {
+export async function generateAdminNotificationEmail(props: AdminNotificationEmailProps): Promise<EmailTemplateResponse> {
+  const {
+    name,
+    email,
+    orderId,
+    testName,
+    shippingAddress,
+    notes,
+    paymentStatus = 'pending'
+  } = props;
+
   const orderDate = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
@@ -32,7 +22,7 @@ export async function generateAdminNotificationEmail({
     minute: '2-digit',
   });
 
-  return await renderAsync(
+  const html = await renderAsync(
     AdminNotificationEmail({
       name,
       email,
@@ -41,7 +31,12 @@ export async function generateAdminNotificationEmail({
       shippingAddress,
       notes,
       orderDate,
-      paymentStatus,
+      paymentStatus
     })
   );
+
+  return {
+    subject: `New Order Notification - Eden Clinic #${orderId}`,
+    html
+  };
 }

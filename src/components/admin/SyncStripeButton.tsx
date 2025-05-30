@@ -81,7 +81,16 @@ export function SyncStripeButton() {
         className="fixed inset-0 z-10 overflow-y-auto"
       >
         <div className="flex items-center justify-center min-h-screen">
-          <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+          <Transition.Child
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black opacity-30" />
+          </Transition.Child>
 
           <div className="relative bg-white rounded-lg max-w-md w-full mx-4 p-6 shadow-xl">
             <Dialog.Title className="text-lg font-medium text-gray-900 mb-4">

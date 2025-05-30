@@ -1,4 +1,13 @@
-import { Html, Head, Preview, Body, Container, Text, Link, Button, Hr } from '@react-email/components';
+import React from 'react';
+import { Html } from '@react-email/html';
+import { Head } from '@react-email/head';
+import { Preview } from '@react-email/preview';
+import { Body } from '@react-email/body';
+import { Container } from '@react-email/container';
+import { Text } from '@react-email/text';
+import { Link } from '@react-email/link';
+import { Button } from '@react-email/button';
+import { Hr } from '@react-email/hr';
 
 export default function WelcomeEmail({ name, email, tempPassword }: { name: string; email: string; tempPassword: string }) {
   return (
@@ -16,8 +25,8 @@ export default function WelcomeEmail({ name, email, tempPassword }: { name: stri
 
           <Hr style={styles.hr} />
           <Text style={styles.subheading}>Your Login Details</Text>
-          <Text>Email: <strong>{email}</strong></Text>
-          <Text>Password: <strong>{tempPassword}</strong></Text>
+          <Text style={styles.text}>Email: <strong>{email}</strong></Text>
+          <Text style={styles.text}>Password: <strong>{tempPassword}</strong></Text>
 
           <Hr style={styles.hr} />
           <Text style={styles.subheading}>Next Steps</Text>

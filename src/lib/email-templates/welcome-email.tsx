@@ -8,13 +8,13 @@ import { Link } from '@react-email/link';
 import { Button } from '@react-email/button';
 import { Hr } from '@react-email/hr';
 
-import { Order } from '@prisma/client';
+import { WelcomeEmailProps as WelcomeEmailTemplateProps } from './types';
 
 interface WelcomeEmailProps {
   name: string;
   email: string;
   tempPassword?: string;
-  order?: Order;
+  order?: WelcomeEmailTemplateProps['order'];
 }
 
 export default function WelcomeEmail({ name, email, tempPassword, order }: WelcomeEmailProps) {
@@ -44,8 +44,8 @@ export default function WelcomeEmail({ name, email, tempPassword, order }: Welco
               <Text style={styles.subheading}>🩺 Your Test Order</Text>
               <Container style={styles.orderBox}>
                 <Text style={styles.text}><strong>Order ID:</strong> {order.id}</Text>
-                <Text style={styles.text}><strong>Test:</strong> {order.testName}</Text>
-                <Text style={styles.text}><strong>Status:</strong> <Text style={{ ...styles.text, color: '#059669' }}>{order.status}</Text></Text>
+                <Text style={styles.text}><strong>Test:</strong> {order.bloodTest?.name || 'Blood Test'}</Text>
+                <Text style={styles.text}><strong>Status:</strong> <Text style={{ ...styles.text, color: '#059669' }}>Confirmed</Text></Text>
               </Container>
               <Hr style={styles.hr} />
             </>
