@@ -35,13 +35,18 @@ async function getRecentOrders() {
 
 async function getBloodTestStats() {
   try {
+    // Use the correct Prisma syntax for grouping and counting
     const stats = await prisma.order.groupBy({
       by: ['status'],
-      _count: true
+      _count: {
+        status: true
+      }
     })
     
+    console.log('Order stats by status:', stats)
+    
     return stats.reduce((acc, curr) => {
-      acc[curr.status] = curr._count
+      acc[curr.status] = curr._count.status
       return acc
     }, {} as Record<string, number>)
   } catch (error) {
@@ -52,10 +57,15 @@ async function getBloodTestStats() {
 
 async function getUserCount() {
   try {
-    const uniqueUsers = await prisma.order.groupBy({
-      by: ['patientEmail'],
-      _count: true
+    // Use countDistinct for more reliable unique user counting
+    const uniqueUsers = await prisma.order.findMany({
+      distinct: ['patientEmail'],
+      select: {
+        patientEmail: true
+      }
     })
+    
+    console.log('Unique users count:', uniqueUsers.length)
     return uniqueUsers.length
   } catch (error) {
     console.error('Error fetching user count:', error)
@@ -64,22 +74,89 @@ async function getUserCount() {
 }
 
 export default async function AdminDashboard() {
+  // Fetch data with individual error handling for each source
+  let recentOrders: RecentOrder[] = [];
+  let stats: Record<string, number> = {};
+  let userCount = 0;
+  let errorMessages: string[] = [];
+  
   try {
-    const [recentOrders, stats, userCount] = await Promise.all([
-      getRecentOrders(),
-      getBloodTestStats(),
-      getUserCount(),
-    ])
+    // Verify database connection is working
+    console.log('Verifying database connection...');
+    try {
+      await prisma.$queryRaw`SELECT 1 as connection_test`;
+      console.log('✅ Database connection verified for admin dashboard');
+    } catch (connError) {
+      const errorMessage = connError instanceof Error 
+        ? `Database connection error: ${connError.message}` 
+        : 'Unknown database connection error';
+      console.error('❌ ' + errorMessage, connError);
+      errorMessages.push(errorMessage);
+      throw connError; // Re-throw to skip data fetching
+    }
 
+    // Fetch recent orders
+    try {
+      recentOrders = await getRecentOrders();
+      console.log('Successfully fetched recent orders:', recentOrders.length);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? `Error fetching recent orders: ${error.message}` 
+        : 'Unknown error fetching recent orders';
+      console.error('❌ ' + errorMessage, error);
+      errorMessages.push(errorMessage);
+    }
+    
+    // Fetch blood test stats
+    try {
+      stats = await getBloodTestStats();
+      console.log('Successfully fetched blood test stats:', stats);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? `Error fetching blood test stats: ${error.message}` 
+        : 'Unknown error fetching blood test stats';
+      console.error('❌ ' + errorMessage, error);
+      errorMessages.push(errorMessage);
+    }
+    
+    // Fetch user count
+    try {
+      userCount = await getUserCount();
+      console.log('Successfully fetched user count:', userCount);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? `Error fetching user count: ${error.message}` 
+        : 'Unknown error fetching user count';
+      console.error('❌ ' + errorMessage, error);
+      errorMessages.push(errorMessage);
+    }
+
+    // If we have errors but have gotten this far, display them in console
+    if (errorMessages.length > 0) {
+      console.error('Dashboard loaded with errors:', errorMessages);
+    }
+    
+    // Render dashboard with available data (some sections may show default values if errors occurred)
     return (
       <div className="p-8">
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+        
+        {errorMessages.length > 0 && (
+          <div className="bg-red-50 border border-red-200 text-red-800 p-4 mb-6 rounded-lg">
+            <h3 className="font-semibold mb-2">Dashboard Errors</h3>
+            <ul className="list-disc pl-5">
+              {errorMessages.map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-2">Total Orders</h2>
             <p className="text-3xl font-bold">
-              {Object.values(stats).reduce((a, b) => a + b, 0)}
+              {Object.values(stats).reduce((a: number, b: number) => a + b, 0)}
             </p>
           </div>
           
@@ -135,16 +212,23 @@ export default async function AdminDashboard() {
           )}
         </div>
       </div>
-    )
+    );
   } catch (error) {
-    console.error('Error in AdminDashboard:', error)
+    // Catch-all error handler for critical errors that prevent dashboard loading
+    const errorMessage = error instanceof Error 
+      ? `Critical dashboard error: ${error.message}` 
+      : 'Unknown critical error in dashboard';
+    console.error('❌ ' + errorMessage, error);
+    
     return (
       <div className="p-8">
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <p className="text-gray-500">Loading dashboard data...</p>
+        <div className="bg-red-50 border border-red-200 text-red-800 p-4 mb-6 rounded-lg">
+          <h3 className="font-semibold mb-2">Error Loading Dashboard</h3>
+          <p>{errorMessage}</p>
+          <p className="mt-2">Please check the console for more details or try again later.</p>
         </div>
       </div>
-    )
+    );
   }
 }

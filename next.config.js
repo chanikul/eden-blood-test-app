@@ -6,7 +6,22 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     optimizeCss: true,
-    serverComponentsExternalPackages: ['stripe'],
+    // Add all React Email packages to the serverComponentsExternalPackages list
+    serverComponentsExternalPackages: [
+      'stripe',
+      '@react-email/components',
+      '@react-email/render',
+      '@react-email/html',
+      '@react-email/head',
+      '@react-email/button',
+      '@react-email/container',
+      '@react-email/text',
+      '@react-email/body',
+      '@react-email/preview',
+      '@react-email/link',
+      '@react-email/hr',
+      '@react-email/section'
+    ],
     serverActions: true, // Enable Server Actions feature flag
   },
   swcMinify: true,

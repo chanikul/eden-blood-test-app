@@ -107,7 +107,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
             {/* Debug: Raw JSON */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="text-xs font-mono text-gray-500 break-all">
-                Raw data: {order.shippingAddress}
+                Raw data: {JSON.stringify(order.shippingAddress)}
               </div>
             </div>
           </div>
