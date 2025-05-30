@@ -321,8 +321,11 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
 }
 
 // This is needed for the webhook handler to properly parse the request body
+// Using the new Next.js route segment config format
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  runtime: 'nodejs',
+  dynamic: 'force-dynamic'
 };
+
+// Disable body parsing as we need the raw body for Stripe signature verification
+export const bodyParser = false;
