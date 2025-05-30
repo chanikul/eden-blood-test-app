@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - Eden Clinic</title>
+    <style>
+        /* Reset styles for email clients */
+        body, table, td, div, p, a {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+        }
+        /* Base styles */
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .top-bar {
+            background-color: #203749;
+            color: #ffffff;
+            padding: 8px;
+            text-align: center;
+        }
+        .top-bar a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+        .logo-section {
+            padding: 32px 0;
+            text-align: center;
+        }
+        .logo-section img {
+            max-width: 180px;
+        }
+        .hero-heading {
+            font-size: 28px;
+            font-weight: bold;
+            color: #203749;
+            text-align: center;
+            padding: 24px 0;
+            margin: 0;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #6C767E;
+            text-align: center;
+            padding: 0 24px;
+            margin-bottom: 32px;
+        }
+        .order-summary {
+            background-color: #f8f9fa;
+            padding: 24px;
+            margin: 0 24px;
+            border-radius: 8px;
+        }
+        .order-summary h2 {
+            color: #203749;
+            font-size: 20px;
+            margin: 0 0 16px 0;
+        }
+        .order-details {
+            margin-bottom: 24px;
+        }
+        .order-details p {
+            margin: 8px 0;
+            color: #6C767E;
+        }
+        .order-details strong {
+            color: #203749;
+        }
+        .shipping-box {
+            border: 1px solid #DAD3D2;
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 16px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #203749;
+            color: #ffffff !important;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 32px 0;
+        }
+        .next-steps {
+            padding: 32px 24px;
+            background-color: #f8f9fa;
+            margin-top: 32px;
+        }
+        .next-steps h2 {
+            color: #203749;
+            font-size: 20px;
+            margin: 0 0 16px 0;
+        }
+        .next-steps ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .next-steps li {
+            color: #6C767E;
+            margin: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+        .next-steps li:before {
+            content: "✓";
+            color: #203749;
+            position: absolute;
+            left: 0;
+        }
+        .footer {
+            background-color: #203749;
+            color: #ffffff;
+            padding: 32px 24px;
+            text-align: center;
+            margin-top: 32px;
+        }
+        .footer p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        .social-icons {
+            margin: 24px 0;
+        }
+        .social-icons a {
+            margin: 0 8px;
+            text-decoration: none;
+        }
+        @media only screen and (max-width: 480px) {
+            .email-wrapper {
+                width: 100% !important;
+            }
+            .hero-heading {
+                font-size: 24px;
+            }
+            .order-summary {
+                margin: 0 16px;
+                padding: 16px;
+            }
+            .cta-button {
+                display: block;
+                text-align: center;
+                margin: 24px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="top-bar">
+            <a href="{{viewInBrowserUrl}}">View in browser</a>
+        </div>
+
+        <div class="logo-section">
+            <img src="{{logoUrl}}" alt="Eden Clinic" width="180">
+        </div>
+
+        <h1 class="hero-heading">Order Confirmation</h1>
+        
+        <p class="greeting">Thank you for your order, {{customerName}}!</p>
+
+        <div class="order-summary">
+            <h2>Order Summary</h2>
+            <div class="order-details">
+                <p><strong>Order ID:</strong> {{orderId}}</p>
+                <p><strong>Test Name:</strong> {{testName}}</p>
+                <p><strong>Status:</strong> {{orderStatus}}</p>
+                {{#if dispatchDate}}
+                <p><strong>Expected Dispatch:</strong> {{dispatchDate}}</p>
+                {{/if}}
+
+                <div class="shipping-box">
+                    <h3 style="margin: 0 0 8px 0; color: #203749;">Shipping Address</h3>
+                    <p style="margin: 0;">{{shippingAddress.line1}}</p>
+                    {{#if shippingAddress.line2}}
+                    <p style="margin: 0;">{{shippingAddress.line2}}</p>
+                    {{/if}}
+                    <p style="margin: 0;">{{shippingAddress.city}}</p>
+                    <p style="margin: 0;">{{shippingAddress.postcode}}</p>
+                    <p style="margin: 0;">{{shippingAddress.country}}</p>
+                </div>
+            </div>
+
+            <center>
+                <a href="{{patientPortalUrl}}" class="cta-button">Go to Patient Portal</a>
+            </center>
+        </div>
+
+        <div class="next-steps">
+            <h2>Next Steps</h2>
+            <ul>
+                <li>Check your patient dashboard for test details</li>
+                <li>Review your appointment instructions</li>
+                <li>Contact our support team if you need assistance</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>Eden Clinic</p>
+            <p>CQC Registration: {{cqcNumber}}</p>
+            <div class="social-icons">
+                {{#if socialLinks.facebook}}
+                <a href="{{socialLinks.facebook}}">
+                    <img src="{{socialIcons.facebook}}" alt="Facebook" width="24" height="24">
+                </a>
+                {{/if}}
+                {{#if socialLinks.twitter}}
+                <a href="{{socialLinks.twitter}}">
+                    <img src="{{socialIcons.twitter}}" alt="Twitter" width="24" height="24">
+                </a>
+                {{/if}}
+                {{#if socialLinks.instagram}}
+                <a href="{{socialLinks.instagram}}">
+                    <img src="{{socialIcons.instagram}}" alt="Instagram" width="24" height="24">
+                </a>
+                {{/if}}
+            </div>
+            <p>
+                <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>
+            </p>
+            <p style="font-size: 12px; margin-top: 24px;">
+                <a href="{{unsubscribeUrl}}">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

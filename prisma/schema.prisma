@@ -1,0 +1,131 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  engineType    = "binary"
+  output        = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
+  relationMode = "foreignKeys"
+}
+
+model Admin {
+  id                String    @id @default(cuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  email             String    @unique
+  name              String
+  passwordHash      String
+  role              AdminRole @default(ADMIN)
+  active            Boolean   @default(true)
+  lastLoginAt       DateTime?
+  resetToken        String?   @unique
+  resetTokenExpires DateTime?
+  orders            Order[]   @relation("OrderDispatchedBy")
+}
+
+model StripeEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique @map("event_id")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@map("stripe_events")
+}
+
+model BloodTest {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  name            String
+  slug            String   @unique
+  description     String
+  price           Float
+  stripeProductId String?
+  stripePriceId   String?
+  isActive        Boolean  @default(true)
+  orders          Order[]  @relation("OrderBloodTest")
+}
+
+model ClientUser {
+  id                String    @id @default(cuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  email             String    @unique
+  passwordHash      String
+  name              String
+  dateOfBirth       String
+  mobile            String?
+  active            Boolean   @default(true)
+  lastLoginAt       DateTime?
+  resetToken        String?   @unique
+  resetTokenExpires DateTime?
+  stripeCustomerId  String?   @unique
+  orders            Order[]
+  addresses         Address[]
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  patientName        String
+  patientEmail       String
+  patientDateOfBirth String
+  patientMobile      String?
+  testName           String
+  notes              String?
+  internalNotes      String?
+  status             OrderStatus @default(PENDING)
+  paymentId          String?
+  stripeSessionId    String?     @unique
+  shippingAddress    Json?
+  dispatchedAt       DateTime?
+  dispatchedById     String?
+  bloodTestId        String
+  clientId           String?
+  createAccount      Boolean     @default(false)
+  bloodTest          BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
+  dispatchedBy       Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
+  client             ClientUser? @relation(fields: [clientId], references: [id])
+
+  @@unique([patientEmail, createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  DISPATCHED
+  CANCELLED
+}
+
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Address {
+  id        String      @id @default(cuid())
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  type      AddressType
+  name      String
+  line1     String
+  line2     String?
+  city      String
+  postcode  String
+  country   String
+  isDefault Boolean     @default(false)
+  clientId  String
+  client    ClientUser  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, type, isDefault])
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}

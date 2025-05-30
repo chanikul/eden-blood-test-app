@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .form-container {
+    @apply container mx-auto px-4 py-8 min-h-screen;
+  }
+
+  .form-card {
+    @apply bg-[rgb(var(--card))] text-[rgb(var(--card-foreground))] rounded-lg shadow-lg p-6 max-w-2xl mx-auto;
+  }
+
+  .form-section {
+    @apply mb-6;
+  }
+
+  .form-title {
+    @apply text-2xl font-bold mb-4 text-[rgb(var(--foreground))];
+  }
+
+  .form-subtitle {
+    @apply text-lg mb-6 text-[rgb(var(--muted-foreground))];
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium mb-1 text-[rgb(var(--foreground))];
+  }
+
+  .form-input {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 bg-[rgb(var(--background))] text-[rgb(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:border-transparent transition-colors;
+  }
+
+  .form-select {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 bg-[rgb(var(--background))] text-[rgb(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:border-transparent transition-colors;
+  }
+
+  .form-textarea {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 bg-[rgb(var(--background))] text-[rgb(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:border-transparent transition-colors min-h-[100px];
+  }
+
+  .form-error {
+    @apply text-sm text-red-600 dark:text-red-400 mt-1;
+  }
+
+  .form-checkbox-label {
+    @apply text-sm text-[rgb(var(--foreground))] ml-2;
+  }
+
+  .form-submit-button {
+    @apply w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-hover))] text-white font-semibold py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .form-required {
+    @apply text-red-600 dark:text-red-400 ml-1;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 255, 255, 255;
+    --foreground: 0, 0, 0;
+    --card: 255, 255, 255;
+    --card-foreground: 0, 0, 0;
+    --popover: 255, 255, 255;
+    --popover-foreground: 0, 0, 0;
+    --primary: 29, 78, 216;
+    --primary-hover: 30, 64, 175;
+    --primary-foreground: 255, 255, 255;
+    --secondary: 241, 245, 249;
+    --secondary-foreground: 15, 23, 42;
+    --muted: 241, 245, 249;
+    --muted-foreground: 100, 116, 139;
+    --accent: 241, 245, 249;
+    --accent-foreground: 15, 23, 42;
+    --destructive: 239, 68, 68;
+    --destructive-foreground: 255, 255, 255;
+    --border: 226, 232, 240;
+    --input: 226, 232, 240;
+    --ring: 29, 78, 216;
+  }
+
+  :root.dark {
+    --background: 15, 23, 42;
+    --foreground: 255, 255, 255;
+    --card: 30, 41, 59;
+    --card-foreground: 255, 255, 255;
+    --popover: 30, 41, 59;
+    --popover-foreground: 255, 255, 255;
+    --primary: 96, 165, 250;
+    --primary-hover: 59, 130, 246;
+    --primary-foreground: 255, 255, 255;
+    --secondary: 30, 41, 59;
+    --secondary-foreground: 255, 255, 255;
+    --muted: 30, 41, 59;
+    --muted-foreground: 148, 163, 184;
+    --accent: 30, 41, 59;
+    --accent-foreground: 255, 255, 255;
+    --destructive: 239, 68, 68;
+    --destructive-foreground: 255, 255, 255;
+    --border: 51, 65, 85;
+    --input: 51, 65, 85;
+    --ring: 96, 165, 250;
+  }
+
+  body {
+    @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))];
+  }
+
+  input,
+  select,
+  textarea {
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[rgb(var(--primary))] focus:ring-[rgb(var(--primary))] bg-[rgb(var(--background))] text-[rgb(var(--foreground))];
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-[rgb(var(--card))] text-[rgb(var(--card-foreground))] rounded-lg shadow-lg p-6;
+  }
+}
+
+@layer components {
+  .form-container {
+    @apply container mx-auto px-4 py-8 min-h-screen;
+  }
+
+  .form-card {
+    @apply max-w-2xl mx-auto p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg;
+  }
+
+  .form-header {
+    @apply mb-8;
+  }
+
+  .form-header h1 {
+    @apply text-3xl font-bold mb-4;
+  }
+
+  .form-header p {
+    @apply text-[rgb(var(--muted-foreground))] text-lg;
+  }
+
+  .form-group {
+    @apply space-y-4 mb-8;
+  }
+
+  .form-section {
+    @apply mb-8;
+  }
+
+  .form-section-title {
+    @apply text-xl font-semibold mb-4;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+  }
+
+  .form-input {
+    @apply block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-3 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+           shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 sm:text-sm
+           placeholder-gray-400 dark:placeholder-gray-500
+           transition-colors duration-200;
+  }
+
+  .form-select {
+    @apply block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-3 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+           shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 sm:text-sm
+           cursor-pointer transition-colors duration-200;
+  }
+
+  .form-textarea {
+    @apply block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-3 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+           shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 sm:text-sm
+           placeholder-gray-400 dark:placeholder-gray-500
+           min-h-[120px] resize-y transition-colors duration-200;
+  }
+
+  .form-checkbox {
+    @apply h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600
+           text-teal-600 focus:ring-2 focus:ring-teal-500/20
+           bg-white dark:bg-gray-700 transition-colors duration-200;
+  }
+
+  .form-error {
+    @apply mt-1 text-sm text-red-500 dark:text-red-400;
+  }
+
+  .form-button {
+    @apply w-full flex justify-center py-3 px-6 border border-transparent rounded-lg shadow-md 
+           text-base font-semibold text-gray-900 dark:text-gray-100
+           bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-hover))]
+           focus:outline-none focus:ring-2 focus:ring-teal-500/20
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-all duration-200 transform hover:scale-[1.02];
+  }
+}
+
+:root {
+  --background: 255 255 255;
+  --foreground: 23 23 23;
+}
+
+.dark {
+  --background: 23 23 23;
+  --foreground: 250 250 250;
+}
+
+@layer base {
+  body {
+    @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))] antialiased;
+  }
+}
+
+@layer components {
+  .form-container {
+    @apply max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8;
+  }
+
+  .form-card {
+    @apply bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 sm:p-8;
+  }
+
+  .form-group {
+    @apply space-y-2;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-200;
+  }
+
+  .form-input {
+    @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+           shadow-sm focus:border-teal-500 dark:focus:border-teal-400 
+           focus:ring-teal-500 dark:focus:ring-teal-400;
+  }
+
+  .form-select {
+    @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+           shadow-sm focus:border-teal-500 dark:focus:border-teal-400 
+           focus:ring-teal-500 dark:focus:ring-teal-400;
+  }
+
+  .form-textarea {
+    @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+           shadow-sm focus:border-teal-500 dark:focus:border-teal-400 
+           focus:ring-teal-500 dark:focus:ring-teal-400;
+  }
+
+  .form-checkbox {
+    @apply rounded border-gray-300 dark:border-gray-600 
+           text-teal-600 dark:text-teal-500
+           focus:ring-teal-500 dark:focus:ring-teal-400;
+  }
+
+  .form-error {
+    @apply mt-1 text-sm text-red-600 dark:text-red-400;
+  }
+
+  .form-button {
+    @apply w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500;
+  }
+}

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Eden Clinic</title>
+    <style>
+        /* Reset styles for email clients */
+        body, table, td, div, p, a {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            background-color: #f8f9fa;
+        }
+        table, td {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+        }
+        /* Base styles */
+        .email-wrapper {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .logo-section {
+            padding: 40px 0;
+            text-align: center;
+            background-color: #203749;
+        }
+        .logo-section img {
+            width: 180px;
+            height: auto;
+        }
+        .content-wrapper {
+            padding: 40px 32px;
+        }
+        .hero-heading {
+            font-size: 32px;
+            font-weight: bold;
+            color: #203749;
+            text-align: center;
+            margin: 0 0 24px 0;
+        }
+        .welcome-message {
+            text-align: center;
+            color: #6C767E;
+            font-size: 18px;
+            margin-bottom: 40px;
+            padding: 0 16px;
+        }
+        .login-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+        .login-details h2 {
+            color: #203749;
+            font-size: 20px;
+            margin: 0 0 16px 0;
+        }
+        .detail-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        .detail-row {
+            display: table-row;
+        }
+        .detail-label {
+            display: table-cell;
+            color: #6C767E;
+            padding: 8px 16px 8px 0;
+            width: 40%;
+        }
+        .detail-value {
+            display: table-cell;
+            color: #203749;
+            font-weight: 500;
+            padding: 8px 0;
+        }
+        .next-steps {
+            margin-bottom: 40px;
+        }
+        .next-steps h2 {
+            color: #203749;
+            font-size: 20px;
+            margin: 0 0 16px 0;
+            text-align: center;
+        }
+        .step-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding: 16px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-number {
+            background-color: #203749;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex-grow: 1;
+        }
+        .step-title {
+            color: #203749;
+            font-weight: 500;
+            margin: 0 0 4px 0;
+        }
+        .step-description {
+            color: #6C767E;
+            margin: 0;
+            font-size: 14px;
+        }
+        .order-summary {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+        .order-summary h2 {
+            color: #203749;
+            font-size: 20px;
+            margin: 0 0 16px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #203749;
+            color: #ffffff !important;
+            padding: 16px 32px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 24px;
+        }
+        .help-button {
+            display: inline-block;
+            background-color: transparent;
+            color: #203749 !important;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #203749;
+            margin-bottom: 40px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 24px;
+            text-align: center;
+            color: #6C767E;
+            font-size: 14px;
+        }
+        .footer p {
+            margin: 8px 0;
+        }
+        .footer a {
+            color: #203749;
+            text-decoration: underline;
+        }
+        @media only screen and (max-width: 480px) {
+            .email-wrapper {
+                margin: 0;
+                border-radius: 0;
+            }
+            .content-wrapper {
+                padding: 32px 16px;
+            }
+            .hero-heading {
+                font-size: 28px;
+            }
+            .welcome-message {
+                font-size: 16px;
+            }
+            .detail-grid {
+                display: block;
+            }
+            .detail-row {
+                display: block;
+                margin-bottom: 16px;
+            }
+            .detail-label, .detail-value {
+                display: block;
+                width: 100%;
+                padding: 4px 0;
+            }
+            .step-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .step-number {
+                margin-bottom: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="logo-section">
+            <img src="{{logoUrl}}" alt="Eden Clinic" width="180">
+        </div>
+
+        <div class="content-wrapper">
+            <h1 class="hero-heading">Welcome to Eden Clinic</h1>
+            
+            <p class="welcome-message">
+                Thank you for choosing Eden Clinic. We're here to support you on your healthcare journey.
+            </p>
+
+            <div class="login-details">
+                <h2>Your Login Details</h2>
+                <div class="detail-grid">
+                    <div class="detail-row">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">{{email}}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Password</div>
+                        <div class="detail-value">{{password}}</div>
+                    </div>
+                </div>
+                <p style="margin: 0; font-size: 14px; color: #6C767E;">
+                    For security reasons, please change your password after logging in.
+                </p>
+            </div>
+
+            <div class="next-steps">
+                <h2>Next Steps</h2>
+                <ul class="step-list">
+                    <li class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Log into Your Account</h3>
+                            <p class="step-description">Access your patient portal using the login details above.</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Complete Your Profile</h3>
+                            <p class="step-description">Update your personal information and medical history.</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Review Your Test Details</h3>
+                            <p class="step-description">Check your upcoming test information and any preparation instructions.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            {{#if hasOrder}}
+            <div class="order-summary">
+                <h2>Your Test Order</h2>
+                <div class="detail-grid">
+                    <div class="detail-row">
+                        <div class="detail-label">Test Name</div>
+                        <div class="detail-value">{{testName}}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Order ID</div>
+                        <div class="detail-value">{{orderId}}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">{{orderDate}}</div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            <a href="{{loginUrl}}" class="cta-button">Login to Your Account</a>
+            <a href="{{supportUrl}}" class="help-button">Need Help?</a>
+
+        </div>
+
+        <div class="footer">
+            <p>Eden Clinic - CQC Registration: {{cqcNumber}}</p>
+            <p>
+                <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>
+            </p>
+            <p>
+                This email was sent to {{email}}. If you did not create an account with Eden Clinic, 
+                please <a href="{{supportUrl}}">contact our support team</a>.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
