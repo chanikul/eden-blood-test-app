@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
+  apiVersion: '2022-11-15',
 });
 
 export async function POST(request: Request) {
@@ -18,13 +18,44 @@ export async function POST(request: Request) {
       );
     }
 
-    const { paymentMethodId } = await request.json();
+    const { paymentMethodId, billingAddress } = await request.json();
 
     // Attach payment method to customer
     const stripeCustomerId = patient.stripeCustomerId || await createStripeCustomer(patient);
     await stripe.paymentMethods.attach(paymentMethodId, {
       customer: stripeCustomerId,
     });
+
+    // If billingAddress is provided, save it to the user's addresses (Supabase or Prisma)
+    if (billingAddress) {
+      // Save to Supabase 'addresses' table if available, otherwise Prisma
+      try {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+          await supabase.from('addresses').insert({
+            user_email: patient.email,
+            ...billingAddress
+          });
+        } else {
+          // Fallback: Save to Prisma if you have an Address model
+          if (prisma.address) {
+            await prisma.address.create({
+              data: {
+                email: patient.email,
+                line1: billingAddress.line1,
+                line2: billingAddress.line2,
+                city: billingAddress.city,
+                postalCode: billingAddress.postalCode,
+                country: billingAddress.country
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to save billing address:', err);
+      }
+    }
 
     // Set as default payment method if it's the first one
     const paymentMethods = await stripe.paymentMethods.list({

@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 // Using raw buffer from req.text() instead of micro package
 import { prisma } from '@/lib/prisma';
-import { generateWelcomeEmail } from '@/lib/email-templates/welcome';
-import { generateOrderConfirmationEmail } from '@/lib/email-templates/order-confirmation';
-import { generateAdminNotificationEmail } from '@/lib/email-templates/admin-notification';
-import { sendEmail } from '@/lib/services/email';
+
+
+
+
 import bcrypt from 'bcryptjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -205,7 +205,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
             }
           }
           
-          // Send welcome email
+          
           try {
             const { subject, html } = await generateWelcomeEmail({
               name: order.patientName,
@@ -221,17 +221,17 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
               }
             });
             
-            await sendEmail({
+            
               to: order.patientEmail,
               subject,
               text: `Welcome to Eden Clinic! Your account has been created. Email: ${order.patientEmail}, Password: ${password}`,
               html,
             });
             
-            console.log('Welcome email sent to:', order.patientEmail);
+            
           } catch (error) {
-            console.error('Error sending welcome email:', error);
-            // Don't fail the entire process if email sending fails
+            
+            
           }
         }
       } catch (error) {
@@ -240,9 +240,9 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
       }
     }
 
-    // Send order confirmation email to customer
+    
     try {
-      const { subject, html } = await generateOrderConfirmationEmail({
+      
         name: order.patientName,
         orderId: order.id,
         testName: order.testName,
@@ -260,24 +260,24 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
         }),
       });
 
-      await sendEmail({
+      
         to: order.patientEmail,
         subject,
         text: `Thank you for your order at Eden Clinic. Your blood test (${order.testName}) has been confirmed. Order ID: ${order.id}`,
         html,
       });
 
-      console.log('Order confirmation email sent to:', order.patientEmail);
+      
     } catch (error) {
-      console.error('Error sending order confirmation email:', error);
+      
       // Continue processing, just log the error
     }
 
-    // Send admin notification email
+    
     try {
-      const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL;
-      if (adminEmail) {
-        const { subject, html } = await generateAdminNotificationEmail({
+      
+      
+        
           name: order.patientName,
           email: order.patientEmail,
           orderId: order.id,
@@ -292,19 +292,19 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
           paymentStatus: 'paid',
         });
 
-        await sendEmail({
+        
           to: adminEmail,
           subject,
           text: `New paid order received: ${order.testName} for ${order.patientName} (${order.patientEmail}). Order ID: ${order.id}`,
           html,
         });
 
-        console.log('Admin notification email sent to:', adminEmail);
+        
       } else {
-        console.warn('No admin email configured for notifications');
+        
       }
     } catch (error) {
-      console.error('Error sending admin notification email:', error);
+      
       // Continue processing, just log the error
     }
 

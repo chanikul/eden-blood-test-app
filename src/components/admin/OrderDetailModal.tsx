@@ -68,20 +68,23 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
             <div className="space-y-1 text-gray-800">
               {(() => {
                 try {
-                  console.log('3. Attempting to parse:', order.shippingAddress);
                   type ShippingAddress = {
                     line1: string;
                     line2?: string | null;
                     city: string;
                     state?: string | null;
-                    postal_code: string;
+                    postal_code?: string;
+                    postalCode?: string;
                     country: string;
                   };
 
-                  const shippingAddress = order.shippingAddress ? (order.shippingAddress as unknown as ShippingAddress) : null;
+                  let shippingAddress: ShippingAddress | null = null;
+                  if (typeof order.shippingAddress === 'string') {
+                    shippingAddress = JSON.parse(order.shippingAddress);
+                  } else if (typeof order.shippingAddress === 'object' && order.shippingAddress !== null) {
+                    shippingAddress = order.shippingAddress as ShippingAddress;
+                  }
 
-                  console.log('Shipping address from order:', shippingAddress);
-                  
                   if (!shippingAddress) {
                     return <div>No shipping address provided</div>;
                   }
@@ -93,7 +96,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
                       <div>
                         {[shippingAddress.city, shippingAddress.state].filter(Boolean).join(', ')}
                       </div>
-                      <div>{shippingAddress.postal_code}</div>
+                      <div>{shippingAddress.postal_code || shippingAddress.postalCode}</div>
                       <div className="font-medium">{shippingAddress.country}</div>
                     </>
                   );
@@ -107,7 +110,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
             {/* Debug: Raw JSON */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="text-xs font-mono text-gray-500 break-all">
-                Raw data: {order.shippingAddress}
+                Raw data: {typeof order.shippingAddress === 'string' ? order.shippingAddress : JSON.stringify(order.shippingAddress)}
               </div>
             </div>
           </div>

@@ -1,0 +1,1 @@
+This file was deleted as part of email logic cleanup. All email-sending logic is now centralized and this handler is obsolete and unreferenced. Safe to remove from version control.

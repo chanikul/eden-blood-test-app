@@ -1,0 +1,1 @@
+module.exports = { createTransport: () => ({ sendMail: () => Promise.resolve({}) }) };

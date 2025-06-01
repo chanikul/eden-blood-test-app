@@ -1,10 +1,10 @@
-import { OrderForm } from '@/components/order/OrderForm';
+// This page is now deprecated. The multi-step order form is now at the homepage (/).
+// Optionally, you can redirect this page to the homepage or show a notice.
 
-export default function OrderPage() {
-  return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Order Blood Test</h1>
-      <OrderForm />
-    </div>
-  );
+import { redirect } from 'next/navigation';
+
+export default function DeprecatedOrderPage() {
+  redirect('/');
+  return null;
 }
+

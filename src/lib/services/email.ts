@@ -1,7 +1,7 @@
 import sgMail from '@sendgrid/mail';
 import { type MailDataRequired } from '@sendgrid/mail';
 import { generatePasswordResetEmailHtml } from '../email-templates/password-reset';
-import { generateOrderConfirmationEmailHtml } from '../email-templates/order-confirmation';
+import { generateOrderConfirmationEmail } from '../email-templates/order-confirmation';
 import { generateOrderNotificationEmailHtml } from '../email-templates/order-notification';
 
 if (!process.env.SENDGRID_API_KEY) {
@@ -93,24 +93,24 @@ export async function sendPaymentConfirmationEmail({
   isHomeKit,
 }: SendPaymentConfirmationEmailParams) {
   console.log('🔄 Preparing customer confirmation email for:', email);
-  const html = generateOrderConfirmationEmailHtml({
-    fullName,
+  const { html, subject } = await generateOrderConfirmationEmail({
+    name: fullName,
     testName,
     orderId,
     shippingAddress,
-    isHomeKit,
+    orderStatus: 'Confirmed',
   });
 
   console.log('📧 Attempting to send customer email with details:', {
     to: email,
-    subject: 'Blood Test Order Payment Confirmed',
+    subject,
     testName,
     orderId
   });
 
   const response = await sendEmail({
     to: email,
-    subject: 'Blood Test Order Payment Confirmed',
+    subject: subject || 'Blood Test Order Payment Confirmed',
     text: `Thank you for your order at Eden Clinic. Your blood test (${testName}) has been confirmed. Order ID: ${orderId}`,
     html,
   });

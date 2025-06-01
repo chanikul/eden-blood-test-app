@@ -53,7 +53,8 @@ export async function getServerSession(): Promise<Session | null> {
   const cookieStore = cookies();
   const adminToken = cookieStore.get(ADMIN_TOKEN_NAME)?.value;
   const patientToken = cookieStore.get(PATIENT_TOKEN_NAME)?.value;
-  const token = adminToken || patientToken;
+  // Patient token takes precedence if both are present
+  const token = patientToken || adminToken;
 
   console.log('Available cookies:', cookieStore.getAll().map(c => c.name));
   console.log('Token found:', { hasToken: !!token, type: patientToken ? 'patient' : adminToken ? 'admin' : 'none' });

@@ -87,10 +87,15 @@ export function AddPaymentMethodModal({ onSuccess, shippingAddress }: AddPayment
       }
 
       if (paymentMethod) {
+        // Include billing address in payload if 'separate' is selected
+        const payload: any = { paymentMethodId: paymentMethod.id };
+        if (billingAddressType === 'separate') {
+          payload.billingAddress = billingAddress;
+        }
         const response = await fetch('/api/payment-methods', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentMethodId: paymentMethod.id }),
+          body: JSON.stringify(payload),
           credentials: 'include'
         });
 
