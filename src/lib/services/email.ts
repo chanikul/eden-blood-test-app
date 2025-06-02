@@ -25,53 +25,75 @@ export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResp
   const isProduction = process.env.NODE_ENV === 'production';
   const forceRealEmails = process.env.FORCE_REAL_EMAILS === 'true';
 
+  // Verify that we have HTML content for styled emails
+  if (!html) {
+    console.error('⚠️ WARNING: Email is missing HTML content! This will result in an unstyled email.');
+  }
+
   // Log email details for debugging
   console.log('=== SENDING EMAIL ===');
   console.log('SendGrid Configuration:', {
     apiKeyPresent: !!process.env.SENDGRID_API_KEY,
+    apiKeyLength: process.env.SENDGRID_API_KEY?.length,
     apiKeyPrefix: process.env.SENDGRID_API_KEY ? `${process.env.SENDGRID_API_KEY.substring(0, 10)}...` : 'NOT SET',
-    supportEmail: process.env.SUPPORT_EMAIL || 'not set'
+    supportEmail: process.env.SUPPORT_EMAIL || 'not set',
+    environment: process.env.NODE_ENV,
+    forceRealEmails
   });
+  
   console.log('Email Details:', {
     to,
     from: `Eden Clinic <${process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk'}>`,
     subject,
     textLength: text?.length,
-    htmlLength: html?.length
+    htmlLength: html?.length,
+    hasHtml: !!html
   });
 
+  // Log full email HTML content for debugging
+  if (html) {
+    console.log('\n=== FULL EMAIL HTML CONTENT ===');
+    console.log(html);
+    console.log('=== END EMAIL HTML CONTENT ===\n');
+  }
+
+  // In development mode without forced real emails, just log and return
   if (!isProduction && !forceRealEmails) {
     console.log('Development mode: Email not sent. Would have sent:', { to, subject });
-    console.log('Email content (text):', text);
-    if (html) {
-      console.log('Email content (html):', html.substring(0, 500) + '...');
-    }
     // Return a mock successful response for development mode
     return [{ statusCode: 200, headers: { 'x-message-id': 'dev-mode-no-email-sent' }, body: {} }, {}];
   }
 
-  // Prepare email data
+  // Prepare email data - ALWAYS include HTML content if available
   const emailData: MailDataRequired = {
     to,
     from: `Eden Clinic <${process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk'}>`,
     subject,
-    text,
-    ...(html && { html })
+    text, // Plain text fallback for email clients that don't support HTML
+    html: html || undefined // Always prioritize HTML content
   };
+
+  // Log the full email payload for debugging
+  console.log('FULL EMAIL PAYLOAD:', JSON.stringify(emailData, null, 2));
 
   console.log('Sending email via SendGrid...', {
     apiKey: process.env.SENDGRID_API_KEY ? `${process.env.SENDGRID_API_KEY.substring(0, 10)}...` : 'NOT SET',
     from: emailData.from,
     to: emailData.to,
-    subject: emailData.subject
+    subject: emailData.subject,
+    hasHtml: !!emailData.html
   });
 
   try {
-    // Try to send the email via SendGrid
+    // Send the email via SendGrid - no fallbacks, we want to ensure styled emails
     const response = await sgMail.send(emailData);
+    console.log('✅ Email sent successfully via SendGrid:', { 
+      statusCode: response[0]?.statusCode,
+      messageId: response[0]?.headers['x-message-id'] 
+    });
     return response;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Error sending email via SendGrid:', error);
     if (error instanceof Error) {
       console.error('Error details:', {
         message: error.message,
@@ -79,22 +101,9 @@ export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResp
       });
     }
     
-    // If we get a 403 Forbidden error, fall back to mock email
-    if (error && typeof error === 'object' && 'code' in error && error.code === 403) {
-      console.log('⚠️ SendGrid API returned 403 Forbidden. Using mock email service instead.');
-      console.log('📧 MOCK EMAIL SENT:', {
-        to,
-        subject,
-        textLength: text?.length,
-        htmlLength: html?.length
-      });
-      console.log('📧 HTML Content Preview:', html ? html.substring(0, 200) + '...' : 'No HTML content');
-      
-      // Return a mock successful response
-      return [{ statusCode: 200, headers: { 'x-message-id': 'mock-email-sent-after-sendgrid-error' }, body: {} }, {}];
-    }
-    
-    // For other errors, rethrow
+    // No fallbacks - we want to ensure all emails are properly styled
+    // If there's an error, we should fix the root cause rather than falling back
+    console.error('Email sending failed. No fallback will be used to ensure styled emails only.');
     throw error;
   }
 };
