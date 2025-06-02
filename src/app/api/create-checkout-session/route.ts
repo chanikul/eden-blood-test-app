@@ -71,7 +71,37 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       console.log('Creating order with standardized shipping address:', standardizedShippingAddress);
       
-      // NO BloodTest ID mapping or DB lookup. Only use static Stripe mapping above.
+      // First, check if we need to create a BloodTest record for this Stripe product
+      let bloodTest;
+      try {
+        // Try to find an existing BloodTest with the same Stripe product ID
+        bloodTest = await prisma.bloodTest.findFirst({
+          where: {
+            stripeProductId: data.productId
+          }
+        });
+        
+        // If no BloodTest exists for this Stripe product, create one
+        if (!bloodTest) {
+          console.log('Creating new BloodTest record for Stripe product:', data.productId);
+          bloodTest = await prisma.bloodTest.create({
+            data: {
+              name: data.testName,
+              slug: data.testSlug,
+              description: 'Imported from Stripe',
+              price: data.price,
+              stripeProductId: data.productId,
+              stripePriceId: data.stripePriceId,
+              isActive: true
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error finding or creating BloodTest record:', error);
+        throw error;
+      }
+      
+      // Now create the order with the BloodTest ID
       order = await prisma.order.create({
         data: {
           patientName: data.fullName,
@@ -80,7 +110,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           patientMobile: data.mobile,
           testName: data.testName,
           notes: data.notes,
-          bloodTestId: 'STATIC', // Static placeholder, not a real relation
+          bloodTestId: bloodTest.id, // Use the actual BloodTest ID
           createAccount: data.createAccount,
           shippingAddress: standardizedShippingAddress
         }
@@ -142,6 +172,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           orderId: order.id.toString(),
           fullName: data.fullName,
           email: data.email,
+          dateOfBirth: data.dateOfBirth, // Add dateOfBirth for client user creation
           priceId: data.stripePriceId,
           testName: data.testName,
           testSlug: data.testSlug,

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { generateSecurePassword, hashPassword } from '@/lib/utils/password';
 import { extractFirstName, extractLastName } from '@/lib/utils/name';
-import { sendWelcomeEmail } from '@/lib/email/service';
+import { sendWelcomeEmail } from '@/lib/services/email';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
 interface PatientAddress {

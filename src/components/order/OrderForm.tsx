@@ -144,13 +144,33 @@ export function OrderForm() {
   async function fetchBloodTests() {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/blood-tests');
+      const response = await fetch('/api/products');
       if (!response.ok) {
         throw new Error('Failed to fetch blood tests');
       }
       const data = await response.json();
-      if (data.tests) {
-        setBloodTests(data.tests);
+      // The products API returns an array directly, not wrapped in a 'tests' property
+      if (Array.isArray(data)) {
+        // Only include products that have type: blood_test in their metadata
+        const bloodTestProducts = data.filter(product => 
+          product.metadata && product.metadata.type === 'blood_test'
+        );
+        
+        console.log('Blood test products with type=blood_test:', bloodTestProducts);
+        
+        // Map the Stripe product format to the BloodTest format expected by the form
+        const formattedTests = bloodTestProducts.map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          stripePriceId: product.priceId || '',
+          isActive: product.active !== false,
+          slug: product.slug
+        }));
+        
+        console.log('Formatted blood tests for form:', formattedTests);
+        setBloodTests(formattedTests);
       } else {
         throw new Error('Invalid response format');
       }
@@ -203,6 +223,9 @@ export function OrderForm() {
         testSlug: selectedTest.slug,
         testName: selectedTest.name,
         stripePriceId: selectedTest.stripePriceId,
+        // Add the missing required fields
+        price: selectedTest.price,
+        productId: selectedTest.id,
         notes: data.notes,
         createAccount: data.createAccount,
         password: data.createAccount ? data.password : undefined,
@@ -368,7 +391,7 @@ export function OrderForm() {
                 <option value="">Select a test...</option>
                 {bloodTests.map((test) => (
                   <option key={test.id} value={test.slug}>
-                    {test.name} - £{test.price}
+                    {test.name} - £{test.price > 0 ? test.price.toFixed(2) : 'TBD'}
                   </option>
                 ))}
               </select>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ToasterProvider } from '@/components/ui/ToasterProvider'
 
 import "./globals.css";
 
@@ -27,7 +27,7 @@ export default function RootLayout({
         inter.className
       )}>
         <main className="min-h-screen">
-          <Toaster position="bottom-right" />
+          <ToasterProvider />
           {children}
         </main>
       </body>

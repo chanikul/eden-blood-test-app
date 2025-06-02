@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-// Static mapping of Stripe Price ID to testName
+// NOTE: We no longer use static mapping since testName is now included in the metadata
+// This is kept for backward compatibility with older sessions
 const STRIPE_PRICE_ID_TO_TEST_NAME: Record<string, string> = {
   'price_1RVUrBEaVUA3G0SJzJoO7QPZ': 'Essential Blood Test',
   'price_1RVUzMEaVUA3G0SJW3z1Y0XC': 'Advanced Blood Test',
@@ -12,7 +13,7 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
 import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '@/lib/services/email';
-import { sendWelcomeEmail } from '@/lib/email/service';
+import { sendWelcomeEmail } from '@/lib/services/email';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
@@ -62,11 +63,17 @@ export async function GET(request: Request) {
       orderId: string;
       testName: string;
     } | null = null;
-    // Derive testName from static mapping using stripePriceId
-    const mappedTestName = stripePriceId ? STRIPE_PRICE_ID_TO_TEST_NAME[stripePriceId] : undefined;
-    if (!mappedTestName) {
-      console.error('Could not find testName for stripePriceId:', stripePriceId);
-      return NextResponse.json({ error: 'Invalid or unsupported Stripe Price ID' }, { status: 400 });
+    // Get testName directly from metadata, fall back to static mapping if not available
+    let testName = metadata.testName;
+    
+    // Fallback to static mapping for backward compatibility
+    if (!testName && stripePriceId) {
+      testName = STRIPE_PRICE_ID_TO_TEST_NAME[stripePriceId];
+      if (!testName) {
+        console.error('Could not find testName for stripePriceId:', stripePriceId);
+        // Continue anyway, don't block the order completion
+        testName = 'Blood Test'; // Generic fallback
+      }
     }
 
     await prisma.$transaction(async (tx) => {
@@ -89,11 +96,12 @@ export async function GET(request: Request) {
             name: fullName,
             password,
             orderId,
-            testName: mappedTestName
+            testName: testName
           };
         }
         // Generate session token for new patient
         if (clientUser && clientUser.id && clientUser.email) {
+          // @ts-expect-error - Module resolution in Next.js doesn't require extensions despite TypeScript config
           const { generateSessionToken, setAuthCookie } = await import('../../../lib/auth');
           newPatientSessionToken = await generateSessionToken({
             id: clientUser.id,
@@ -109,7 +117,7 @@ export async function GET(request: Request) {
       if (order.shippingAddress) {
         await supabase.from('addresses').insert({
           user_email: email,
-          ...(typeof order.shippingAddress === 'object' ? order.shippingAddress : {}),
+          ...(typeof order.shippingAddress === 'object' ? order.shippingAddress as any : {}),
         });
       }
 
@@ -123,14 +131,14 @@ export async function GET(request: Request) {
       });
     });
 
-    // Send emails using mappedTestName and shippingAddress object
+    // Send emails using testName and shippingAddress object
     const emailPromises = [
       sendPaymentConfirmationEmail({
         fullName,
         email,
-        testName: mappedTestName,
+        testName: testName,
         orderId,
-        shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? order.shippingAddress : undefined,
+        shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? (order.shippingAddress as any) : undefined,
       }).then(() => {
         console.log('EMAIL 1/3: Payment confirmation email sent to', email);
       }),
@@ -138,10 +146,10 @@ export async function GET(request: Request) {
         fullName,
         email,
         dateOfBirth,
-        testName: mappedTestName,
+        testName: testName,
         notes,
         orderId,
-        shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? order.shippingAddress : undefined,
+        shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? (order.shippingAddress as any) : undefined,
       }).then(() => {
         console.log('EMAIL 2/3: Order notification email sent to admin for', email);
       })
@@ -150,7 +158,7 @@ export async function GET(request: Request) {
       emailPromises.push(
         (async () => {
           await sendWelcomeEmail(welcomeEmailParams!);
-          console.log('EMAIL 3/3: Welcome email sent to', welcomeEmailParams!.email);
+          console.log('EMAIL 3/3: Welcome email sent to', (welcomeEmailParams as any).email);
         })()
       );
     }

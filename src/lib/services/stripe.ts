@@ -1,16 +1,7 @@
 import Stripe from 'stripe';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 import slugify from 'slugify';
-import { BloodTest } from '@prisma/client';
 
-type BloodTestProduct = Stripe.Product & {
-  metadata: {
-    category?: string;
-    slug?: string;
-  };
-};
+
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY environment variable is not set');

@@ -1,11 +1,8 @@
 
 
-import { stripe } from '@/lib/stripe';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import type Stripe from 'stripe';
 
-type StripeProduct = Stripe.Product;
+
+
 
 export interface BloodTestOrderFormData {
   fullName: string;

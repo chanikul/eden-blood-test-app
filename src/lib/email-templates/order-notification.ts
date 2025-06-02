@@ -24,113 +24,114 @@ export const generateOrderNotificationEmailHtml = ({
   orderId: string;
   shippingAddress?: string;
 }) => {
+  // Format shipping address if provided
+  let formattedAddress = '';
+  if (shippingAddress) {
+    try {
+      // Check if shippingAddress is already an object or needs parsing
+      const address = typeof shippingAddress === 'string' ? JSON.parse(shippingAddress) : shippingAddress;
+      formattedAddress = `
+        <div class="order-details">
+          <h2>Shipping Address</h2>
+          <p>
+            ${address.line1}<br>
+            ${address.line2 ? `${address.line2}<br>` : ''}
+            ${address.city}${address.state ? `, ${address.state}` : ''} ${address.postal_code || address.postcode}<br>
+            ${address.country}
+          </p>
+        </div>
+      `;
+    } catch (error) {
+      console.error('Error formatting shipping address:', error);
+      formattedAddress = '';
+    }
+  }
+
   return `
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8">
-        <title>New Order Notification - Eden Clinic</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Blood Test Order</title>
         <style>
           body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
           }
           .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
             text-align: center;
-            margin-bottom: 30px;
           }
           .content {
-            background-color: #f9f9f9;
             padding: 20px;
-            border-radius: 5px;
+            background-color: #f9fafb;
           }
-          .order-details, .shipping-address {
-            background-color: #fff;
+          .order-details {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
             padding: 15px;
-            border-radius: 4px;
             margin-bottom: 20px;
           }
-          .shipping-address {
-            white-space: pre-line;
+          .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+            font-size: 14px;
           }
-            margin: 20px 0;
+          h1, h2 {
+            color: #1f2937;
           }
-          .order-details table {
-            width: 100%;
-            border-collapse: collapse;
+          p {
+            margin-bottom: 10px;
           }
-          .order-details th, .order-details td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-          }
-          .notes {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #fff;
-            border-left: 4px solid #666;
+          .highlight {
+            font-weight: bold;
+            color: #2563eb;
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>New Order Notification</h1>
-        </div>
-        <div class="content">
-          <h2>Order Details</h2>
-          <div class="order-details">
-            <table>
-              <tr>
-                <th>Order ID:</th>
-                <td>${orderId}</td>
-              </tr>
-              <tr>
-                <th>Test Type:</th>
-                <td>${testName}</td>
-              </tr>
-
-              <tr>
-                <th>Patient Name:</th>
-                <td>${fullName}</td>
-              </tr>
-              <tr>
-                <th>Email:</th>
-                <td>${email}</td>
-              </tr>
-              <tr>
-                <th>Date of Birth:</th>
-                <td>${dateOfBirth}</td>
-              </tr>
-            </table>
+        <div class="container">
+          <div class="header">
+            <h1>New Blood Test Order</h1>
           </div>
-          ${shippingAddress ? `
-            <div class="shipping-address" style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 4px; border-left: 4px solid #4a90e2;">
-              <h3 style="margin: 0 0 10px 0; color: #2c3e50;">Shipping Address:</h3>
-              ${(() => {
-                const address = JSON.parse(shippingAddress);
-                return `
-                  <p style="margin: 0; line-height: 1.5;">
-                    ${address.line1}<br>
-                    ${address.line2 ? `${address.line2}<br>` : ''}
-                    ${address.city}, ${address.postal_code}<br>
-                    ${address.state ? `${address.state}<br>` : ''}
-                    ${address.country}
-                  </p>
-                `;
-              })()}
+          <div class="content">
+            <p>A new blood test order has been received with the following details:</p>
+            
+            <div class="order-details">
+              <h2>Order Information</h2>
+              <p><strong>Order ID:</strong> ${orderId}</p>
+              <p><strong>Test:</strong> ${testName}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
-          ` : ''}
-          ${notes ? `
-            <div class="notes">
-              <h3>Additional Notes:</h3>
-              <p>${notes}</p>
+            
+            <div class="order-details">
+              <h2>Patient Information</h2>
+              <p><strong>Name:</strong> ${fullName}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Date of Birth:</strong> ${dateOfBirth}</p>
+              ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
             </div>
-          ` : ''}
-          <p>Please process this order and prepare the blood test kit for shipping.</p>
+            
+            ${formattedAddress}
+            
+            <p>Please log in to the admin dashboard to process this order.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message from Eden Clinic.</p>
+          </div>
         </div>
       </body>
     </html>

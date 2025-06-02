@@ -17,6 +17,7 @@ export interface OrderConfirmationEmailProps {
   shippingAddress: EmailShippingAddress;
   orderStatus?: string;
   orderDate?: string;
+  isHomeKit?: boolean;
 }
 
 export interface AdminNotificationEmailProps {
