@@ -29,7 +29,7 @@ export const sendEmail = async ({ to, subject, text, html }: EmailParams): Promi
     });
     console.log('Email Details:', {
       to,
-      from: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+      from: 'Eden Clinic <no-reply@edenclinic.co.uk>',
       subject,
       textLength: text?.length,
       htmlLength: html?.length
@@ -37,7 +37,7 @@ export const sendEmail = async ({ to, subject, text, html }: EmailParams): Promi
     
     const msg: MailDataRequired = {
       to,
-      from: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+      from: 'Eden Clinic <no-reply@edenclinic.co.uk>',
       subject,
       text,
       html,
@@ -65,6 +65,14 @@ export const sendEmail = async ({ to, subject, text, html }: EmailParams): Promi
   }
 };
 
+interface ShippingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  postcode: string;
+  country?: string;
+}
+
 interface SendOrderNotificationEmailParams {
   fullName: string;
   email: string;
@@ -72,7 +80,7 @@ interface SendOrderNotificationEmailParams {
   testName: string;
   notes?: string;
   orderId: string;
-  shippingAddress?: string;
+  shippingAddress?: ShippingAddress;
 }
 
 interface SendPaymentConfirmationEmailParams {
@@ -80,7 +88,7 @@ interface SendPaymentConfirmationEmailParams {
   email: string;
   testName: string;
   orderId: string;
-  shippingAddress?: string;
+  shippingAddress?: ShippingAddress;
   isHomeKit?: boolean;
 }
 
@@ -92,16 +100,18 @@ export async function sendPaymentConfirmationEmail({
   shippingAddress,
   isHomeKit,
 }: SendPaymentConfirmationEmailParams) {
-  console.log('🔄 Preparing customer confirmation email for:', email);
+  console.log(' Preparing customer confirmation email for:', email);
   const { html, subject } = await generateOrderConfirmationEmail({
     name: fullName,
     testName,
     orderId,
     shippingAddress,
     orderStatus: 'Confirmed',
+    orderDate: new Date().toLocaleDateString(),
+    isHomeKit,
   });
 
-  console.log('📧 Attempting to send customer email with details:', {
+  console.log(' Attempting to send customer email with details:', {
     to: email,
     subject,
     testName,
@@ -137,7 +147,7 @@ export async function sendOrderNotificationEmail({
     testName,
     notes,
     orderId,
-    shippingAddress,
+    shippingAddress: shippingAddress as any, // Cast for template compatibility if needed
   });
 
   const response = await sendEmail({

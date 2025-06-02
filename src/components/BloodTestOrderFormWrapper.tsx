@@ -1,22 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BloodTestOrderForm } from './forms/BloodTestOrderForm';
 
-interface BloodTest {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  description: string;
-}
+export function BloodTestOrderFormWrapper() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-interface BloodTestOrderFormWrapperProps {
-  tests: BloodTest[];
-}
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/products');
+        if (!res.ok) throw new Error('Failed to fetch products');
+        const data = await res.json();
+        setProducts(data);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load products');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
-export function BloodTestOrderFormWrapper({ tests }: BloodTestOrderFormWrapperProps) {
-  console.log('BloodTestOrderFormWrapper received tests:', tests);
   const handleSuccess = (orderId: string) => {
     // Success will be handled by the form component's redirect
   };
@@ -35,7 +44,6 @@ export function BloodTestOrderFormWrapper({ tests }: BloodTestOrderFormWrapperPr
             className="h-16 w-auto object-contain mx-auto dark:invert mb-6"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
-              // Fallback to text if image fails to load
               const title = document.createElement('h1');
               title.className = 'text-3xl font-semibold text-[rgb(var(--foreground))]';
               title.textContent = 'Eden Clinic';
@@ -47,8 +55,17 @@ export function BloodTestOrderFormWrapper({ tests }: BloodTestOrderFormWrapperPr
             <p>We'll send your kit to you after checkout. You can use your preferred clinic for the blood draw.</p>
           </div>
         </div>
-        <BloodTestOrderForm tests={tests} onSuccess={handleSuccess} onError={handleError} />
+        {loading ? (
+          <div className="text-center py-8">Loading blood test products…</div>
+        ) : error ? (
+          <div className="text-center text-red-600 py-8">{error}</div>
+        ) : products.length === 0 ? (
+          <div className="text-center text-gray-600 py-8">No blood test products available.</div>
+        ) : (
+          <BloodTestOrderForm tests={products} onSuccess={handleSuccess} onError={handleError} />
+        )}
       </div>
     </div>
   );
 }
+

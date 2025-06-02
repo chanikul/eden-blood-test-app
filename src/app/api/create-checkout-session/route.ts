@@ -13,9 +13,11 @@ const requestSchema = z.object({
   dateOfBirth: z.string(),
   testSlug: z.string(),
   testName: z.string(),
+  price: z.number(),
+  stripePriceId: z.string(),
+  productId: z.string(),
   notes: z.string().optional(),
   mobile: z.string().optional(),
-  stripePriceId: z.string(),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
   createAccount: z.boolean().default(false),
@@ -44,39 +46,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const data: CheckoutSessionData = requestSchema.parse(await request.json());
 
-    // First find the blood test by slug
-    const bloodTest = await prisma.bloodTest.findFirst({
-      where: {
-        slug: data.testSlug,
-        isActive: true
-      }
-    });
-
-    if (!bloodTest) {
-      return NextResponse.json(
-        { error: 'Blood test not found' },
-        { status: 404 }
-      );
-    }
-
-    // Then verify the Stripe price ID
-    if (bloodTest.stripePriceId !== data.stripePriceId) {
-      console.error('Stripe price ID mismatch:', {
-        expected: bloodTest.stripePriceId,
-        received: data.stripePriceId
-      });
-      return NextResponse.json(
-        { error: 'Invalid blood test selected' },
-        { status: 400 }
-      );
-    }
-
-    // Log blood test details
+    // Log blood test details (dynamic price ID)
     console.log('Creating checkout for blood test:', {
-      name: bloodTest.name,
-      price: bloodTest.price,
-      stripePriceId: bloodTest.stripePriceId,
-      stripeProductId: bloodTest.stripeProductId,
+      name: data.testName,
+      testSlug: data.testSlug,
+      price: data.price,
+      stripePriceId: data.stripePriceId,
+      productId: data.productId,
       timestamp: new Date().toISOString()
     });
 
@@ -95,6 +71,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       console.log('Creating order with standardized shipping address:', standardizedShippingAddress);
       
+      // NO BloodTest ID mapping or DB lookup. Only use static Stripe mapping above.
       order = await prisma.order.create({
         data: {
           patientName: data.fullName,
@@ -103,7 +80,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           patientMobile: data.mobile,
           testName: data.testName,
           notes: data.notes,
-          bloodTestId: bloodTest.id,
+          bloodTestId: 'STATIC', // Static placeholder, not a real relation
           createAccount: data.createAccount,
           shippingAddress: standardizedShippingAddress
         }
@@ -165,10 +142,9 @@ export async function POST(request: Request): Promise<NextResponse> {
           orderId: order.id.toString(),
           fullName: data.fullName,
           email: data.email,
-          dateOfBirth: data.dateOfBirth,
+          priceId: data.stripePriceId,
           testName: data.testName,
           testSlug: data.testSlug,
-          stripePriceId: data.stripePriceId,
           notes: data.notes || '',
           mobile: data.mobile || '',
           orderCreatedAt: new Date().toISOString(),

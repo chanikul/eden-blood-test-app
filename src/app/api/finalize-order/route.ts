@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
+
+// Static mapping of Stripe Price ID to testName
+const STRIPE_PRICE_ID_TO_TEST_NAME: Record<string, string> = {
+  'price_1RVUrBEaVUA3G0SJzJoO7QPZ': 'Essential Blood Test',
+  'price_1RVUzMEaVUA3G0SJW3z1Y0XC': 'Advanced Blood Test',
+  'price_1RVV0REaVUA3G0SJmLsgKQOB': 'Premium Blood Test',
+  'price_1RVV1kEaVUA3G0SJ6lU2ddyJ': 'Ultimate Blood Test',
+};
+
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
 import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '@/lib/services/email';
+import { sendWelcomeEmail } from '@/lib/email/service';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
@@ -29,7 +39,6 @@ export async function GET(request: Request) {
       fullName,
       email,
       dateOfBirth,
-      testName,
       testSlug,
       stripePriceId,
       notes,
@@ -45,6 +54,21 @@ export async function GET(request: Request) {
     }
 
     // Transactional logic
+    let welcomeEmailShouldBeSent = false;
+    let welcomeEmailParams: {
+      email: string;
+      name: string;
+      password: string;
+      orderId: string;
+      testName: string;
+    } | null = null;
+    // Derive testName from static mapping using stripePriceId
+    const mappedTestName = stripePriceId ? STRIPE_PRICE_ID_TO_TEST_NAME[stripePriceId] : undefined;
+    if (!mappedTestName) {
+      console.error('Could not find testName for stripePriceId:', stripePriceId);
+      return NextResponse.json({ error: 'Invalid or unsupported Stripe Price ID' }, { status: 400 });
+    }
+
     await prisma.$transaction(async (tx) => {
       let clientUser = null;
       let newPatientSessionToken: string | undefined = undefined;
@@ -58,6 +82,15 @@ export async function GET(request: Request) {
             password,
             dateOfBirth
           });
+          // Mark to send welcome email after transaction
+          welcomeEmailShouldBeSent = true;
+          welcomeEmailParams = {
+            email,
+            name: fullName,
+            password,
+            orderId,
+            testName: mappedTestName
+          };
         }
         // Generate session token for new patient
         if (clientUser && clientUser.id && clientUser.email) {
@@ -90,25 +123,38 @@ export async function GET(request: Request) {
       });
     });
 
-    // Send emails
-    await Promise.all([
+    // Send emails using mappedTestName and shippingAddress object
+    const emailPromises = [
       sendPaymentConfirmationEmail({
         fullName,
         email,
-        testName,
+        testName: mappedTestName,
         orderId,
-        shippingAddress: order.shippingAddress ? JSON.stringify(order.shippingAddress) : undefined,
+        shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? order.shippingAddress : undefined,
+      }).then(() => {
+        console.log('EMAIL 1/3: Payment confirmation email sent to', email);
       }),
       sendOrderNotificationEmail({
         fullName,
         email,
         dateOfBirth,
-        testName,
+        testName: mappedTestName,
         notes,
         orderId,
-        shippingAddress: order.shippingAddress ? JSON.stringify(order.shippingAddress) : undefined,
+        shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? order.shippingAddress : undefined,
+      }).then(() => {
+        console.log('EMAIL 2/3: Order notification email sent to admin for', email);
       })
-    ]);
+    ];
+    if (welcomeEmailShouldBeSent && welcomeEmailParams) {
+      emailPromises.push(
+        (async () => {
+          await sendWelcomeEmail(welcomeEmailParams!);
+          console.log('EMAIL 3/3: Welcome email sent to', welcomeEmailParams!.email);
+        })()
+      );
+    }
+    await Promise.all(emailPromises);
 
     // Redirect to dashboard or login (must use absolute URL)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://${request.headers.get('host') || 'localhost:3000'}`;

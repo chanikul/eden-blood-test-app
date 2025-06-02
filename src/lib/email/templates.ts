@@ -18,7 +18,7 @@ export function getPasswordResetEmailTemplate(data: PasswordResetEmailData) {
 
   return {
     to: data.to,
-    from: process.env.SENDGRID_FROM_EMAIL!,
+    from: 'Eden Clinic <no-reply@edenclinic.co.uk>',
     subject: 'Eden Clinic - Password Reset Request',
     html: `
       <!DOCTYPE html>
@@ -88,7 +88,7 @@ export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
   
   return {
     to: data.email,
-    from: process.env.SENDGRID_FROM_EMAIL!,
+    from: 'Eden Clinic <no-reply@edenclinic.co.uk>',
     subject: 'Welcome to Eden Clinic - Your Account is Ready',
     html: `
       <!DOCTYPE html>

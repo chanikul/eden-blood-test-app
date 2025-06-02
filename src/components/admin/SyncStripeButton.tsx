@@ -1,8 +1,4 @@
-'use client';
-
-import { useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { Dialog, Transition } from '@headlessui/react';
+// [REMOVED] SyncStripeButton component and related imports as Stripe sync is deprecated.
 
 interface SyncProduct {
   name: string;
@@ -24,7 +20,7 @@ interface SyncResponse {
   products: SyncProduct[];
 }
 
-export function SyncStripeButton() {
+// [REMOVED] Entire SyncStripeButton component.
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResponse | null>(null);
