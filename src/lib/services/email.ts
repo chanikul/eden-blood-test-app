@@ -4,6 +4,8 @@ import { generatePasswordResetEmailHtml } from '../email-templates/password-rese
 import { generateOrderConfirmationEmail } from '../email-templates/order-confirmation';
 import { generateOrderNotificationEmailHtml } from '../email-templates/order-notification';
 import { generateWelcomeEmail } from '../email-templates/welcome';
+import { renderAsync } from '@react-email/render';
+import { DispatchNotificationEmail } from '../email-templates/dispatch-notification';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error('SENDGRID_API_KEY is not set');
@@ -286,33 +288,78 @@ export async function sendWelcomeEmail({
   testName
 }: SendWelcomeEmailParams) {
   console.log('Preparing welcome email for:', email);
-  
-  // Create a simplified order object to match the expected interface
-  const order = {
-    id: orderId,
-    patientName: name,
-    patientEmail: email,
-    bloodTest: {
-      name: testName
-    }
-  };
-  
-  const { html, subject } = await generateWelcomeEmail({
-    email,
-    name,
-    password,
-    order
-  });
-  
-  const response = await sendEmail({
-    to: email,
-    subject: subject || 'Welcome to Eden Clinic - Your Account is Ready',
-    text: `Welcome to Eden Clinic, ${name}! Your account has been created successfully. Your temporary password is: ${password}. Your first order (${testName}) has been confirmed with order ID: ${orderId}.`,
-    html,
-  });
-  
-  console.log('📨 Welcome email sent successfully to:', email);
-  console.log('✅ Welcome email sent successfully', { messageId: response[0]?.headers['x-message-id'] });
-  
-  return response;
+
+  try {
+    const { subject, html } = await generateWelcomeEmail({
+      name,
+      email,
+      password,
+      order: {
+        id: orderId,
+        patientName: name,
+        patientEmail: email,
+        bloodTest: {
+          name: testName
+        }
+      }
+    });
+
+    const response = await sendEmail({
+      to: email,
+      subject,
+      text: `Welcome to Eden Clinic! Your account has been created. Email: ${email}, Password: ${password}`,
+      html,
+    });
+
+    console.log('✅ EMAIL 3/3: Welcome email sent to:', email);
+    return response;
+  } catch (error) {
+    console.error('❌ ERROR sending welcome email:', error);
+    throw error;
+  }
+}
+
+interface SendDispatchNotificationEmailParams {
+  name: string;
+  email: string;
+  testName: string;
+  orderId: string;
+  dispatchDate: string;
+}
+
+export async function sendDispatchNotificationEmail({
+  name,
+  email,
+  testName,
+  orderId,
+  dispatchDate
+}: SendDispatchNotificationEmailParams) {
+  console.log('Sending dispatch notification email to:', email);
+
+  try {
+    // Render the React Email template to HTML
+    const html = await renderAsync(
+      DispatchNotificationEmail({
+        name,
+        testName,
+        orderId,
+        dispatchDate
+      })
+    );
+
+    const subject = 'Your Eden Clinic Blood Test Kit has been dispatched';
+    
+    const response = await sendEmail({
+      to: email,
+      subject,
+      text: `Dear ${name},\n\nYour blood test kit has been dispatched and is on its way to you.\n\nTest Type: ${testName}\nOrder ID: ${orderId}\nDispatch Date: ${dispatchDate}\n\nBest regards,\nEden Clinic Team`,
+      html,
+    });
+
+    console.log('✅ EMAIL: Dispatch notification sent to:', email);
+    return response;
+  } catch (error) {
+    console.error('❌ ERROR sending dispatch notification email:', error);
+    throw error;
+  }
 }

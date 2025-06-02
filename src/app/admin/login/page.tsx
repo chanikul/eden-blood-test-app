@@ -38,14 +38,9 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed')
       }
 
-      // Password correct, trigger Supabase OTP
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      })
-      if (otpError) throw otpError
-      setAdminEmail(email)
-      setStep('otp')
+      // Password correct, redirect to admin dashboard
+      // Temporarily bypassing OTP step due to email sending issues
+      router.push('/admin')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {

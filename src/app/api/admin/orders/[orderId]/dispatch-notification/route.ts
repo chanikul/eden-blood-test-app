@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/email'
+import { sendDispatchNotificationEmail } from '@/lib/services/email'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -20,12 +20,20 @@ export async function POST(
       )
     }
 
-    // Send dispatch notification email
-    await sendEmail({
-      to: order.patientEmail,
-      subject: 'Your Eden Clinic Blood Test Kit has been dispatched',
-      text: `Dear ${order.patientName},\n\nYour blood test kit has been dispatched and is on its way to you.\n\nTest Type: ${order.testName}\n\nBest regards,\nEden Clinic Team`,
+    // Send styled dispatch notification email using the email service
+    await sendDispatchNotificationEmail({
+      name: order.patientName,
+      email: order.patientEmail,
+      testName: order.testName,
+      orderId: order.id,
+      dispatchDate: new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
     })
+    
+    console.log('✅ EMAIL: Dispatch notification sent to:', order.patientEmail)
 
     return NextResponse.json({ success: true })
   } catch (error) {

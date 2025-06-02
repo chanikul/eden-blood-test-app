@@ -1,4 +1,4 @@
-import { SyncStripeButton } from '@/components/admin/SyncStripeButton'
+// Dynamic product loading from Stripe via /api/products - no manual sync needed
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { Order, OrderStatus } from '@prisma/client'
@@ -75,7 +75,7 @@ export default async function AdminDashboard() {
       <div className="p-8">
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-2">Total Orders</h2>
             <p className="text-3xl font-bold">
@@ -86,11 +86,6 @@ export default async function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-2">Active Users</h2>
             <p className="text-3xl font-bold">{userCount}</p>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-2">Sync Stripe Data</h2>
-            <SyncStripeButton />
           </div>
         </div>
 

@@ -3,7 +3,7 @@
 import { Toaster } from 'sonner';
 import { useEffect, useState } from 'react';
 
-export function ToasterProvider() {
+export default function ToasterProvider() {
   // Use useState and useEffect to ensure this only renders on the client
   const [isMounted, setIsMounted] = useState(false);
 

@@ -20,3 +20,6 @@ export async function generateWelcomeEmail(props: WelcomeEmailProps): Promise<Em
     subject: 'Welcome to Eden Clinic - Your Account is Ready',
   };
 }
+
+// Make sure this function is properly exported
+export default { generateWelcomeEmail };
