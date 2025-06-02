@@ -210,6 +210,10 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
             }
           }
           
+          // DISABLED: Welcome email is now handled by the finalize-order route to prevent duplicate emails
+          console.log('⚠️ Skipping duplicate welcome email from webhook handler');
+          
+          /*
           // Send welcome email
           try {
             const { subject, html } = await generateWelcomeEmail({
@@ -238,6 +242,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
             console.error('Error sending welcome email:', error);
             // Don't fail the entire process if email sending fails
           }
+          */
         }
       } catch (error) {
         console.error('Error creating user account:', error);
@@ -245,6 +250,11 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
       }
     }
 
+    // DISABLED: Email sending is now handled by the finalize-order route to prevent duplicate emails
+    // Order confirmation email is now sent from /api/finalize-order instead
+    console.log('⚠️ Skipping duplicate order confirmation email from webhook handler');
+    
+    /* 
     // Send order confirmation email to customer
     try {
       const { subject, html } = await generateOrderConfirmationEmail({
@@ -277,41 +287,42 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
       console.error('Error sending order confirmation email:', error);
       // Continue processing, just log the error
     }
+    */
 
+    // DISABLED: Admin notification email is now handled by the finalize-order route to prevent duplicate emails
+    console.log('⚠️ Skipping duplicate admin notification email from webhook handler');
+    
+    /*
     // Send admin notification email
     try {
-      const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL;
-      if (adminEmail) {
-        const { subject, html } = await generateAdminNotificationEmail({
-          name: order.patientName,
-          email: order.patientEmail,
-          orderId: order.id,
-          testName: order.testName,
-          shippingAddress: {
-            line1: shippingAddress?.line1 || '',
-            line2: shippingAddress?.line2,
-            city: shippingAddress?.city || '',
-            postcode: shippingAddress?.postal_code || shippingAddress?.postalCode || '',
-          },
-          notes: order.notes || undefined,
-          paymentStatus: 'paid',
-        });
+      const adminHtml = generateOrderNotificationEmailHtml({
+        fullName: order.patientName,
+        email: order.patientEmail,
+        dateOfBirth: order.dateOfBirth || 'Not provided',
+        testName: order.testName,
+        notes: order.notes || '',
+        orderId: order.id,
+        shippingAddress: {
+          line1: shippingAddress?.line1 || '',
+          line2: shippingAddress?.line2 || '',
+          city: shippingAddress?.city || '',
+          postcode: shippingAddress?.postal_code || shippingAddress?.postalCode || '',
+        },
+      });
 
-        await sendEmail({
-          to: adminEmail,
-          subject,
-          text: `New paid order received: ${order.testName} for ${order.patientName} (${order.patientEmail}). Order ID: ${order.id}`,
-          html,
-        });
+      await sendEmail({
+        to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+        subject: 'New Blood Test Order',
+        text: `New order received: ${order.testName} for ${order.patientName} (${order.patientEmail}). Order ID: ${order.id}.`,
+        html: adminHtml,
+      });
 
-        console.log('Admin notification email sent to:', adminEmail);
-      } else {
-        console.warn('No admin email configured for notifications');
-      }
+      console.log('Admin notification email sent for order:', order.id);
     } catch (error) {
       console.error('Error sending admin notification email:', error);
       // Continue processing, just log the error
     }
+    */
 
     console.log('Checkout session processing completed successfully');
   } catch (error) {
