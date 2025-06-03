@@ -14,17 +14,29 @@ import {
   User, 
   LogOut 
 } from 'lucide-react';
+import { features, isFeatureEnabled } from '@/lib/config/features';
 
-const navigation = [
+// Core navigation items that are always shown
+const coreNavigation = [
   { name: 'Home', href: '/client', icon: Home },
-  { name: 'My Blood Tests', href: '/client/blood-tests', icon: TestTube2 },
-  { name: 'Bookings', href: '/client/bookings', icon: Calendar },
-  { name: 'Repeat Prescriptions', href: '/client/prescriptions', icon: FileText },
-  { name: 'Travel Letter Request', href: '/client/travel-letters', icon: Plane },
-  { name: 'Payment Methods', href: '/client/payment-methods', icon: CreditCard },
-  { name: 'Subscriptions', href: '/client/subscriptions', icon: Repeat },
-  { name: 'Addresses', href: '/client/addresses', icon: MapPin },
+  { name: 'My Results', href: '/client/blood-tests', icon: TestTube2 },
   { name: 'Account Details', href: '/client/account', icon: User },
+];
+
+// Optional navigation items that can be enabled via feature flags
+const optionalNavigation = [
+  { name: 'Bookings', href: '/client/bookings', icon: Calendar, enabled: features.bookings },
+  { name: 'Repeat Prescriptions', href: '/client/prescriptions', icon: FileText, enabled: features.prescriptions },
+  { name: 'Travel Letter Request', href: '/client/travel-letters', icon: Plane, enabled: features.travelLetters },
+  { name: 'Payment Methods', href: '/client/payment-methods', icon: CreditCard, enabled: features.paymentMethods },
+  { name: 'Subscriptions', href: '/client/subscriptions', icon: Repeat, enabled: features.subscriptions },
+  { name: 'Addresses', href: '/client/addresses', icon: MapPin, enabled: features.addresses },
+];
+
+// Combine core and enabled optional navigation items
+const navigation = [
+  ...coreNavigation,
+  ...optionalNavigation.filter(item => item.enabled)
 ];
 
 export default function ClientLayout({

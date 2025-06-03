@@ -100,6 +100,16 @@ export default function ClientDashboard() {
           <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <Link 
+              href="/client/blood-tests/new"
+              className="flex items-center justify-between p-4 bg-teal-100 rounded-md text-teal-700 hover:bg-teal-200 transition-colors font-medium"
+            >
+              <div className="flex items-center">
+                <TestTube2 className="h-6 w-6 mr-3" />
+                <span>Order a new blood test</span>
+              </div>
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link 
               href="/support"
               className="flex items-center justify-between p-3 bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 transition-colors"
             >
@@ -109,17 +119,9 @@ export default function ClientDashboard() {
               </div>
               <ArrowRight className="h-5 w-5" />
             </Link>
-            <Link 
-              href="/client/blood-tests/new"
-              className="flex items-center justify-between p-3 bg-teal-50 rounded-md text-teal-700 hover:bg-teal-100 transition-colors"
-            >
-              <div className="flex items-center">
-                <TestTube2 className="h-5 w-5 mr-3" />
-                <span>Order a new blood test</span>
-              </div>
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-            <Link 
+            
+            {/* Commented out for MVP - can be re-enabled via feature flags in the future */}
+            {/* <Link 
               href="/client/bookings/new"
               className="flex items-center justify-between p-3 bg-blue-50 rounded-md text-blue-700 hover:bg-blue-100 transition-colors"
             >
@@ -128,8 +130,8 @@ export default function ClientDashboard() {
                 <span>Schedule an appointment</span>
               </div>
               <ArrowRight className="h-5 w-5" />
-            </Link>
-            <Link 
+            </Link> */}
+            {/* <Link 
               href="/client/prescriptions"
               className="flex items-center justify-between p-3 bg-purple-50 rounded-md text-purple-700 hover:bg-purple-100 transition-colors"
             >
@@ -138,44 +140,61 @@ export default function ClientDashboard() {
                 <span>Request a prescription</span>
               </div>
               <ArrowRight className="h-5 w-5" />
-            </Link>
+            </Link> */}
           </div>
         </div>
 
         {/* Recent Tests */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Tests</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Results</h2>
           <div className="space-y-3">
-            {data.recentTests.map((test) => (
-              <Link
-                key={test.id}
-                href={`/client/blood-tests/${test.id}`}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center">
-                  {getStatusIcon(test.status)}
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">{test.testName}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(test.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
-              </Link>
-            ))}
+            {data.recentTests && data.recentTests.length > 0 ? (
+              <>
+                {data.recentTests.map((test) => (
+                  <Link
+                    key={test.id}
+                    href={`/client/blood-tests/${test.id}`}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      {getStatusIcon(test.status)}
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">{test.testName}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(test.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-gray-400" />
+                  </Link>
+                ))}
+                <Link
+                  href="/client/blood-tests"
+                  className="mt-4 inline-flex items-center text-sm text-teal-600 hover:text-teal-800"
+                >
+                  View all results
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <TestTube2 className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 mb-2">No test results yet</p>
+                <p className="text-sm text-gray-400 mb-4">Your test results will appear here once available</p>
+                <Link
+                  href="/client/blood-tests/new"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                >
+                  <TestTube2 className="h-4 w-4 mr-2" />
+                  Order your first test
+                </Link>
+              </div>
+            )}
           </div>
-          <Link
-            href="/client/blood-tests"
-            className="mt-4 inline-flex items-center text-sm text-teal-600 hover:text-teal-800"
-          >
-            View all tests
-            <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
         </div>
 
-        {/* Payment Method Preview */}
-        {data.hasActivePaymentMethod && (
+        {/* Payment Method Preview - Commented out for MVP */}
+        {/* {data.hasActivePaymentMethod && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -194,7 +213,7 @@ export default function ClientDashboard() {
               </Link>
             </div>
           </div>
-        )}
+        )} */}
 
 
       </div>

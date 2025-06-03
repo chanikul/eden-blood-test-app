@@ -16,6 +16,7 @@ import {
 interface BloodTest {
   id: string;
   testName: string;
+  orderId: string;
   status: 'PENDING' | 'PAID' | 'COMPLETED' | 'CANCELLED';
   date: Date;
   resultUrl?: string;
@@ -31,6 +32,7 @@ export default function BloodTestsPage() {
     setTests([
       {
         id: '1',
+        orderId: 'ORD-12345',
         testName: 'Complete Blood Count',
         status: 'COMPLETED',
         date: new Date('2025-05-20'),
@@ -38,12 +40,14 @@ export default function BloodTestsPage() {
       },
       {
         id: '2',
+        orderId: 'ORD-12346',
         testName: 'Vitamin D Test',
         status: 'PENDING',
         date: new Date('2025-05-22'),
       },
       {
         id: '3',
+        orderId: 'ORD-12347',
         testName: 'Thyroid Function',
         status: 'CANCELLED',
         date: new Date('2025-05-15'),
@@ -84,9 +88,9 @@ export default function BloodTestsPage() {
     <div className="max-w-7xl mx-auto">
       <div className="md:flex md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">My Blood Tests</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">My Results</h1>
           <p className="mt-1 text-sm text-gray-500">
-            View and manage your blood test orders
+            View and download your blood test results
           </p>
         </div>
         <div className="mt-4 md:mt-0">
@@ -129,40 +133,71 @@ export default function BloodTestsPage() {
       </div>
 
       {/* Tests List */}
-      <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-        <ul className="divide-y divide-gray-200">
-          {filteredTests.map((test) => (
-            <li key={test.id} className="p-4 hover:bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center min-w-0 flex-1">
-                  <TestTube2 className="h-8 w-8 text-gray-400" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {test.testName}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {test.date.toLocaleDateString()}
-                    </p>
+      {filteredTests.length > 0 ? (
+        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+          <ul className="divide-y divide-gray-200">
+            {filteredTests.map((test) => (
+              <li key={test.id} className="p-4 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center min-w-0 flex-1">
+                    <TestTube2 className="h-8 w-8 text-gray-400" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {test.testName}
+                      </p>
+                      <div className="flex text-sm text-gray-500 space-x-2">
+                        <p>Order ID: {test.orderId}</p>
+                        <span>•</span>
+                        <p>{test.date.toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-4 flex items-center space-x-4">
+                    {getStatusBadge(test.status)}
+                    {test.resultUrl && test.status === 'COMPLETED' && (
+                      <a
+                        href={test.resultUrl}
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download Result
+                      </a>
+                    )}
                   </div>
                 </div>
-                <div className="ml-4 flex items-center space-x-4">
-                  {getStatusBadge(test.status)}
-                  {test.resultUrl && test.status === 'COMPLETED' && (
-                    <a
-                      href={test.resultUrl}
-                      className="text-teal-600 hover:text-teal-800"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Download className="h-5 w-5" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-8 text-center">
+          <TestTube2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+          
+          {searchQuery || statusFilter !== 'ALL' ? (
+            <p className="text-gray-500 mb-4">
+              Try adjusting your search or filter criteria
+            </p>
+          ) : (
+            <>
+              <p className="text-gray-500 mb-2">You don't have any blood test results yet</p>
+              <p className="text-sm text-gray-400 mb-6">
+                Order your first blood test to get started with your health journey
+              </p>
+            </>
+          )}
+          
+          <Link
+            href="/client/blood-tests/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Order a Blood Test
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
