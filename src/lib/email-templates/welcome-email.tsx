@@ -14,10 +14,11 @@ interface WelcomeEmailProps {
   name: string;
   email: string;
   tempPassword?: string;
-  order?: WelcomeEmailTemplateProps['order'];
+  orderId?: string;
+  testName?: string;
 }
 
-export default function WelcomeEmail({ name, email, tempPassword, order }: WelcomeEmailProps) {
+export default function WelcomeEmail({ name, email, tempPassword, orderId, testName }: WelcomeEmailProps) {
   return (
     <Html>
       <Head />
@@ -39,12 +40,12 @@ export default function WelcomeEmail({ name, email, tempPassword, order }: Welco
           )}
 
           <Hr style={styles.hr} />
-          {order && (
+          {orderId && testName && (
             <>
               <Text style={styles.subheading}>🩺 Your Test Order</Text>
               <Container style={styles.orderBox}>
-                <Text style={styles.text}><strong>Order ID:</strong> {order.id}</Text>
-                <Text style={styles.text}><strong>Test:</strong> {order.bloodTest?.name || 'Blood Test'}</Text>
+                <Text style={styles.text}><strong>Order ID:</strong> {orderId}</Text>
+                <Text style={styles.text}><strong>Test:</strong> {testName}</Text>
                 <Text style={styles.text}><strong>Status:</strong> <Text style={{ ...styles.text, color: '#059669' }}>Confirmed</Text></Text>
               </Container>
               <Hr style={styles.hr} />
@@ -55,7 +56,7 @@ export default function WelcomeEmail({ name, email, tempPassword, order }: Welco
             <li>Login to your patient portal</li>
             {tempPassword && <li>Change your temporary password</li>}
             <li>Complete your profile setup</li>
-            {order && <li>Review your test details and instructions</li>}
+            {orderId && testName && <li>Review your test details and instructions</li>}
           </ul>
 
           <Hr style={styles.hr} />

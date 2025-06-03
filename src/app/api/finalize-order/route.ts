@@ -75,6 +75,14 @@ export async function GET(request: Request) {
         testName = 'Blood Test'; // Generic fallback
       }
     }
+    
+    console.log('Order details:', {
+      orderId,
+      testName,
+      email,
+      fullName,
+      createAccount: createAccount === 'true' ? 'Yes' : 'No'
+    });
 
     await prisma.$transaction(async (tx) => {
       let clientUser = null;
@@ -131,18 +139,22 @@ export async function GET(request: Request) {
       });
     });
 
-    // Send emails using testName and shippingAddress object
-    const emailPromises = [
-      sendPaymentConfirmationEmail({
+    // Send emails using testName and shippingAddress object - SINGLE EMAIL BLOCK
+    console.log('Starting email sequence for order:', orderId);
+    
+    try {
+      // 1. Send payment confirmation email to customer
+      await sendPaymentConfirmationEmail({
         fullName,
         email,
         testName: testName,
         orderId,
         shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? (order.shippingAddress as any) : undefined,
-      }).then(() => {
-        console.log('EMAIL 1/3: Payment confirmation email sent to', email);
-      }),
-      sendOrderNotificationEmail({
+      });
+      console.log('EMAIL 1/3: Payment confirmation email sent to', email);
+      
+      // 2. Send order notification to admin
+      await sendOrderNotificationEmail({
         fullName,
         email,
         dateOfBirth,
@@ -150,19 +162,35 @@ export async function GET(request: Request) {
         notes,
         orderId,
         shippingAddress: order.shippingAddress && typeof order.shippingAddress === 'object' && order.shippingAddress !== null ? (order.shippingAddress as any) : undefined,
-      }).then(() => {
-        console.log('EMAIL 2/3: Order notification email sent to admin for', email);
-      })
-    ];
-    if (welcomeEmailShouldBeSent && welcomeEmailParams) {
-      emailPromises.push(
-        (async () => {
-          await sendWelcomeEmail(welcomeEmailParams!);
-          console.log('EMAIL 3/3: Welcome email sent to', (welcomeEmailParams as any).email);
-        })()
-      );
+      });
+      console.log('EMAIL 2/3: Order notification email sent to admin for', email);
+      
+      // 3. Send welcome email if this is a new account
+      if (welcomeEmailShouldBeSent && welcomeEmailParams) {
+        // Type assertion to ensure TypeScript knows this is not null
+        const params = welcomeEmailParams as {
+          email: string;
+          name: string;
+          password: string;
+          orderId: string;
+          testName: string;
+        };
+        
+        await sendWelcomeEmail({
+          email: params.email,
+          name: params.name,
+          password: params.password,
+          orderId: params.orderId,
+          testName: params.testName
+        });
+        console.log('EMAIL 3/3: Welcome email sent to', params.email);
+      } else {
+        console.log('Welcome email not needed - user already exists or no account created');
+      }
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      // Don't throw here - we still want to redirect the user even if email sending fails
     }
-    await Promise.all(emailPromises);
 
     // Redirect to dashboard or login (must use absolute URL)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://${request.headers.get('host') || 'localhost:3000'}`;

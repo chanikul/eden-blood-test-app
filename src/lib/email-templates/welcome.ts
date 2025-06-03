@@ -4,14 +4,15 @@ import WelcomeEmail from './welcome-email';
 import { EmailTemplateResponse, WelcomeEmailProps } from './types';
 
 export async function generateWelcomeEmail(props: WelcomeEmailProps): Promise<EmailTemplateResponse> {
-  const { name, email, password, order } = props;
+  const { name, email, password, orderId, testName } = props;
 
   const html = await renderAsync(
     WelcomeEmail({
       name,
       email,
       tempPassword: password,
-      order,
+      orderId,
+      testName,
     })
   );
 

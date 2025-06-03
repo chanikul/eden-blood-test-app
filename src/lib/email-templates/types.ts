@@ -34,12 +34,6 @@ export interface WelcomeEmailProps {
   email: string;
   name: string;
   password: string;
-  order: {
-    id: string;
-    patientName: string;
-    patientEmail: string;
-    bloodTest?: {
-      name: string;
-    };
-  };
+  orderId: string;
+  testName: string;
 }
