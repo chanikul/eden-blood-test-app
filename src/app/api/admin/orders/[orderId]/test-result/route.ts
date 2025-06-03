@@ -4,7 +4,7 @@ import { getSession } from '@/lib/session';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { orderId: string } }
 ) {
   try {
     // Check admin authentication
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orderId = params.id;
+    const orderId = params.orderId;
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
