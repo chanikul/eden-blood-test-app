@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { 
   Home, 
   TestTube2, 
@@ -45,6 +46,31 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+      
+      // Redirect to home page after successful logout
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('Failed to logout. Please try again.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,12 +107,13 @@ export default function ClientLayout({
               );
             })}
             <button
-              onClick={() => {/* Add logout handler */}}
+              onClick={handleLogout}
+              disabled={isLoggingOut}
               className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 
                 rounded-md hover:bg-gray-50 hover:text-gray-900"
             >
               <LogOut className="mr-3 h-5 w-5 text-gray-400" />
-              Logout
+              {isLoggingOut ? 'Logging out...' : 'Logout'}
             </button>
           </nav>
         </div>

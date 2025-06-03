@@ -37,41 +37,49 @@ model StripeEvent {
 }
 
 model BloodTest {
-  id              String   @id @default(cuid())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              String       @id @default(cuid())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
   name            String
-  slug            String   @unique
+  slug            String       @unique
   description     String
   price           Float
   stripeProductId String?
   stripePriceId   String?
-  isActive        Boolean  @default(true)
-  orders          Order[]  @relation("OrderBloodTest")
+  isActive        Boolean      @default(true)
+  orders          Order[]      @relation("OrderBloodTest")
+  testResults     TestResult[] @relation("TestResultBloodTest")
 }
 
 model ClientUser {
-  id                String    @id @default(cuid())
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  email             String    @unique
+  id                String       @id @default(cuid())
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  email             String       @unique
   passwordHash      String
   name              String
   dateOfBirth       String
   mobile            String?
-  active            Boolean   @default(true)
+  active            Boolean      @default(true)
   lastLoginAt       DateTime?
-  resetToken        String?   @unique
+  resetToken        String?      @unique
   resetTokenExpires DateTime?
-  stripeCustomerId  String?   @unique
+  stripeCustomerId  String?      @unique
+  preferredContact  ContactMethod @default(EMAIL)
   orders            Order[]
   addresses         Address[]
+  testResults       TestResult[]
+}
+
+enum ContactMethod {
+  EMAIL
+  MOBILE
 }
 
 model Order {
-  id                 String      @id @default(cuid())
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  id                 String       @id @default(cuid())
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
   patientName        String
   patientEmail       String
   patientDateOfBirth String
@@ -79,18 +87,19 @@ model Order {
   testName           String
   notes              String?
   internalNotes      String?
-  status             OrderStatus @default(PENDING)
+  status             OrderStatus  @default(PENDING)
   paymentId          String?
-  stripeSessionId    String?     @unique
+  stripeSessionId    String?      @unique
   shippingAddress    Json?
   dispatchedAt       DateTime?
   dispatchedById     String?
   bloodTestId        String
   clientId           String?
-  createAccount      Boolean     @default(false)
-  bloodTest          BloodTest   @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
-  dispatchedBy       Admin?      @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
-  client             ClientUser? @relation(fields: [clientId], references: [id])
+  createAccount      Boolean      @default(false)
+  bloodTest          BloodTest    @relation("OrderBloodTest", fields: [bloodTestId], references: [id])
+  dispatchedBy       Admin?       @relation("OrderDispatchedBy", fields: [dispatchedById], references: [id])
+  client             ClientUser?  @relation(fields: [clientId], references: [id])
+  testResults        TestResult[] @relation("TestResultOrder")
 
   @@unique([patientEmail, createdAt])
 }
@@ -128,4 +137,23 @@ model Address {
 enum AddressType {
   SHIPPING
   BILLING
+}
+
+model TestResult {
+  id          String         @id @default(cuid())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  status      TestStatus     @default(processing)
+  resultUrl   String?
+  orderId     String
+  bloodTestId String
+  order       Order          @relation("TestResultOrder", fields: [orderId], references: [id])
+  bloodTest   BloodTest      @relation("TestResultBloodTest", fields: [bloodTestId], references: [id])
+  clientId    String?
+  client      ClientUser?    @relation(fields: [clientId], references: [id])
+}
+
+enum TestStatus {
+  processing
+  ready
 }

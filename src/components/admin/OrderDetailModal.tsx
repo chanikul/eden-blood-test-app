@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Order, OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
+import { TestResultUploader } from './TestResultUploader'
+import { prisma } from '@/lib/prisma'
+import { toast } from 'sonner'
 
 
 
@@ -17,8 +20,34 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   const initialStatus = order?.status || OrderStatus.PENDING
   const [status, setStatus] = useState<OrderStatus>(initialStatus as OrderStatus)
   const [isLoading, setIsLoading] = useState(false)
+  const [testResultId, setTestResultId] = useState<string | null>(null)
+  const router = useRouter()
 
   if (!order) return null
+
+  // Fetch test result for this order when the modal opens
+  useEffect(() => {
+    if (order) {
+      const fetchTestResult = async () => {
+        try {
+          const response = await fetch(`/api/admin/orders/${order.id}/test-result`, {
+            method: 'GET',
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.result) {
+              setTestResultId(data.result.id);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching test result:', error);
+        }
+      };
+      
+      fetchTestResult();
+    }
+  }, [order]);
 
   const handleUpdateOrder = async () => {
     try {
@@ -44,11 +73,13 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
           method: 'POST',
         })
       }
-
-      onClose()
+      
+      toast.success('Order updated successfully');
+      router.refresh();
+      onClose();
     } catch (error) {
       console.error('Error updating order:', error)
-      alert('Failed to update order')
+      toast.error('Failed to update order')
     } finally {
       setIsLoading(false)
     }
@@ -170,6 +201,24 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
                   {format(new Date(order.dispatchedAt), 'dd/MM/yyyy HH:mm')}
                 </p>
               )}
+            </div>
+          </div>
+
+          {/* Test Results Section */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Test Results</h3>
+            <div className="mb-6">
+              <TestResultUploader
+                orderId={order.id}
+                bloodTestId={order.bloodTestId || ''}
+                clientId={order.clientId || ''}
+                testName={order.testName}
+                existingResultId={testResultId || undefined}
+                onSuccess={() => {
+                  toast.success('Test result updated successfully');
+                  router.refresh();
+                }}
+              />
             </div>
           </div>
 

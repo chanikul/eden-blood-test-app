@@ -66,6 +66,16 @@ export function Sidebar() {
         >
           <span className="mx-4">Users</span>
         </Link>
+        <Link
+          href="/admin/test-results"
+          className={`flex items-center px-6 py-3 text-gray-800 font-medium ${
+            pathname && pathname.startsWith('/admin/test-results')
+              ? 'bg-blue-50 border-r-4 border-blue-500 text-blue-700 font-semibold'
+              : 'hover:bg-gray-50'
+          }`}
+        >
+          <span className="mx-4">Test Results</span>
+        </Link>
       </nav>
       <div className="p-4 border-t border-gray-200">
         <button
