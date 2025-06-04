@@ -1,37 +1,15 @@
 [build]
-  command = "node ./netlify-simple-build.js"
+  command = "npm install && npm run build"
   publish = ".next"
-  ignore_warnings = true
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  
-[[plugins]]
-  package = "./netlify-python-bypass-plugin.js"
 
 [build.environment]
   # Node.js configuration
-  NODE_VERSION = "20.11.1"
+  NODE_VERSION = "18.x"
   NODE_OPTIONS = "--max_old_space_size=4096"
-  
-  # Completely disable Python
-  PYTHON_VERSION = "0"
-  NODE_GYP_FORCE_PYTHON = "false"
-  NPM_CONFIG_PYTHON = "false"
-  SKIP_PYTHON = "true"
-  NETLIFY_USE_YARN = "false"
-  
-  # NPM configuration to avoid Python dependencies
-  NPM_CONFIG_IGNORE_SCRIPTS = "true"
-  NPM_CONFIG_OPTIONAL = "false"
-  NPM_CONFIG_FUND = "false"
-  NPM_CONFIG_AUDIT = "false"
-  NPM_CONFIG_ENGINE_STRICT = "false"
-  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
-  NPM_CONFIG_PRODUCTION = "false"
-  
-  # Force use of Node.js for all scripts
-  FORCE_NODE_SCRIPTS = "true"
+  NPM_FLAGS = "--legacy-peer-deps"
   
   # Prisma configuration
   PRISMA_ENGINES_VERSION = "5.10.2"
