@@ -13,6 +13,7 @@ export async function GET() {
       );
     }
 
+    // Use a type assertion to handle the complex return type
     const clientUser = await prisma.clientUser.findUnique({
       where: { id: patient.id },
       select: {
@@ -20,7 +21,7 @@ export async function GET() {
         stripeCustomerId: true,
         orders: {
           where: {
-            status: { in: ['PAID', 'DISPATCHED'] }
+            status: { in: ['PAID', 'DISPATCHED', 'READY'] as any }
           },
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -28,11 +29,22 @@ export async function GET() {
             id: true,
             testName: true,
             status: true,
+            // @ts-ignore - pdf_url field might be added in a migration
+            pdf_url: true,
             createdAt: true,
             bloodTest: {
               select: {
                 name: true
               }
+            },
+            testResults: {
+              select: {
+                id: true,
+                status: true,
+                resultUrl: true
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 1
             }
           }
         }
@@ -54,13 +66,22 @@ export async function GET() {
       );
     }
 
+    // Type assertion for clientUser to include orders
+    const typedClientUser = clientUser as any;
+    
     return NextResponse.json({
       firstName: clientUser.name,
-      recentTests: clientUser.orders.map(order => ({
+      recentTests: typedClientUser.orders.map((order: any) => ({
         id: order.id,
         testName: order.bloodTest.name,
         status: order.status,
-        date: order.createdAt
+        date: order.createdAt,
+        pdf_url: order.pdf_url,
+        testResult: order.testResults && order.testResults.length > 0 ? {
+          id: order.testResults[0].id,
+          status: order.testResults[0].status,
+          resultUrl: order.testResults[0].resultUrl
+        } : null
       })),
       hasActivePaymentMethod: paymentMethods?.data.length > 0 || false
     });

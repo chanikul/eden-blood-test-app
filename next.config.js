@@ -5,7 +5,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   experimental: {
-    optimizeCss: true,
+    // Removing optimizeCss as it may be causing build issues with Tailwind
     serverComponentsExternalPackages: ['stripe'],
     serverActions: true,
   },

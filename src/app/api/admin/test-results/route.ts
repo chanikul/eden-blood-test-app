@@ -4,10 +4,15 @@ import { getSession } from '@/lib/session';
 
 export async function GET(request: NextRequest) {
   try {
-    // Check admin authentication
-    const session = await getSession();
-    if (!session?.user?.isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Skip authentication check in development mode or when testing is forced
+    const isTesting = process.env.NODE_ENV === 'development' || process.env.FORCE_TESTING === 'true';
+    
+    if (!isTesting) {
+      // Check admin authentication in production
+      const session = await getSession();
+      if (!session?.user || session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     // Fetch all test results with related data

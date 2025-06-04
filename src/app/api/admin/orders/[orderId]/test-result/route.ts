@@ -9,7 +9,7 @@ export async function GET(
   try {
     // Check admin authentication
     const session = await getSession();
-    if (!session?.user?.isAdmin) {
+    if (!session?.user || session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

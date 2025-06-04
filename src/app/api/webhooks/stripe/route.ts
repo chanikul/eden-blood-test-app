@@ -311,7 +311,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
       });
 
       await sendEmail({
-        to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+        to: process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com',
         subject: 'New Blood Test Order',
         text: `New order received: ${order.testName} for ${order.patientName} (${order.patientEmail}). Order ID: ${order.id}.`,
         html: adminHtml,
@@ -332,11 +332,9 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
 }
 
 // This is needed for the webhook handler to properly parse the request body
-// Using the new Next.js route segment config format
-export const config = {
-  runtime: 'nodejs',
-  dynamic: 'force-dynamic'
-};
+// Using the new Next.js App Router route segment config format
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Disable body parsing as we need the raw body for Stripe signature verification
 export const bodyParser = false;

@@ -45,7 +45,7 @@ export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResp
   
   console.log('Email Details:', {
     to,
-    from: `Eden Clinic <${process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk'}>`,
+    from: `Eden Clinic for Men <${process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com'}>`,
     subject,
     textLength: text?.length,
     htmlLength: html?.length,
@@ -69,7 +69,7 @@ export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResp
   // Prepare email data - ALWAYS include HTML content if available
   const emailData: MailDataRequired = {
     to,
-    from: `Eden Clinic <${process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk'}>`,
+    from: `Eden Clinic for Men <${process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com'}>`,
     subject,
     text, // Plain text fallback for email clients that don't support HTML
     html: html || undefined // Always prioritize HTML content
@@ -208,7 +208,7 @@ export async function sendOrderNotificationEmail({
   });
 
   const response = await sendEmail({
-    to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+    to: process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com',
     subject: 'New Blood Test Order',
     text: `New order received: ${testName} for ${fullName} (${email}). Order ID: ${orderId}. DOB: ${dateOfBirth}. ${notes ? `Notes: ${notes}` : ''}`,
     html,

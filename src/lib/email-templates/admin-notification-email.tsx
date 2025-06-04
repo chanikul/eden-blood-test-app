@@ -91,13 +91,13 @@ export default function AdminNotificationEmail({
 
           <Section style={styles.actionsBox}>
             <Button 
-              href={`https://admin.edenclinic.co.uk/orders/${orderId}`} 
+              href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://admin.edenclinicformen.com'}/orders/${orderId}`} 
               style={styles.button}
             >
               View Order Details
             </Button>
             <Button 
-              href={`mailto:${email}?subject=Eden Clinic Order ${orderId}`} 
+              href={`mailto:${email}?subject=Eden Clinic for Men Order ${orderId}`} 
               style={styles.secondaryButton}
             >
               Contact Patient

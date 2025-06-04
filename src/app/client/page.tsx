@@ -11,7 +11,8 @@ import {
   Clock,
   CreditCard,
   Bell,
-  LifeBuoy
+  LifeBuoy,
+  Download
 } from 'lucide-react';
 import { ReminderPreferences, BloodTestWithFollowUp } from '@/lib/types/reminders';
 import { BloodTest } from '@/lib/types/blood-test';
@@ -23,8 +24,14 @@ interface DashboardData {
   recentTests: {
     id: string;
     testName: string;
-    status: 'PENDING' | 'PAID' | 'DISPATCHED' | 'CANCELLED';
+    status: 'PENDING' | 'PAID' | 'DISPATCHED' | 'CANCELLED' | 'READY';
     date: string;
+    pdf_url?: string | null;
+    testResult?: {
+      id: string;
+      status: 'processing' | 'ready';
+      resultUrl?: string | null;
+    } | null;
   }[];
   hasActivePaymentMethod: boolean;
 }
@@ -77,6 +84,8 @@ export default function ClientDashboard() {
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
       case 'PENDING':
         return <Clock className="h-5 w-5 text-amber-500" />;
+      case 'READY':
+        return <CheckCircle2 className="h-5 w-5 text-blue-500" />;
       default:
         return null;
     }
@@ -151,22 +160,37 @@ export default function ClientDashboard() {
             {data.recentTests && data.recentTests.length > 0 ? (
               <>
                 {data.recentTests.map((test) => (
-                  <Link
-                    key={test.id}
-                    href={`/client/blood-tests/${test.id}`}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      {getStatusIcon(test.status)}
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">{test.testName}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(test.date).toLocaleDateString()}
-                        </p>
+                  <div key={test.id} className="flex flex-col">
+                    <Link
+                      href={`/client/blood-tests/${test.id}`}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        {getStatusIcon(test.status)}
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-900">{test.testName}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(test.date).toLocaleDateString()}
+                          </p>
+                          {test.status === 'READY' && (
+                            <p className="text-xs text-blue-600 font-medium mt-1">Results ready</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-gray-400" />
-                  </Link>
+                      <ArrowRight className="h-5 w-5 text-gray-400" />
+                    </Link>
+                    {test.status === 'READY' && test.testResult && test.testResult.status === 'ready' && test.testResult.resultUrl && (
+                      <a 
+                        href={`/api/test-results/${test.testResult.id}/download`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 ml-8 inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download Result
+                      </a>
+                    )}
+                  </div>
                 ))}
                 <Link
                   href="/client/blood-tests"

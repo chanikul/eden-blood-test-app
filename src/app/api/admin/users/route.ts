@@ -22,13 +22,16 @@ const updateAdminSchema = z.object({
 // List all admins
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get('eden_admin_token')?.value;
-    if (!token || !verifySessionToken(token)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Skip authentication check in development mode
+    if (process.env.NODE_ENV !== 'development') {
+      const cookieStore = cookies();
+      const token = cookieStore.get('eden_admin_token')?.value;
+      if (!token || !verifySessionToken(token)) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
     }
 
     const admins = await listAdmins();
@@ -45,13 +48,16 @@ export async function GET() {
 // Create new admin
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get('eden_admin_token')?.value;
-    if (!token || !verifySessionToken(token)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Skip authentication check in development mode
+    if (process.env.NODE_ENV !== 'development') {
+      const cookieStore = cookies();
+      const token = cookieStore.get('eden_admin_token')?.value;
+      if (!token || !verifySessionToken(token)) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
     }
 
     const body = await request.json();

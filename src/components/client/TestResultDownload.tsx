@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { TestStatus } from '@prisma/client';
-import { Download, FileText, Loader2 } from 'lucide-react';
+import { Download, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 
 interface TestResultDownloadProps {
@@ -27,6 +28,8 @@ interface TestResultDownloadProps {
 export function TestResultDownload({ result }: TestResultDownloadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadCount, setDownloadCount] = useState(0);
+  const [lastDownloaded, setLastDownloaded] = useState<Date | null>(null);
   
   const testName = result.bloodTest?.name || result.order?.testName || 'Blood Test';
   const isReady = result.status === TestStatus.ready;
@@ -54,6 +57,10 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
       
       const data = await response.json();
       
+      // Track download metrics
+      setDownloadCount(prev => prev + 1);
+      setLastDownloaded(new Date());
+      
       // Open the secure download URL in a new tab
       window.open(data.downloadUrl, '_blank');
     } catch (err) {
@@ -74,20 +81,43 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
               Test ordered {formatDistanceToNow(new Date(createdDate), { addSuffix: true })}
             </CardDescription>
           </div>
-          <Badge
-            variant={isReady ? "success" : "secondary"}
-            className="capitalize"
-          >
-            {result.status.toLowerCase()}
-          </Badge>
+          <div className="flex items-center space-x-2">
+            <Badge
+              variant={isReady ? 'primary' : 'outline'}
+              className={isReady ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}
+            >
+              {isReady ? 'Ready' : 'Processing'}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="text-sm text-gray-500">
           {isReady ? (
-            <p>Your test results are ready to download.</p>
+            <>
+              <p>Your test results are ready to download.</p>
+              {lastDownloaded && (
+                <p className="mt-1 text-xs text-gray-400">
+                  Last downloaded: {formatDistanceToNow(lastDownloaded, { addSuffix: true })}
+                </p>
+              )}
+              {downloadCount > 0 && (
+                <div className="mt-2 flex items-center text-xs text-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Downloaded {downloadCount} {downloadCount === 1 ? 'time' : 'times'}
+                </div>
+              )}
+            </>
           ) : (
-            <p>Your test results are still being processed. We'll notify you when they're ready.</p>
+            <>
+              <p>Your test results are still being processed. We'll notify you when they're ready.</p>
+              <Alert variant="info" className="mt-2 bg-blue-50 text-blue-800 text-xs p-2">
+                <AlertCircle className="h-3 w-3" />
+                <AlertDescription>
+                  You'll receive an email when your results are ready to view.
+                </AlertDescription>
+              </Alert>
+            </>
           )}
           {error && <p className="text-red-500 mt-2">{error}</p>}
         </div>

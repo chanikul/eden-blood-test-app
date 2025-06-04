@@ -1,10 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client for storage
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Initialize Supabase client for storage with fallback values
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Njg4OTA2OCwiZXhwIjoyMDYyNDY1MDY4fQ.qbO0KymO7nLymwexLcZ2SK4n1owTDU5U63DoNoIygTE';
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Create Supabase client with singleton pattern to prevent multiple instances
+let supabase: ReturnType<typeof createClient> | null = null;
+
+// Get the Supabase client instance
+export function getSupabaseClient() {
+  if (!supabase) {
+    // Only create a new instance if one doesn't exist
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+  }
+  return supabase;
+}
 
 /**
  * Creates a presigned URL for secure file access
@@ -36,7 +46,7 @@ export async function createPresignedUrl(filePath: string, expiresIn = 60): Prom
     }
     
     // Generate a signed URL
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .storage
       .from(bucket)
       .createSignedUrl(path, expiresIn);
@@ -69,31 +79,51 @@ export async function uploadFile(
   bucket = 'test-results'
 ): Promise<string> {
   try {
-    const { data, error } = await supabase
+    // Validate inputs before attempting upload
+    if (!file) {
+      throw new Error('No file provided for upload');
+    }
+    
+    if (!path) {
+      throw new Error('No storage path specified for upload');
+    }
+    
+    console.log(`Attempting to upload file to ${bucket}/${path}`);
+    
+    const { data, error } = await getSupabaseClient()
       .storage
       .from(bucket)
       .upload(path, file, {
         cacheControl: '3600',
-        upsert: false,
+        upsert: true, // Allow overwriting existing files
       });
     
     if (error) {
+      console.error('Supabase upload error:', JSON.stringify(error));
       throw new Error(`Error uploading file: ${error.message}`);
     }
     
     if (!data?.path) {
-      throw new Error('Failed to upload file');
+      throw new Error('Upload succeeded but no file path was returned');
     }
     
+    console.log(`File uploaded successfully to ${data.path}`);
+    
     // Get the public URL
-    const { data: urlData } = supabase
+    const { data: urlData } = getSupabaseClient()
       .storage
       .from(bucket)
       .getPublicUrl(data.path);
     
+    if (!urlData?.publicUrl) {
+      throw new Error('Failed to generate public URL for uploaded file');
+    }
+    
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Error in uploadFile:', error);
+    // Provide more detailed error logging
+    console.error('Error in uploadFile:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
 }
@@ -117,7 +147,7 @@ export async function deleteFile(bucket: string, filePath: string): Promise<void
       }
     }
     
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
       .storage
       .from(bucket)
       .remove([path]);
@@ -138,7 +168,7 @@ export async function deleteFile(bucket: string, filePath: string): Promise<void
  */
 export async function listFiles(bucket: string): Promise<string[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .storage
       .from(bucket)
       .list();

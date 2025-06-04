@@ -1,27 +1,84 @@
 [build]
-  command = "npm install && npx prisma generate && npm run build"
+  command = "chmod +x ./netlify-build.sh && ./netlify-build.sh"
   publish = ".next"
+  ignore_warnings = true
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
+  # Node.js configuration
   NODE_VERSION = "20.11.1"
+  NODE_OPTIONS = "--max_old_space_size=4096"
+  
+  # Bypass Python dependency issues
+  NPM_CONFIG_IGNORE_SCRIPTS = "true"
+  NPM_CONFIG_OPTIONAL = "false"
+  NPM_CONFIG_FUND = "false"
+  NPM_CONFIG_AUDIT = "false"
+  NPM_CONFIG_ENGINE_STRICT = "false"
+  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
+  NPM_CONFIG_PYTHON = "/dev/null"
+  NPM_CONFIG_PRODUCTION = "false"
+  
+  # Prisma configuration
   PRISMA_ENGINES_VERSION = "5.10.2"
   PRISMA_LOG_LEVEL = "info"
   PRISMA_LOG_QUERIES = "false"
   PRISMA_ENABLE_TRACING = "false"
+  PRISMA_SKIP_POSTINSTALL_GENERATE = "true"
+  PRISMA_GENERATE_SKIP_AUTOINSTALL = "true"
+  
+  # Next.js configuration
   NEXT_TELEMETRY_DISABLED = "1"
-  NPM_FLAGS = "--no-audit --no-fund --legacy-peer-deps"
   NODE_ENV = "production"
-  NEXT_PUBLIC_API_URL = "https://eden-clinic-blood-tests.netlify.app"
+  NEXT_SHARP_PATH = "./node_modules/sharp"
+  
+  # Application URLs
+  NEXT_PUBLIC_API_URL = "https://eden-clinic-blood-test-app.windsurf.build"
+  NEXT_PUBLIC_BASE_URL = "https://eden-clinic-blood-test-app.windsurf.build"
+  BASE_URL = "https://eden-clinic-blood-test-app.windsurf.build"
+  
+  # Email configuration
+  SENDGRID_FROM_EMAIL = "admin@edenclinicformen.com"
+  SUPPORT_EMAIL = "support@edenclinicformen.com"
+  FORCE_REAL_EMAILS = "true"
+  
+  # Feature flags
+  ENABLE_TEST_DATA_CLEANUP = "false"
+  ENABLE_USER_DELETION = "false"
+  
   # Environment variables are set in Netlify UI
 
+# Explicitly set processing options
 [build.processing]
   skip_processing = false
 
+# Include Prisma files in functions
 [functions]
   included_files = ["node_modules/@prisma/client/**/*", "node_modules/.prisma/**/*"]
+  node_bundler = "esbuild"
 
+# Ensure pretty URLs
 [build.processing.html]
   pretty_urls = true
+
+# Redirect API routes properly
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/nextjs-server/api/:splat"
+  status = 200
+
+# Handle client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["anonymous"]}
+
+# Force HTTPS
+[[redirects]]
+  from = "http://eden-clinic-blood-test-app.windsurf.build/*"
+  to = "https://eden-clinic-blood-test-app.windsurf.build/:splat"
+  status = 301
+  force = true

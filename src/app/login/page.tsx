@@ -145,10 +145,10 @@ export default function LoginPage() {
             <p className="text-sm text-center text-gray-600">
               Need help? Contact us at{' '}
               <a 
-                href="mailto:support@edenclinic.co.uk" 
+                href="mailto:support@edenclinicformen.com" 
                 className="text-blue-600 hover:text-blue-800 transition-colors"
               >
-                support@edenclinic.co.uk
+                support@edenclinicformen.com
               </a>
             </p>
           </div>

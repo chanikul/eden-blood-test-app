@@ -3,10 +3,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Use string literals for client-side environment variables with fallbacks
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4ODkwNjgsImV4cCI6MjA2MjQ2NTA2OH0.wsXovBz2DzuZHRLOkoFJC821Tby6BRVXaottKJevAL8';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function OtpStep({ email, onSuccess }: { email: string; onSuccess: () => void }) {
   const [otp, setOtp] = useState("");

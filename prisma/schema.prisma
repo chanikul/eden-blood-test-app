@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "darwin"]
   engineType    = "binary"
   output        = "../node_modules/.prisma/client"
 }
@@ -52,19 +52,19 @@ model BloodTest {
 }
 
 model ClientUser {
-  id                String       @id @default(cuid())
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  email             String       @unique
+  id                String        @id @default(cuid())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  email             String        @unique
   passwordHash      String
   name              String
   dateOfBirth       String
   mobile            String?
-  active            Boolean      @default(true)
+  active            Boolean       @default(true)
   lastLoginAt       DateTime?
-  resetToken        String?      @unique
+  resetToken        String?       @unique
   resetTokenExpires DateTime?
-  stripeCustomerId  String?      @unique
+  stripeCustomerId  String?       @unique
   preferredContact  ContactMethod @default(EMAIL)
   orders            Order[]
   addresses         Address[]
@@ -109,6 +109,7 @@ enum OrderStatus {
   PAID
   DISPATCHED
   CANCELLED
+  READY
 }
 
 enum AdminRole {
@@ -140,20 +141,32 @@ enum AddressType {
 }
 
 model TestResult {
-  id          String         @id @default(cuid())
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  status      TestStatus     @default(processing)
+  id          String      @id @default(cuid())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  status      TestStatus  @default(processing)
   resultUrl   String?
+  metadata    Json? // For storing download metrics and other metadata
   orderId     String
+  order       Order       @relation("TestResultOrder", fields: [orderId], references: [id], onDelete: Cascade)
   bloodTestId String
-  order       Order          @relation("TestResultOrder", fields: [orderId], references: [id])
-  bloodTest   BloodTest      @relation("TestResultBloodTest", fields: [bloodTestId], references: [id])
+  bloodTest   BloodTest   @relation("TestResultBloodTest", fields: [bloodTestId], references: [id], onDelete: Cascade)
   clientId    String?
-  client      ClientUser?    @relation(fields: [clientId], references: [id])
+  client      ClientUser? @relation(fields: [clientId], references: [id], onDelete: SetNull)
 }
 
 enum TestStatus {
   processing
   ready
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  action       String // e.g., DOWNLOAD_RESULT, VIEW_RESULT
+  userId       String // ID of the user performing the action
+  userRole     String // Role of the user (ADMIN, SUPER_ADMIN, PATIENT)
+  resourceId   String // ID of the resource being accessed (e.g., test result ID)
+  resourceType String // Type of resource (e.g., TEST_RESULT)
+  metadata     Json? // Additional metadata about the action
 }

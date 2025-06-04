@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Loader2, Upload, CheckCircle } from 'lucide-react';
+import { Loader2, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { uploadFile } from '@/lib/storage';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {
@@ -64,13 +65,27 @@ export function TestResultUploader({
       // If we have a file, upload it first
       let resultUrl = null;
       if (file) {
-        // Create a unique file path with timestamp and original name
-        const timestamp = new Date().getTime();
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filePath = `${clientId}/${timestamp}-${sanitizedFileName}`;
-        
-        // Upload the file to storage
-        resultUrl = await uploadFile(file, filePath);
+        try {
+          // Create a secure file path with client ID as the folder name
+          // This structure supports Row Level Security policies in Supabase Storage
+          // Format: test-results/{clientId}/{orderId}.pdf
+          const sanitizedFileName = `${orderId}.pdf`;
+          const filePath = `${clientId}/${sanitizedFileName}`;
+          
+          console.log(`Preparing to upload file for client ${clientId}, order ${orderId}`);
+          
+          // Upload the file to storage
+          resultUrl = await uploadFile(file, filePath);
+          
+          if (!resultUrl) {
+            throw new Error('File upload completed but no URL was returned');
+          }
+          
+          console.log(`File uploaded successfully, URL: ${resultUrl}`);
+        } catch (uploadError) {
+          console.error('Error uploading test result file:', uploadError);
+          throw new Error(`Failed to upload file: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+        }
       }
       
       // Create or update the test result
@@ -99,16 +114,47 @@ export function TestResultUploader({
       }
       
       setUploadSuccess(true);
-      toast.success('Test result saved successfully');
+      
+      // Show appropriate toast message based on status
+      if (status === TestStatus.ready) {
+        toast.success('Test result saved and notification email sent to client');
+      } else {
+        toast.success('Test result saved successfully');
+      }
       
       // Call the onSuccess callback if provided
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err) {
-      console.error('Error uploading test result:', err);
-      setError('Failed to upload test result. Please try again.');
-      toast.error('Failed to save test result');
+    } catch (error) {
+      // Detailed error logging
+      console.error('Error uploading test result:', error);
+      console.error('Error type:', Object.prototype.toString.call(error));
+      console.error('Error stringified:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        
+        // Provide more specific error messages based on the error type
+        if (error.message.includes('Failed to upload file')) {
+          setError(`Storage error: ${error.message}`);
+        } else if (error.message.includes('Failed to save test result')) {
+          setError('API error: Could not save the test result to the database');
+        } else {
+          setError(`Error: ${error.message}`);
+        }
+      } else if (typeof error === 'object' && error !== null) {
+        // Try to extract useful information from non-Error objects
+        const errorMsg = (error as any).message || (error as any).error || JSON.stringify(error);
+        setError(`Unknown error object: ${errorMsg}`);
+      } else {
+        setError('An unknown error occurred while uploading the test result');
+      }
+      
+      // Show error toast for better visibility
+      toast.error('Test result upload failed');
     } finally {
       setIsUploading(false);
     }
@@ -152,6 +198,13 @@ export function TestResultUploader({
           {file && (
             <p className="text-sm text-gray-500">Selected: {file.name}</p>
           )}
+          <Alert variant="info" className="bg-blue-50 text-blue-800 text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              When marked as Ready, an email notification (without attachment) will be sent to the client
+              with instructions to view results securely in their dashboard.
+            </AlertDescription>
+          </Alert>
         </div>
         
         {error && (

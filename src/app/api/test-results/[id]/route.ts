@@ -42,7 +42,10 @@ export async function GET(
     }
     
     // Check if the user is authorized to view this result
-    if (result.clientId !== session.user.id && !session.user.isAdmin) {
+    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN';
+    const isOwner = session.user.role === 'PATIENT' && result.clientId === (session.user as any).id;
+    
+    if (!isAdmin && !isOwner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     
@@ -64,7 +67,7 @@ export async function PATCH(
     const session = await getSession();
     
     // Only admins can update test results
-    if (!session?.user?.isAdmin) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -139,7 +142,7 @@ export async function DELETE(
     const session = await getSession();
     
     // Only admins can delete test results
-    if (!session?.user?.isAdmin) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
