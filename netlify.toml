@@ -1,10 +1,13 @@
 [build]
-  command = "chmod +x ./netlify-build.sh && ./netlify-build.sh"
+  command = "node -e \"console.log('Skipping Python setup')\" && npm install --no-optional --ignore-scripts && npx next build"
   publish = ".next"
   ignore_warnings = true
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  
+[[plugins]]
+  package = "./netlify-python-bypass-plugin.js"
 
 [build.environment]
   # Node.js configuration
