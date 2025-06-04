@@ -1,5 +1,5 @@
 [build]
-  command = "node -e \"console.log('Skipping Python setup')\" && npm install --no-optional --ignore-scripts && npx next build"
+  command = "node ./netlify-simple-build.js"
   publish = ".next"
   ignore_warnings = true
 
@@ -14,17 +14,24 @@
   NODE_VERSION = "20.11.1"
   NODE_OPTIONS = "--max_old_space_size=4096"
   
-  # Bypass Python dependency issues completely
+  # Completely disable Python
+  PYTHON_VERSION = "0"
+  NODE_GYP_FORCE_PYTHON = "false"
+  NPM_CONFIG_PYTHON = "false"
+  SKIP_PYTHON = "true"
+  NETLIFY_USE_YARN = "false"
+  
+  # NPM configuration to avoid Python dependencies
   NPM_CONFIG_IGNORE_SCRIPTS = "true"
   NPM_CONFIG_OPTIONAL = "false"
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
   NPM_CONFIG_ENGINE_STRICT = "false"
   NPM_CONFIG_LEGACY_PEER_DEPS = "true"
-  NPM_CONFIG_PYTHON = "false"
   NPM_CONFIG_PRODUCTION = "false"
-  PYTHON_VERSION = "false"
-  SKIP_PYTHON = "true"
+  
+  # Force use of Node.js for all scripts
+  FORCE_NODE_SCRIPTS = "true"
   
   # Prisma configuration
   PRISMA_ENGINES_VERSION = "5.10.2"

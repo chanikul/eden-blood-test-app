@@ -2,9 +2,14 @@
   "name": "eden-clinic",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.11.1",
+    "npm": "10.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "netlify-build": "echo 'Bypassing Python requirements' && next build",
     "start": "next start",
     "lint": "next lint",
     "preview-emails": "node src/lib/email-templates/__tests__/preview.mjs"
