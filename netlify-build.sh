@@ -15,7 +15,7 @@ echo "================================="
 echo "Creating fake Python executable..."
 cat > fake-python.sh << 'EOF'
 #!/bin/bash
-echo "Fake Python 3.8.0"
+echo "Fake Python 3.9.0"
 exit 0
 EOF
 chmod +x fake-python.sh
