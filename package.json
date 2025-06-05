@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build && node netlify-component-fix.js",
-    "netlify-build": "prisma generate && next build && node netlify-component-fix.js",
+    "build": "prisma generate && next build",
+    "netlify-build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "preview-emails": "node src/lib/email-templates/__tests__/preview.mjs"
