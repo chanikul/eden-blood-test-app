@@ -8,12 +8,8 @@ import { deleteFile, listFiles } from '../../../../lib/storage';
 
 export const dynamic = 'force-dynamic';
 
-export const POST = async (request: NextRequest) {
+export const POST = async (request) => {
   // Disabled for production - this feature is no longer available
-  return NextResponse.json(
-    { error: 'This feature has been disabled for production use' },
-    { status: 403 }
-  );
   try {
     const session = await getSession();
     

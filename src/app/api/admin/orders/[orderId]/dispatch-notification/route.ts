@@ -2,9 +2,7 @@ import { prisma } from '../../../../../../lib/prisma'
 import { sendDispatchNotificationEmail } from '../../../../../../lib/services/email'
 import { NextRequest, NextResponse } from 'next/server'
 
-export const POST = async (request: NextRequest,
-  { params }: { params: { orderId: string } }
-) {
+export const POST = async (request, { params }) => {
   try {
     const { orderId } = params
 

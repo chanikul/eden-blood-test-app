@@ -8,7 +8,7 @@ import * as bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
-export const POST = async (request: NextRequest) {
+export const POST = async (request) => {
   try {
     // Test database connection first
     try {
