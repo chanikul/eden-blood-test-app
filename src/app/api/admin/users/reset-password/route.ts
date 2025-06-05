@@ -9,7 +9,7 @@ const resetPasswordSchema = z.object({
   email: z.string().email(),
 });
 
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest) {
   try {
     // Verify admin authentication
     const cookieStore = cookies();

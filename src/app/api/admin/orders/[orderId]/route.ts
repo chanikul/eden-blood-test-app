@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendResultReadyEmail } from '../../../../../lib/email-templates/result-ready-email'
 // Using string literal for status since our OrderStatus enum doesn't include 'READY'
 
-export async function PATCH(request: NextRequest,
+export const PATCH = async (request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
   try {

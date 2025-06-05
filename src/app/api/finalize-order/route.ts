@@ -21,7 +21,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11
 // Get the Supabase client singleton
 const supabase = getSupabaseClient();
 
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
 

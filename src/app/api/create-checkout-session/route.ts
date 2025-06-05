@@ -37,7 +37,7 @@ const requestSchema = z.object({
 
 type CheckoutSessionData = z.infer<typeof requestSchema>;
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export const POST = async (request: NextRequest): Promise<NextResponse> {
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('Missing STRIPE_SECRET_KEY environment variable');
     return NextResponse.json(

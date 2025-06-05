@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export const GET = async () {
   try {
     console.log('=== ENVIRONMENT CHECK ===');
     console.log('NODE_ENV:', process.env.NODE_ENV);

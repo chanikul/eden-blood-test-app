@@ -5,7 +5,7 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest) {
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
   const body = await req.text();

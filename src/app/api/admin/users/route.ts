@@ -47,7 +47,7 @@ export const GET = async () => {
 }
 
 // Create new admin
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest) {
   try {
     // Skip authentication check in development mode
     if (process.env.NODE_ENV !== 'development') {

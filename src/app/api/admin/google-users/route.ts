@@ -34,7 +34,7 @@ const ALLOWED_DOMAINS = ['edenclinicformen.com', 'edenclinic.co.uk'];
  */
 
 // GET: List all Google-authenticated admin users
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) {
   try {
     // Bypass auth check in development
     if (process.env.NODE_ENV === 'development') {
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: Update a Google-authenticated admin user's role or active status
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, role, active, name } = body;
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE: Remove a Google-authenticated admin user
-export async function DELETE(request: NextRequest) {
+export const DELETE = async (request: NextRequest) {
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');

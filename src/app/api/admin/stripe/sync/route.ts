@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { syncStripeProducts } from '../../../../../lib/services/stripe';
 import { getServerSession } from '../../../../../lib/auth';
 
-export async function POST() {
+export const POST = async () {
   console.log('Starting sync request...');
   try {
     console.log('Getting server session...');

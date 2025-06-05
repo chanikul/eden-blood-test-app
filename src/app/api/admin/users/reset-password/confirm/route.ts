@@ -7,7 +7,7 @@ const confirmResetSchema = z.object({
   password: z.string().min(8),
 });
 
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest) {
   try {
     const body = await request.json();
     const { token, password } = confirmResetSchema.parse(body);

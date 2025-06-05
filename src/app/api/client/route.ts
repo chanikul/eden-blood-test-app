@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPatientFromToken } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 
-export async function GET() {
+export const GET = async () {
   try {
     const patient = await getPatientFromToken();
     

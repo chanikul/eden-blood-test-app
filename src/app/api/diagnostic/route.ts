@@ -10,7 +10,7 @@ interface EmailTest {
   response?: any;
 }
 
-export async function GET() {
+export const GET = async () {
   try {
     // Check environment variables
     const envCheck = {

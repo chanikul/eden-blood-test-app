@@ -6,7 +6,7 @@ import { createPresignedUrl } from '../../../../../lib/storage';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(
+export const GET = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {

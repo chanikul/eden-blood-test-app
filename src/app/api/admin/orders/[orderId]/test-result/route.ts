@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
 import { getSession } from '../../../../../../lib/session';
 
-export async function GET(
+export const GET = async (
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {

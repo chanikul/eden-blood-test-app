@@ -9,7 +9,7 @@ import { OrderStatus } from '@prisma/client'
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
-export async function GET() {
+export const GET = async () {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('eden_admin_token')?.value;
