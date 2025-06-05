@@ -1,43 +1,53 @@
 // Script to fix CSS paths in Next.js build output
 const fs = require('fs-extra');
 const path = require('path');
-const glob = require('glob');
 
 console.log('Fixing CSS paths in Next.js build output...');
 
+// Function to recursively find files with a specific extension
+function findFilesWithExtension(dir, ext, fileList = []) {
+  const files = fs.readdirSync(dir);
+  
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    
+    if (stat.isDirectory()) {
+      findFilesWithExtension(filePath, ext, fileList);
+    } else if (path.extname(file) === ext) {
+      fileList.push(filePath);
+    }
+  }
+  
+  return fileList;
+}
+
 // Function to find all CSS files
 function findCssFiles() {
-  return new Promise((resolve, reject) => {
-    glob('.next/static/css/*.css', (err, files) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(files);
-    });
-  });
+  const cssDir = path.join(process.cwd(), '.next', 'static', 'css');
+  if (!fs.existsSync(cssDir)) {
+    console.log('CSS directory not found:', cssDir);
+    return [];
+  }
+  return findFilesWithExtension(cssDir, '.css');
+}
+
+// Function to find all HTML files
+function findHtmlFiles() {
+  return findFilesWithExtension(path.join(process.cwd(), '.next'), '.html');
 }
 
 // Function to fix HTML files to ensure they reference CSS properly
-async function fixHtmlFiles(cssFiles) {
+function fixHtmlFiles(cssFiles) {
   // Get all HTML files
-  const htmlFiles = await new Promise((resolve, reject) => {
-    glob('.next/**/*.html', (err, files) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(files);
-    });
-  });
-
+  const htmlFiles = findHtmlFiles();
   console.log(`Found ${htmlFiles.length} HTML files to process`);
 
   // Create CSS link tags for each CSS file
   const cssLinkTags = cssFiles.map(file => {
-    const relativePath = file.replace('.next/', '');
-    return `<link rel="stylesheet" href="/${relativePath}">`;
-  }).join('\\n');
+    const relativePath = file.replace(process.cwd() + '/.next/', '');
+    return `<link rel="stylesheet" href="/_next/${relativePath}">`;
+  }).join('\n');
 
   // Process each HTML file
   for (const htmlFile of htmlFiles) {
@@ -47,7 +57,7 @@ async function fixHtmlFiles(cssFiles) {
       // Check if the file already has our CSS links
       if (!content.includes('<!-- CSS-FIX -->')) {
         // Insert CSS links after the <head> tag
-        content = content.replace(/<head>/, `<head>\\n<!-- CSS-FIX -->${cssLinkTags}<!-- /CSS-FIX -->`);
+        content = content.replace(/<head>/, `<head>\n<!-- CSS-FIX -->\n${cssLinkTags}\n<!-- /CSS-FIX -->`);
         fs.writeFileSync(htmlFile, content);
         console.log(`Fixed CSS references in ${htmlFile}`);
       }
@@ -61,8 +71,8 @@ async function fixHtmlFiles(cssFiles) {
 function createRedirects() {
   const redirectsContent = `
 # Ensure CSS files are properly served
-/static/css/*  /.next/static/css/:splat  200
 /_next/static/css/*  /.next/static/css/:splat  200
+/static/css/*  /.next/static/css/:splat  200
 
 # Handle client-side routing
 /*  /index.html  200
@@ -73,7 +83,7 @@ function createRedirects() {
 }
 
 // Copy CSS files to a location that's guaranteed to be accessible
-async function copyCssToPublic(cssFiles) {
+function copyCssToPublic(cssFiles) {
   // Ensure public directory exists
   fs.ensureDirSync('.next/public/css');
   
@@ -85,10 +95,10 @@ async function copyCssToPublic(cssFiles) {
 }
 
 // Main function
-async function main() {
+function main() {
   try {
     // Find all CSS files
-    const cssFiles = await findCssFiles();
+    const cssFiles = findCssFiles();
     console.log(`Found ${cssFiles.length} CSS files`);
     
     if (cssFiles.length === 0) {
@@ -97,13 +107,13 @@ async function main() {
     }
     
     // Fix HTML files
-    await fixHtmlFiles(cssFiles);
+    fixHtmlFiles(cssFiles);
     
     // Create redirects
     createRedirects();
     
     // Copy CSS files to public directory
-    await copyCssToPublic(cssFiles);
+    copyCssToPublic(cssFiles);
     
     console.log('CSS path fixing completed successfully!');
   } catch (error) {
