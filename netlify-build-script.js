@@ -59,18 +59,8 @@ try {
   console.log('⚠️ Continuing with build despite installation errors...');
 }
 
-// Create a .babelrc file to use Babel as a fallback
-console.log('🔧 Configuring Babel as fallback...');
-const babelConfig = {
-  "presets": ["next/babel"],
-  "plugins": []
-};
-
-fs.writeFileSync(
-  path.join(process.cwd(), '.babelrc'),
-  JSON.stringify(babelConfig, null, 2),
-  'utf8'
-);
+// We're not using Babel as a fallback anymore to avoid conflicts with next/font
+console.log('🔧 Using SWC as the compiler...');
 
 // Create a mock SWC module to prevent errors
 console.log('🔧 Creating mock SWC modules...');
