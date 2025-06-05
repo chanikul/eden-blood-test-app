@@ -29,6 +29,9 @@ function createRedirectsFile() {
 /_next/static/*  /.next/static/:splat  200
 /_next/data/*    /.next/data/:splat    200
 
+# Specific redirects for common CSS files that might 404
+/_next/static/css/*  /.next/static/css/:splat  200
+
 # Handle client-side routing for Next.js app router
 /*  /index.html  200!
 `;

@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
+// Check if we're in production mode
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
@@ -9,12 +12,15 @@ const nextConfig = {
     serverActions: true,
   },
   swcMinify: true,
+  // Configure images for Netlify
   images: {
     domains: ['eden-clinic-blood-test-app.windsurf.build'],
     unoptimized: true,
   },
   // Add trailing slash to help with routing
   trailingSlash: true,
+  // Disable asset prefix in development
+  assetPrefix: isProd ? 'https://eden-clinic-blood-test-app.windsurf.build' : '',
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
     DIRECT_URL: process.env.DIRECT_URL,
