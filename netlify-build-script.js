@@ -96,9 +96,106 @@ for (const mod of swcModules) {
   }, null, 2));
 }
 
-// Build the Next.js application with SWC disabled
-console.log('🏗️ Building Next.js application...');
+// Fix API routes before building
+console.log('🔧 Fixing API routes for Netlify compatibility...');
 try {
+  // Create a function to fix API routes
+  const fixApiRoutes = () => {
+    const apiDir = path.join(process.cwd(), 'src', 'app', 'api');
+    console.log(`Scanning for API routes in ${apiDir}...`);
+    
+    // Function to recursively find all route.ts files
+    const findRouteFiles = (dir, fileList = []) => {
+      if (!fs.existsSync(dir)) {
+        console.log(`Directory ${dir} does not exist, skipping`);
+        return fileList;
+      }
+      
+      const files = fs.readdirSync(dir);
+      files.forEach(file => {
+        const filePath = path.join(dir, file);
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) {
+          findRouteFiles(filePath, fileList);
+        } else if (file === 'route.ts') {
+          fileList.push(filePath);
+        }
+      });
+      return fileList;
+    };
+    
+    // Find all API route files
+    const routeFiles = findRouteFiles(apiDir);
+    console.log(`Found ${routeFiles.length} API route files`);
+    
+    // Process each route file
+    routeFiles.forEach(filePath => {
+      console.log(`Processing ${filePath}...`);
+      let content = fs.readFileSync(filePath, 'utf8');
+      const originalContent = content;
+      
+      // 1. Fix imports for NextRequest and NextResponse
+      if (!content.includes('import { NextRequest, NextResponse }')) {
+        if (content.includes('import { NextResponse }')) {
+          content = content.replace(
+            'import { NextResponse }',
+            'import { NextRequest, NextResponse }'
+          );
+        } else if (!content.includes('NextResponse')) {
+          content = `import { NextRequest, NextResponse } from 'next/server';\n${content}`;
+        }
+      }
+      
+      // 2. Add direct Prisma import if needed
+      if (content.includes('import { prisma }') || content.includes('from \'../lib/prisma\'')) {
+        content = content.replace(
+          /import\s+\{\s*prisma\s*\}\s+from\s+['"](.*?)['"];?/g,
+          '// Replaced with direct Prisma import\n'
+        );
+        
+        // Add direct Prisma import if not already present
+        if (!content.includes('PrismaClient')) {
+          content = `// Direct Prisma import\nconst { PrismaClient } = require('@prisma/client');\nconst prisma = new PrismaClient();\n\n${content}`;
+        }
+      }
+      
+      // 3. Fix function signatures for HTTP methods
+      const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+      httpMethods.forEach(method => {
+        // Fix export async function METHOD(request: Request)
+        const regex1 = new RegExp(`export\\s+async\\s+function\\s+${method}\\s*\\(\\s*request\\s*:\\s*Request\\s*\\)`, 'g');
+        if (regex1.test(content)) {
+          content = content.replace(regex1, `export async function ${method}(request: NextRequest)`);
+        }
+        
+        // Fix export async function METHOD(req: Request)
+        const regex2 = new RegExp(`export\\s+async\\s+function\\s+${method}\\s*\\(\\s*req\\s*:\\s*Request\\s*\\)`, 'g');
+        if (regex2.test(content)) {
+          content = content.replace(regex2, `export async function ${method}(request: NextRequest)`);
+        }
+        
+        // Fix export async function METHOD(request)
+        const regex3 = new RegExp(`export\\s+async\\s+function\\s+${method}\\s*\\(\\s*request\\s*\\)`, 'g');
+        if (regex3.test(content)) {
+          content = content.replace(regex3, `export async function ${method}(request: NextRequest)`);
+        }
+      });
+      
+      // Only write back if changes were made
+      if (content !== originalContent) {
+        fs.writeFileSync(filePath, content);
+        console.log(`Fixed API route in ${filePath}`);
+      }
+    });
+    
+    console.log('API route fixing completed');
+  };
+  
+  // Execute the fix
+  fixApiRoutes();
+  
+  // Build the Next.js application
+  console.log('🏗️ Building Next.js application...');
   execSync('NODE_ENV=production npx next build', { 
     stdio: 'inherit',
     env: {
