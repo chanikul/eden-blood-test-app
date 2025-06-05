@@ -1,30 +1,34 @@
-// Script to copy static assets to the standalone directory
+// Script to enhance Next.js static assets for Netlify deployment
 const fs = require('fs-extra');
 const path = require('path');
 
-console.log('Copying static assets to standalone directory...');
+console.log('Enhancing Next.js static assets for Netlify deployment...');
 
-// Ensure the public directory exists in standalone
-const publicDir = path.join(__dirname, '.next/standalone/public');
-fs.ensureDirSync(publicDir);
+// Create a _redirects file in the .next directory to handle static assets
+const redirectsContent = `
+# Redirect static assets to the correct location
+/_next/static/*  /static/:splat  200
 
-// Copy static directory to standalone/public/_next/static
-const sourceStaticDir = path.join(__dirname, '.next/static');
-const targetStaticDir = path.join(__dirname, '.next/standalone/public/_next/static');
-fs.copySync(sourceStaticDir, targetStaticDir);
+# Handle client-side routing
+/*  /index.html  200
+`;
 
-// Copy other assets from .next root to standalone/public
+fs.writeFileSync(path.join(__dirname, '.next', '_redirects'), redirectsContent.trim());
+console.log('Created _redirects file in .next directory');
+
+// Copy public directory contents to .next for proper asset handling
+const publicDir = path.join(__dirname, 'public');
 const nextDir = path.join(__dirname, '.next');
-fs.readdirSync(nextDir).forEach(file => {
-  const filePath = path.join(nextDir, file);
-  // Skip directories and files we don't want to copy
-  if (fs.statSync(filePath).isDirectory() && 
-      !['standalone', 'cache', 'server', 'types'].includes(file)) {
-    fs.copySync(filePath, path.join(publicDir, file));
-  } else if (fs.statSync(filePath).isFile() && 
-            file.match(/\.(svg|png|jpg|jpeg|gif|ico|json)$/)) {
-    fs.copyFileSync(filePath, path.join(publicDir, file));
-  }
-});
 
-console.log('Static assets copied successfully!');
+if (fs.existsSync(publicDir)) {
+  fs.copySync(publicDir, nextDir, {
+    filter: (src) => {
+      // Don't overwrite _redirects file we just created
+      return path.basename(src) !== '_redirects' || !fs.existsSync(path.join(nextDir, '_redirects'));
+    }
+  });
+  console.log('Copied public directory contents to .next');
+}
+
+console.log('Static asset enhancement completed successfully!');
+
