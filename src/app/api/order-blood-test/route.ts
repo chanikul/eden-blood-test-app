@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { bloodTestOrderSchema } from '../../../../lib/validations/blood-test-order';
-import { sendOrderNotificationEmail } from '../../../../lib/services/email';
-import { createClientUser, findClientUserByEmail } from '../../../../lib/services/client-user';
+import { bloodTestOrderSchema } from '../../../lib/validations/blood-test-order';
+import { sendOrderNotificationEmail } from '../../../lib/services/email';
+import { createClientUser, findClientUserByEmail } from '../../../lib/services/client-user';
 import { z, ZodError } from 'zod';
 import Stripe from 'stripe';
 import type { BloodTest } from '@prisma/client';
@@ -51,7 +51,7 @@ type StripeSessionData = {
   };
 };
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     console.log('=== CREATING ORDER ===');
     

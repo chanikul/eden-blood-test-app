@@ -1,8 +1,8 @@
-import { prisma } from '../../../../lib/prisma';
+import { prisma } from '../../../../../lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '../../../../lib/session';
+import { getSession } from '../../../../../lib/session';
 import { TestStatus } from '@prisma/client';
-import { createPresignedUrl } from '../../../../lib/storage';
+import { createPresignedUrl } from '../../../../../lib/storage';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 // Using raw buffer from req.text() instead of micro package
 import { prisma } from '../../../../lib/prisma';

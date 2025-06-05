@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
-import { generateSecurePassword } from '../../../../lib/utils/password';
-import { sendPasswordResetEmail } from '../../../../lib/services/email';
-import { generateSessionToken } from '../../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import { generateSecurePassword } from '../../../../../lib/utils/password';
+import { sendPasswordResetEmail } from '../../../../../lib/services/email';
+import { generateSessionToken } from '../../../../../lib/auth';
 import { randomBytes } from 'crypto';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
 

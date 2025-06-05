@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { createClientUser } from '../../../../lib/services/client-user';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ const registerSchema = z.object({
   orderId: z.string()
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const data = {

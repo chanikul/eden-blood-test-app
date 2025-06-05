@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySessionToken } from '../../../../lib/auth';
 import { createAdmin, listAdmins, updateAdmin } from '../../../../lib/services/admin';
@@ -46,7 +46,7 @@ export async function GET() {
 }
 
 // Create new admin
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Skip authentication check in development mode
     if (process.env.NODE_ENV !== 'development') {

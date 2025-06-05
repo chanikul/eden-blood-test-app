@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPatientFromToken } from '../../../../lib/auth';
 import { PatientUser } from '../../../../lib/types/patient';
 import Stripe from 'stripe';
@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const patient = await getPatientFromToken();
     if (!patient) {

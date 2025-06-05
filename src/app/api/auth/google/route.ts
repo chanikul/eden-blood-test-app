@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { generateSessionToken } from '../../../../lib/auth';
@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Domain restriction for Eden Clinic staff
 const ALLOWED_DOMAINS = ['edenclinicformen.com', 'edenclinic.co.uk'];
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     console.log('Google auth attempt started');
     const { code } = await request.json();

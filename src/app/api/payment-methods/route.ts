@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { getPatientFromToken } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { getPatientFromToken } from '../../../lib/auth';
+import { prisma } from '../../../lib/prisma';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   console.log('=== PAYMENT METHODS API DEBUG ===');
   try {
     const patient = await getPatientFromToken();
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const patient = await getPatientFromToken();
     if (!patient || !patient.stripeCustomerId) {
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     const patient = await getPatientFromToken();
     if (!patient) {

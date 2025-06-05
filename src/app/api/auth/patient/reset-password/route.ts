@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
-import { hashPassword } from '../../../../lib/utils/password';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import { hashPassword } from '../../../../../lib/utils/password';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { token, newPassword } = await request.json();
 

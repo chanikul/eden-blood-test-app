@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { syncStripeProducts } from '../../../../lib/services/stripe';
 import { verifySessionToken } from '../../../../lib/auth';
 import { cookies } from 'next/headers';
@@ -9,7 +9,7 @@ export const fetchCache = 'force-no-store'
 export const revalidate = 0
 export const runtime = 'nodejs'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     console.log('\n=== SYNCING STRIPE PRODUCTS ===');
 

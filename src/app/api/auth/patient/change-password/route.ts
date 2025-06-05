@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
-import { verifyPassword, hashPassword } from '../../../../lib/utils/password';
-import { getPatientFromToken } from '../../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import { verifyPassword, hashPassword } from '../../../../../lib/utils/password';
+import { getPatientFromToken } from '../../../../../lib/auth';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   console.log('=== CHANGE PASSWORD DEBUG ===');
   try {
     const { currentPassword, newPassword } = await request.json();

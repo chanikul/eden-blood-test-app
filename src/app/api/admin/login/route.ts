@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminPassword, updateLastLogin } from '../../../../lib/services/admin';
 import { generateSessionToken } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
@@ -6,7 +6,7 @@ import * as bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Test database connection first
     try {

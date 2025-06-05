@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { prisma } from '../../../../lib/prisma';
+import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -34,7 +34,7 @@ const requestSchema = z.object({
 
 type CheckoutSessionData = z.infer<typeof requestSchema>;
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('Missing STRIPE_SECRET_KEY environment variable');
     return NextResponse.json(
