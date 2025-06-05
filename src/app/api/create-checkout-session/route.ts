@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
+
+// Direct import of Prisma without path aliases
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
