@@ -1,1 +1,5 @@
+# Redirect static assets to the correct location
+/_next/*  /_next/:splat  200
+
+# Handle client-side routing
 /*    /index.html   200

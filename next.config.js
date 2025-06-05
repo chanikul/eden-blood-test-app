@@ -4,6 +4,7 @@ const path = require('path');
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/_next' : '',
   experimental: {
     serverComponentsExternalPackages: ['stripe'],
     serverActions: true,
