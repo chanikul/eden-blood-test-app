@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Order, OrderStatus } from '@/types'
+import { Order, OrderStatus } from '../../types'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { TestResultUploader } from './TestResultUploader'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../lib/prisma'
 import { toast } from 'sonner'
 
 

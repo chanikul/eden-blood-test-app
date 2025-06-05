@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Order, OrderStatus } from '@/types'
+import { Order, OrderStatus } from '../../types'
 import { format } from 'date-fns'
-import { OrderDetailModal } from '@/components/admin/OrderDetailModal'
+import { OrderDetailModal } from './OrderDetailModal'
 import { useRouter } from 'next/navigation'
 
 interface OrdersTableProps {

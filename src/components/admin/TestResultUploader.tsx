@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Select } from '../ui/select';
 import { Loader2, Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import { uploadFile } from '@/lib/storage';
+import { uploadFile } from '../../lib/storage';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '../ui/alert';
 

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { getSupabaseClient } from '@/lib/storage'
+import { getSupabaseClient } from '../../lib/storage'
 
 type UserInfo = {
   email: string;
