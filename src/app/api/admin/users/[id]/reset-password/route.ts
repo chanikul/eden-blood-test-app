@@ -5,8 +5,7 @@ import { generateRandomPassword } from '../../../../../../lib/utils';
 import { sendEmail } from '../../../../../../lib/services/email';
 import bcrypt from 'bcryptjs';
 
-export async function POST(
-  request: Request,
+export async function POST(request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

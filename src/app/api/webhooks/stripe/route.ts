@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 // Using raw buffer from req.text() instead of micro package
-import { prisma } from '../../../../lib/prisma';
+// Direct import of PrismaClient
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 import { generateWelcomeEmail } from '../../../../lib/email-templates/welcome';
 import { generateOrderConfirmationEmail } from '../../../../lib/email-templates/order-confirmation';
 import { generateAdminNotificationEmail } from '../../../../lib/email-templates/admin-notification';
@@ -14,7 +16,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     

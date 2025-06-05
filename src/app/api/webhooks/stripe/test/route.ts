@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
   const body = await req.text();

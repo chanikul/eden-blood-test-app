@@ -1,4 +1,6 @@
-import { prisma } from '../../../../lib/prisma';
+// Direct import of PrismaClient
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '../../../../lib/session';
 import { stripe } from '../../../../lib/stripe';

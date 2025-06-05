@@ -13,8 +13,7 @@ const updateAdminSchema = z.object({
 });
 
 // Get admin by ID
-export async function GET(
-  request: Request,
+export async function GET(request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -46,8 +45,7 @@ export async function GET(
 }
 
 // Update admin
-export async function PATCH(
-  request: Request,
+export async function PATCH(request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { generateSessionToken } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
+// Direct import of PrismaClient
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 import { AdminRole } from '@prisma/client';
 
 // Use string literals for client-side environment variables

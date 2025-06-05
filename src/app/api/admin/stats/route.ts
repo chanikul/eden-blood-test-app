@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifySessionToken } from '../../../../lib/auth'
-import { prisma } from '../../../../lib/prisma'
+// Direct import of PrismaClient
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 import { OrderStatus } from '@prisma/client'
 
 export const dynamic = 'force-dynamic';
