@@ -20,10 +20,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
   
-  [plugins.inputs]
-    debug = true
-    enable_preview_mode = true
-  
   # Prisma configuration
   PRISMA_ENGINES_VERSION = "5.10.2"
   PRISMA_LOG_LEVEL = "info"
