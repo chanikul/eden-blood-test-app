@@ -1,5 +1,5 @@
 [build]
-  command = "mise settings add idiomatic_version_file_enable_tools node && node ./netlify-build-script.js"
+  command = "mise settings add idiomatic_version_file_enable_tools node && node ./netlify-pure-build.js"
   publish = ".next"
 
 [[plugins]]

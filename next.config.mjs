@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Disable SWC minify to avoid dependency issues
+  // Completely disable SWC
   swcMinify: false,
   images: {
     domains: ['localhost'],
@@ -12,16 +12,19 @@ const nextConfig = {
       },
     ],
   },
+  // Disable experimental features that might rely on SWC
   experimental: {
-    // Disable SWC plugins
-    swcPlugins: [],
-    // Keep server actions enabled
     serverActions: true,
   },
-  // Disable SWC compiler
-  compiler: {
-    // Disable SWC transforms
-    styledComponents: false,
+  // Force Babel instead of SWC
+  webpack: (config, { isServer }) => {
+    // Use babel-loader for all JS/TS files
+    config.module.rules.push({
+      test: /\.(js|jsx|ts|tsx)$/,
+      use: 'babel-loader',
+      exclude: /node_modules/,
+    });
+    return config;
   }
 };
 
