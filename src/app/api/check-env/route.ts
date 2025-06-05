@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const GET = async () {
+export const GET = async () => {
   const envStatus = {
     stripe: {
       secretKey: {

@@ -9,7 +9,7 @@ export const fetchCache = 'force-no-store'
 export const revalidate = 0
 export const runtime = 'nodejs'
 
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   try {
     console.log('\n=== SYNCING STRIPE PRODUCTS ===');
 
@@ -79,4 +79,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
+};

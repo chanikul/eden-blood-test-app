@@ -6,7 +6,7 @@ let cache: any[] = [];
 let lastFetch = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export const GET = async (req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   const now = Date.now();
   const url = new URL(req.url);
   const isAdmin = url.searchParams.get('admin') === '1';

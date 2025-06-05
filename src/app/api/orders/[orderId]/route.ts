@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-export const GET = async (request) => { {
-  const { orderId } = context.params;
+export const GET = async (request: NextRequest, { params }: { params: { orderId: string } }) => {
+  const { orderId } = params;
   console.log('Fetching order details:', { orderId });
   try {
     // First try to find the order
@@ -45,6 +45,4 @@ export const GET = async (request) => { {
   } finally {
     await prisma.$disconnect();
   }
-}
-
 }

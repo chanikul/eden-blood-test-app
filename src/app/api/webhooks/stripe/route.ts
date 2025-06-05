@@ -17,7 +17,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export const POST = async (request) => {
   try {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     

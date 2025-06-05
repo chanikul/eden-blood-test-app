@@ -4,7 +4,7 @@ import { prisma } from '../../../lib/prisma';
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
-export const GET = async () {
+export async function GET(): Promise<NextResponse> {
   try {
     // Test database connection
     await prisma.$connect();

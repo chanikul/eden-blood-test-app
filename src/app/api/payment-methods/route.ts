@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
 });
 
-export const POST = async (request) => { {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('=== PAYMENT METHODS API DEBUG ===');
   try {
     const patient = await getPatientFromToken();
@@ -91,7 +91,7 @@ export const POST = async (request) => { {
   }
 }
 
-export const GET = async (request) => { {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const patient = await getPatientFromToken();
     if (!patient || !patient.stripeCustomerId) {
@@ -126,7 +126,7 @@ export const GET = async (request) => { {
   }
 }
 
-export const DELETE = async (request) => { {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const patient = await getPatientFromToken();
     if (!patient) {
@@ -158,6 +158,4 @@ async function createStripeCustomer(patient: any) {
     },
   });
   return customer.id;
-}
-
 }

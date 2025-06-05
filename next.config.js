@@ -4,11 +4,10 @@ const path = require('path');
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  // Removed experimental features that were causing build issues
-  // experimental: {
-  //   serverComponentsExternalPackages: ['stripe'],
-  //   serverActions: true,
-  // },
+  experimental: {
+    serverComponentsExternalPackages: ['stripe'],
+    serverActions: true,
+  },
   swcMinify: true,
   env: {
     DATABASE_URL: process.env.DATABASE_URL,

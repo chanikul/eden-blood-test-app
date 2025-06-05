@@ -122,7 +122,7 @@ export const PUT = async (req: NextRequest) => {
   }
 }
 
-export const PATCH = async (req: NextRequest) {
+export const PATCH = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
