@@ -57,6 +57,36 @@
 
 # Next.js plugin configuration is already defined above
 
+# Redirect static assets properly
+[[redirects]]
+  from = "/_next/static/*"
+  to = "/static/:splat"
+  status = 200
+
+# Redirect CSS files
+[[redirects]]
+  from = "/_next/static/css/*"
+  to = "/static/css/:splat"
+  status = 200
+
+# Redirect JS chunks
+[[redirects]]
+  from = "/_next/static/chunks/*"
+  to = "/static/chunks/:splat"
+  status = 200
+
+# Redirect media files
+[[redirects]]
+  from = "/_next/static/media/*"
+  to = "/static/media/:splat"
+  status = 200
+
+# Redirect images
+[[redirects]]
+  from = "/_next/static/images/*"
+  to = "/static/images/:splat"
+  status = 200
+
 # Redirect API routes properly
 [[redirects]]
   from = "/api/*"

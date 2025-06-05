@@ -29,11 +29,20 @@ fs.writeFileSync(path.join(nextDir, '_headers'), headersContent.trim());
 // Create a special _redirects file to ensure CSS is properly served
 console.log('Creating Netlify _redirects file...');
 const redirectsContent = `
+# Ensure static assets are properly served
+/_next/static/*  /static/:splat  200
+
 # Ensure CSS files are properly served
-/_next/static/css/*  /_next/static/css/:splat  200
+/_next/static/css/*  /static/css/:splat  200
 
 # Ensure JS chunks are properly served
-/_next/static/chunks/*  /_next/static/chunks/:splat  200
+/_next/static/chunks/*  /static/chunks/:splat  200
+
+# Ensure media files are properly served
+/_next/static/media/*  /static/media/:splat  200
+
+# Ensure image files are properly served
+/_next/static/images/*  /static/images/:splat  200
 
 # Handle client-side routing
 /*  /index.html  200
