@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
 
 [build.environment]
   # Node.js configuration
@@ -35,8 +35,10 @@
   ENABLE_TEST_DATA_CLEANUP = "false"
   ENABLE_USER_DELETION = "false"
 
-# No plugins needed for static export
-# Environment variables are set in Netlify UI
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+  
+  # Environment variables are set in Netlify UI
 
 # Processing options already defined above
 

@@ -3,16 +3,15 @@ const path = require('path');
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export', // Use static export instead of standalone
-  distDir: 'out', // Output to the 'out' directory
+  output: 'standalone',
   experimental: {
     serverComponentsExternalPackages: ['stripe'],
     serverActions: true,
   },
   swcMinify: true,
   images: {
-    unoptimized: true, // Required for static export
     domains: ['eden-clinic-blood-test-app.windsurf.build'],
+    unoptimized: true,
   },
   // Add trailing slash to help with routing
   trailingSlash: true,
