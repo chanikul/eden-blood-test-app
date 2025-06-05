@@ -13,7 +13,16 @@ const nextConfig = {
   // Add trailing slash to improve routing compatibility
   trailingSlash: true,
   // Ensure output is compatible with Netlify
-  output: 'standalone'
+  output: 'standalone',
+  // Explicitly configure path aliases
+  webpack: (config) => {
+    // Add path alias resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src')
+    };
+    return config;
+  }
 };
 
 export default nextConfig;
