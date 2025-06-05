@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { TestStatus } from '@prisma/client';
 import { Download, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Badge } from '../ui/badge';
 
 interface TestResultDownloadProps {
   result: {
@@ -127,7 +127,7 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
           onClick={handleDownload}
           disabled={!isReady || isLoading}
           className="w-full"
-          variant={isReady ? "default" : "outline"}
+          variant={isReady ? "primary" : "secondary"}
         >
           {isLoading ? (
             <>
