@@ -1,9 +1,8 @@
 [build]
-  command = "mise settings add idiomatic_version_file_enable_tools node && NETLIFY_NEXT_PLUGIN_SKIP=true node ./netlify-pure-build.js"
+  command = "mise settings add idiomatic_version_file_enable_tools node && npm run build"
   publish = ".next"
 
 [build.environment]
-  NETLIFY_NEXT_PLUGIN_SKIP = "true"
   # Node.js configuration
   NODE_VERSION = "18.17.1"
   NODE_OPTIONS = "--max_old_space_size=4096"
@@ -51,18 +50,21 @@
 [build.processing.html]
   pretty_urls = true
 
+# Add Next.js plugin
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 # Redirect API routes properly
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/nextjs-server/api/:splat"
   status = 200
 
-# Handle client-side routing
+# Handle client-side routing for all paths
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["anonymous"]}
 
 # Force HTTPS
 [[redirects]]

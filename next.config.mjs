@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Completely disable SWC
   swcMinify: false,
   images: {
     domains: ['localhost'],
@@ -12,7 +11,6 @@ const nextConfig = {
       },
     ],
   },
-  // Disable experimental features that might rely on SWC
   experimental: {
     serverActions: true,
   },
@@ -25,7 +23,11 @@ const nextConfig = {
       exclude: /node_modules/,
     });
     return config;
-  }
+  },
+  // Add trailing slash to improve routing compatibility
+  trailingSlash: true,
+  // Ensure output is compatible with Netlify
+  output: 'standalone'
 };
 
 export default nextConfig;
