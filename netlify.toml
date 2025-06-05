@@ -16,9 +16,6 @@
   NODE_VERSION = "18.17.1"
   NODE_OPTIONS = "--max_old_space_size=4096"
   NPM_FLAGS = "--legacy-peer-deps"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
   
   # Prisma configuration
   PRISMA_ENGINES_VERSION = "5.10.2"
@@ -46,6 +43,9 @@
   # Feature flags
   ENABLE_TEST_DATA_CLEANUP = "false"
   ENABLE_USER_DELETION = "false"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
   
   # Environment variables are set in Netlify UI
 
