@@ -12,7 +12,9 @@ import {
   Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { Input, Select, TestResultUploader } from '../../../components';
+import { Input } from '../../../components/ui/input';
+import { Select } from '../../../components/ui/select';
+import { TestResultUploader } from '../../../components/admin/TestResultUploader';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {

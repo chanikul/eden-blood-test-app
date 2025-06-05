@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button, Input } from '../../../components';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
 import { toast } from 'react-hot-toast';
 
 export default function ResetPasswordPage() {
