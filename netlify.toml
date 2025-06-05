@@ -9,7 +9,13 @@
     pretty_urls = true
 
 [build.environment]
+  # Next.js plugin configuration
   NETLIFY_NEXT_PLUGIN_SKIP = "false"
+  
+  # Node.js configuration
+  NODE_VERSION = "18.17.1"
+  NODE_OPTIONS = "--max_old_space_size=4096"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
@@ -17,12 +23,6 @@
   [plugins.inputs]
     debug = true
     enable_preview_mode = true
-
-[build.environment]
-  # Node.js configuration
-  NODE_VERSION = "18.17.1"
-  NODE_OPTIONS = "--max_old_space_size=4096"
-  NPM_FLAGS = "--legacy-peer-deps"
   
   # Prisma configuration
   PRISMA_ENGINES_VERSION = "5.10.2"
