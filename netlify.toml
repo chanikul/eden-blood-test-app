@@ -56,9 +56,7 @@
 [build.processing.html]
   pretty_urls = true
 
-# Add Next.js plugin
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# Next.js plugin configuration is already defined above
 
 # Redirect API routes properly
 [[redirects]]
