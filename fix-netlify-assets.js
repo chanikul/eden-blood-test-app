@@ -6,26 +6,9 @@ console.log('Starting Netlify asset fix script...');
 
 // Main directories
 const nextDir = path.join(process.cwd(), '.next');
-const publicDir = path.join(process.cwd(), 'public');
 const nextStaticDir = path.join(nextDir, 'static');
-const publicNextDir = path.join(publicDir, '_next');
-const publicNextStaticDir = path.join(publicNextDir, 'static');
 
-// Ensure directories exist
-console.log('Creating necessary directories...');
-fs.ensureDirSync(publicNextDir);
-fs.ensureDirSync(publicNextStaticDir);
-
-// Copy all static assets from .next/static to public/_next/static
-console.log('Copying static assets to public/_next/static...');
-fs.copySync(nextStaticDir, publicNextStaticDir, {
-  overwrite: true,
-  errorOnExist: false,
-  dereference: true,
-  preserveTimestamps: true
-});
-
-// Create _headers file for proper caching
+// Create a special _headers file for proper caching
 console.log('Creating Netlify _headers file...');
 const headersContent = `
 # Cache static assets for 1 year
@@ -41,6 +24,34 @@ const headersContent = `
   Cache-Control: public, max-age=0, must-revalidate
 `;
 
-fs.writeFileSync(path.join(publicDir, '_headers'), headersContent.trim());
+fs.writeFileSync(path.join(nextDir, '_headers'), headersContent.trim());
+
+// Create a special _redirects file to ensure CSS is properly served
+console.log('Creating Netlify _redirects file...');
+const redirectsContent = `
+# Ensure CSS files are properly served
+/_next/static/css/*  /_next/static/css/:splat  200
+
+# Ensure JS chunks are properly served
+/_next/static/chunks/*  /_next/static/chunks/:splat  200
+
+# Handle client-side routing
+/*  /index.html  200
+`;
+
+fs.writeFileSync(path.join(nextDir, '_redirects'), redirectsContent.trim());
+
+// Copy any necessary files from public to .next
+console.log('Copying public files to .next...');
+if (fs.existsSync(path.join(process.cwd(), 'public'))) {
+  fs.copySync(
+    path.join(process.cwd(), 'public'),
+    nextDir,
+    {
+      overwrite: false,
+      errorOnExist: false
+    }
+  );
+}
 
 console.log('Asset fix completed successfully!');
