@@ -1,9 +1,9 @@
 [build]
   command = "mise settings add idiomatic_version_file_enable_tools node && NETLIFY_NEXT_PLUGIN_SKIP=true node ./netlify-pure-build.js"
   publish = ".next"
-  environment = { NETLIFY_NEXT_PLUGIN_SKIP = "true" }
 
 [build.environment]
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
   # Node.js configuration
   NODE_VERSION = "18.17.1"
   NODE_OPTIONS = "--max_old_space_size=4096"
