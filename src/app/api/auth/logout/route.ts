@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '../../../../lib/supabase-client';
 
-// Create a Supabase client with the service role key for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-export async function POST() {
+// Using named export for compatibility with Netlify
+export const POST = async () => {
   try {
     const cookieStore = cookies();
     
@@ -21,28 +18,17 @@ export async function POST() {
       }
     }
     
-    // If we have access to the Supabase client, also sign out there
-    if (supabaseServiceKey) {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
-        });
-        
-        // This is a server-side logout, which won't affect the client session
-        // But it's good to have for completeness
-        await supabase.auth.signOut();
-      } catch (supabaseError) {
-        console.error('Supabase logout error:', supabaseError);
-        // Continue with the response even if Supabase logout fails
-      }
+    // Use the Supabase client singleton
+    try {
+      const supabase = getSupabaseClient();
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out with Supabase:', error);
     }
     
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Logout error:', error);
-    return NextResponse.json({ success: false, error: 'Logout failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to log out' }, { status: 500 });
   }
-}
+};

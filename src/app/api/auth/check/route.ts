@@ -22,7 +22,8 @@ const prisma = new PrismaClient();
 // Domain restrictions for Eden Clinic staff
 const ALLOWED_DOMAINS = ['edenclinicformen.com', 'edenclinic.co.uk'];
 
-export async function GET() {
+// Using named export for compatibility with Netlify
+export const GET = async () => {
   try {
     // Bypass auth check in development
     if (process.env.NODE_ENV === 'development') {

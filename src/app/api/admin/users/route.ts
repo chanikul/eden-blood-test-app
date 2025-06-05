@@ -20,7 +20,8 @@ const updateAdminSchema = z.object({
 });
 
 // List all admins
-export async function GET() {
+// Using named export for compatibility with Netlify
+export const GET = async () => {
   try {
     // Skip authentication check in development mode
     if (process.env.NODE_ENV !== 'development') {

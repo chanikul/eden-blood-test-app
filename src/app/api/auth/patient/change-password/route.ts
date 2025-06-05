@@ -3,7 +3,8 @@ import { prisma } from '../../../../../lib/prisma';
 import { verifyPassword, hashPassword } from '../../../../../lib/utils/password';
 import { getPatientFromToken } from '../../../../../lib/auth';
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   console.log('=== CHANGE PASSWORD DEBUG ===');
   try {
     const { currentPassword, newPassword } = await request.json();

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Direct imports without path aliases
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// Import shared prisma instance
+import { prisma } from '../../../../lib/prisma';
 
 // Simple session getter function
 async function getSession() {
@@ -19,7 +18,8 @@ async function getSession() {
   return null;
 }
 
-export async function GET(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const GET = async (request: NextRequest) => {
   try {
     // Skip authentication check in development mode or when testing is forced
     const isTesting = process.env.NODE_ENV === 'development' || process.env.FORCE_TESTING === 'true';

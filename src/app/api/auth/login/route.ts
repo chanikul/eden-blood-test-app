@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// Direct imports instead of path aliases
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// Import shared prisma instance
+import { prisma } from '../../../../lib/prisma';
 
 // Simple JWT token generation function
-async function generateSessionToken(user) {
+async function generateSessionToken(user: { email: string; role: string; id?: string }) {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is not configured');
   }
   
-  const { SignJWT } = require('jose');
+  const { SignJWT } = await import('jose');
   
   // Include ID in token payload for patient users
-  const payload = {
+  const payload: { email: string; role: string; id?: string } = {
     email: user.email,
     role: user.role
   };
@@ -30,7 +29,7 @@ async function generateSessionToken(user) {
 }
 
 // Simple password validation function
-async function validateAdminPassword(email, password) {
+async function validateAdminPassword(email: string, password: string) {
   if (process.env.NODE_ENV === 'development') {
     // In development, allow a test admin account
     if (email === 'admin@edenclinic.co.uk' && password === 'admin') {
@@ -40,10 +39,10 @@ async function validateAdminPassword(email, password) {
 
   try {
     const { compare } = require('bcryptjs');
-    const admin = await prisma.adminUser.findUnique({ where: { email } });
-    if (!admin || !admin.password) return null;
+    const admin = await prisma.admin.findUnique({ where: { email } });
+    if (!admin || !admin.passwordHash) return null;
     
-    const isValid = await compare(password, admin.password);
+    const isValid = await compare(password, admin.passwordHash);
     return isValid ? admin : null;
   } catch (error) {
     console.error('Error validating password:', error);
@@ -51,7 +50,8 @@ async function validateAdminPassword(email, password) {
   }
 }
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     console.log('Login attempt started');
     const { email, password } = await request.json();

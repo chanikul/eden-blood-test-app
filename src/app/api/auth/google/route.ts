@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
 import { generateSessionToken } from '../../../../lib/auth';
 // Direct import of PrismaClient
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 import { AdminRole } from '@prisma/client';
+import { getSupabaseClient } from '../../../../lib/supabase-client';
 
-// Use string literals for client-side environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Get the Supabase client singleton
+const supabase = getSupabaseClient();
 
 // Domain restriction for Eden Clinic staff
 const ALLOWED_DOMAINS = ['edenclinicformen.com', 'edenclinic.co.uk'];
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     console.log('Google auth attempt started');
     const { code } = await request.json();

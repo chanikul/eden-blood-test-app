@@ -16,13 +16,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     
     // Get raw body for signature verification
-    const rawBody = await req.text();
-    const signature = req.headers.get('stripe-signature');
+    const rawBody = await request.text();
+    const signature = request.headers.get('stripe-signature');
     
     if (!signature) {
       console.error('Missing Stripe signature');

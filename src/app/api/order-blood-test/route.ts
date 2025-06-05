@@ -9,10 +9,12 @@ import Stripe from 'stripe';
 import type { BloodTest } from '@prisma/client';
 
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2022-11-15',
+});
 
 async function getBloodTestPrice(slug: string) {
-  const test = await prisma.bloodTest.findFirst({
+  const bloodTest = await prisma.bloodTest.findFirst({
     where: {
       slug,
       isActive: true,
@@ -20,13 +22,13 @@ async function getBloodTestPrice(slug: string) {
     }
   });
 
-  if (!test || !test.stripePriceId) {
+  if (!bloodTest || !bloodTest.stripePriceId) {
     throw new Error(`Blood test not found or not available: ${slug}`);
   }
 
   return {
-    price: test.stripePriceId,
-    name: test.name
+    price: bloodTest.stripePriceId,
+    name: bloodTest.name
   };
 }
 
@@ -51,7 +53,8 @@ type StripeSessionData = {
   };
 };
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     console.log('=== CREATING ORDER ===');
     
@@ -189,7 +192,7 @@ export async function POST(request: NextRequest) {
       fullName: validatedData.fullName,
       email: validatedData.email,
       dateOfBirth: validatedData.dateOfBirth,
-      testName: test.name,
+      testName: bloodTest.name,
       notes: validatedData.notes || undefined,
       orderId: order.id,
     });

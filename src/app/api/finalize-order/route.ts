@@ -14,12 +14,12 @@ import { prisma } from '../../../lib/prisma';
 import { createClientUser, findClientUserByEmail } from '../../../lib/services/client-user';
 import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '../../../lib/services/email';
 import { sendWelcomeEmail } from '../../../lib/services/email';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '../../../lib/supabase-client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
 
-// Initialize Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+// Get the Supabase client singleton
+const supabase = getSupabaseClient();
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

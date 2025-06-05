@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 import { getClientSession } from '../../../../lib/auth/client';
-import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
+import { getSupabaseClient } from '../../../../lib/supabase-client';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+// Get the Supabase client singleton
+const supabase = getSupabaseClient();
 
-export async function GET(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const GET = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -51,7 +51,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const PUT = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -163,7 +164,7 @@ export async function PATCH(req: NextRequest) {
         id: session.id,
       },
       data: {
-        passwordHash: await supabase.auth.admin.generateHash(newPassword),
+        passwordHash: await bcrypt.hash(newPassword, 10), // Use bcrypt for password hashing
       },
     });
 

@@ -6,7 +6,8 @@ import { sendResultReadyEmail } from '../../../lib/email-templates/result-ready-
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const GET = async (request: NextRequest) => {
   try {
     const session = await getSession();
     
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     console.log('POST /api/test-results - Starting request');
     const session = await getSession();

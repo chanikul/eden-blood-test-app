@@ -5,7 +5,8 @@ import { sendPasswordResetEmail } from '../../../../../lib/services/email';
 import { generateSessionToken } from '../../../../../lib/auth';
 import { randomBytes } from 'crypto';
 
-export async function POST(request: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     const { email } = await request.json();
 

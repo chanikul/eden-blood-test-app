@@ -6,10 +6,11 @@ import { getClientSession } from '../../../../lib/auth/client';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2022-11-15',
 });
 
-export async function GET(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const GET = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -32,7 +33,9 @@ export async function GET(req: NextRequest) {
 
     // Get default payment method
     const customer = await stripe.customers.retrieve(client.stripeCustomerId);
-    const defaultPaymentMethodId = typeof customer === 'object' ? customer.invoice_settings?.default_payment_method : null;
+    // Add type assertion to fix TypeScript error
+    const defaultPaymentMethodId = typeof customer === 'object' && !('deleted' in customer) ? 
+      (customer as any).invoice_settings?.default_payment_method : null;
 
     const formattedPaymentMethods = paymentMethods.data.map(method => ({
       id: method.id,
@@ -54,7 +57,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const POST = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -118,7 +122,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const PUT = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -166,7 +171,8 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const DELETE = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -206,7 +212,7 @@ export async function DELETE(req: NextRequest) {
 
     // Check if it's the default payment method
     const customer = await stripe.customers.retrieve(client.stripeCustomerId);
-    if (typeof customer === 'object' && customer.invoice_settings?.default_payment_method === paymentMethodId) {
+    if (typeof customer === 'object' && !('deleted' in customer) && (customer as any).invoice_settings?.default_payment_method === paymentMethodId) {
       return NextResponse.json(
         { error: 'Cannot delete default payment method' },
         { status: 400 }
