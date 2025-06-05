@@ -1,5 +1,21 @@
-# Redirect static assets to the correct location
-/_next/*  /_next/:splat  200
+# Redirect all Next.js static assets to the correct location
+/_next/static/css/*      /.next/static/css/:splat      200
+/_next/static/media/*    /.next/static/media/:splat    200
+/_next/static/chunks/*   /.next/static/chunks/:splat   200
+/_next/static/images/*   /.next/static/images/:splat   200
+/_next/static/*          /.next/static/:splat          200
 
-# Handle client-side routing
+# Specific redirects for the CSS files that are 404ing
+/_next/static/css/83fc48dd6707b2cc.css    /.next/static/css/83fc48dd6707b2cc.css    200
+/_next/static/css/c1bba8db64e8be9d.css    /.next/static/css/c1bba8db64e8be9d.css    200
+/_next/static/css/a5d6f4214019c6b9.css    /.next/static/css/a5d6f4214019c6b9.css    200
+/_next/static/css/663872215d533c69.css    /.next/static/css/663872215d533c69.css    200
+
+# Specific redirects for the JS files that are 404ing
+/_next/static/chunks/main-app-e4852c8108ea5434.js       /.next/static/chunks/main-app-e4852c8108ea5434.js       200
+/_next/static/chunks/6531-74ca71976722751f.js          /.next/static/chunks/6531-74ca71976722751f.js          200
+/_next/static/chunks/bf6a786c-d068ef9871138c8b.js      /.next/static/chunks/bf6a786c-d068ef9871138c8b.js      200
+/_next/static/chunks/webpack-ddf2035644c03e5a.js       /.next/static/chunks/webpack-ddf2035644c03e5a.js       200
+
+# Handle client-side routing for Next.js app router
 /*    /index.html   200
