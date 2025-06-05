@@ -1,9 +1,7 @@
 [build]
-  command = "mise settings add idiomatic_version_file_enable_tools node && node ./netlify-pure-build.js"
+  command = "mise settings add idiomatic_version_file_enable_tools node && NETLIFY_NEXT_PLUGIN_SKIP=true node ./netlify-pure-build.js"
   publish = ".next"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+  environment = { NETLIFY_NEXT_PLUGIN_SKIP = "true" }
 
 [build.environment]
   # Node.js configuration
