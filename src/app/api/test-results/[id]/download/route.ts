@@ -6,9 +6,9 @@ import { createPresignedUrl } from '../../../../../lib/storage';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = async (
+export async function GET(
   request: NextRequest,
-  { params } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getSession();

@@ -6,9 +6,9 @@ import { getSession } from '../../../../lib/session';
 import { TestStatus } from '@prisma/client';
 import { sendResultReadyEmail } from '../../../../lib/email-templates/result-ready-email';
 
-export const GET = async (
+export async function GET(
   request: NextRequest,
-  { params } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getSession();
@@ -61,9 +61,9 @@ export const GET = async (
   }
 }
 
-export const PATCH = async (
+export async function PATCH(
   request: NextRequest,
-  { params } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getSession();
@@ -136,9 +136,9 @@ export const PATCH = async (
   }
 }
 
-export const DELETE = async (
+export async function DELETE(
   request: NextRequest,
-  { params } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getSession();

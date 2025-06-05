@@ -341,5 +341,3 @@ export const dynamic = 'force-dynamic';
 
 // Disable body parsing as we need the raw body for Stripe signature verification
 export const bodyParser = false;
-
-}

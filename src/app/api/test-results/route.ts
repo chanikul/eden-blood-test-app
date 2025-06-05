@@ -53,7 +53,7 @@ export const GET = async (request) => { {
 }
 
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     console.log('POST /api/test-results - Starting request');
     const session = await getSession();
