@@ -64,6 +64,18 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/_next/static/*"
+  to = "/.next/static/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/_next/*"
+  to = "/.next/_next/:splat"
+  status = 200
+  force = true
+
 # Redirect API routes properly
 [[redirects]]
   from = "/api/*"

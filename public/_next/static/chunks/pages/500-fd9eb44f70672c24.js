@@ -1,0 +1,16 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[8573],{8668:function(e,r,t){"use strict";t.r(r),t.d(r,{default:function(){return m}});var a=t(67294);/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let n=e=>e.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase(),l=e=>e.replace(/^([A-Z])|[\s-_]+(\w)/g,(e,r,t)=>t?t.toUpperCase():r.toLowerCase()),o=e=>{let r=l(e);return r.charAt(0).toUpperCase()+r.slice(1)},s=(...e)=>e.filter((e,r,t)=>!!e&&""!==e.trim()&&t.indexOf(e)===r).join(" ").trim(),i=e=>{for(let r in e)if(r.startsWith("aria-")||"role"===r||"title"===r)return!0};/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */var c={xmlns:"http://www.w3.org/2000/svg",width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let d=(0,a.forwardRef)(({color:e="currentColor",size:r=24,strokeWidth:t=2,absoluteStrokeWidth:n,className:l="",children:o,iconNode:d,...u},h)=>(0,a.createElement)("svg",{ref:h,...c,width:r,height:r,stroke:e,strokeWidth:n?24*Number(t)/Number(r):t,className:s("lucide",l),...!o&&!i(u)&&{"aria-hidden":"true"},...u},[...d.map(([e,r])=>(0,a.createElement)(e,r)),...Array.isArray(o)?o:[o]])),u=((e,r)=>{let t=(0,a.forwardRef)(({className:t,...l},i)=>(0,a.createElement)(d,{ref:i,iconNode:r,className:s(`lucide-${n(o(e))}`,`lucide-${e}`,t),...l}));return t.displayName=o(e),t})("octagon-alert",[["path",{d:"M12 16h.01",key:"1drbdi"}],["path",{d:"M12 8v4",key:"1got3b"}],["path",{d:"M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z",key:"1fd625"}]]);var h=t(85893);function m(){return(0,h.jsx)("div",{className:"min-h-screen bg-gray-50 flex items-center justify-center p-4",children:(0,h.jsxs)("div",{className:"max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center",children:[(0,h.jsx)(u,{className:"w-16 h-16 text-red-500 mx-auto mb-4"}),(0,h.jsx)("h1",{className:"text-2xl font-bold text-gray-900 mb-2",children:"Server Error"}),(0,h.jsx)("p",{className:"text-gray-600 mb-6",children:"Sorry, something went wrong on our end. Please try again later."}),(0,h.jsxs)("div",{className:"space-y-4",children:[(0,h.jsx)("button",{onClick:function(){return window.location.reload()},className:"w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors",children:"Try Again"}),(0,h.jsx)("a",{href:"/",className:"block text-blue-600 hover:text-blue-800 transition-colors",children:"← Return to Home"})]})]})})}},40698:function(e,r,t){(window.__NEXT_P=window.__NEXT_P||[]).push(["/500",function(){return t(8668)}])}},function(e){e.O(0,[9774,2888,179],function(){return e(e.s=40698)}),_N_E=e.O()}]);

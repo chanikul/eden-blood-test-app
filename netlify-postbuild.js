@@ -59,6 +59,35 @@ function copyStaticAssets() {
   } else {
     console.log('Chunks source directory not found:', chunksSourceDir);
   }
+  
+  // Copy all other static assets
+  const staticSourceDir = path.join(process.cwd(), '.next', 'static');
+  if (fs.existsSync(staticSourceDir)) {
+    // Create a directory structure that matches what the browser expects
+    const staticDestDir = path.join(process.cwd(), '.next', '_next', 'static');
+    copyRecursiveSync(staticSourceDir, staticDestDir);
+    console.log('Copied all static assets to .next/_next/static');
+  } else {
+    console.log('Static source directory not found:', staticSourceDir);
+  }
+  
+  // Copy build ID file to ensure correct asset paths
+  const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
+  if (fs.existsSync(buildIdPath)) {
+    const buildId = fs.readFileSync(buildIdPath, 'utf8').trim();
+    console.log('Found build ID:', buildId);
+    
+    // Create directories for build-specific assets
+    const buildDestDir = path.join(process.cwd(), '.next', '_next', 'static', buildId);
+    fs.mkdirSync(buildDestDir, { recursive: true });
+    
+    // Copy any build-specific assets if they exist
+    const buildSourceDir = path.join(process.cwd(), '.next', 'static', buildId);
+    if (fs.existsSync(buildSourceDir)) {
+      copyRecursiveSync(buildSourceDir, buildDestDir);
+      console.log('Copied build-specific assets');
+    }
+  }
 }
 
 // Create a netlify.toml file inside the .next directory
