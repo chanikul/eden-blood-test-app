@@ -54,7 +54,7 @@ type StripeSessionData = {
 };
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   try {
     console.log('=== CREATING ORDER ===');
     
@@ -265,4 +265,6 @@ export const POST = async (request: NextRequest) => {
   } finally {
     await prisma.$disconnect();
   }
+}
+
 }

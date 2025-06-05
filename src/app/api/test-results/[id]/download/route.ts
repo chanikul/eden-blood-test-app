@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const GET = async (
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params } }
 ) {
   try {
     const session = await getSession();

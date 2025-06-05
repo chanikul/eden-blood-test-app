@@ -47,7 +47,7 @@ export const GET = async () => {
 }
 
 // Create new admin
-export const POST = async (request: NextRequest) {
+export const POST = async (request) => { {
   try {
     // Skip authentication check in development mode
     if (process.env.NODE_ENV !== 'development') {
@@ -79,4 +79,6 @@ export const POST = async (request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
 }

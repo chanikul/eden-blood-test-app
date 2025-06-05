@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
 });
 
-export const GET = async (request: NextRequest) {
+export const GET = async (request) => { {
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
@@ -79,4 +79,6 @@ export const GET = async (request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
 }

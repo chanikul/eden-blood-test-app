@@ -17,7 +17,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   try {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     
@@ -341,3 +341,5 @@ export const dynamic = 'force-dynamic';
 
 // Disable body parsing as we need the raw body for Stripe signature verification
 export const bodyParser = false;
+
+}

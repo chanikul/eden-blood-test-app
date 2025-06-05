@@ -6,7 +6,7 @@ import { generateSessionToken } from '../../../../../lib/auth';
 import { randomBytes } from 'crypto';
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   try {
     const { email } = await request.json();
 
@@ -68,4 +68,6 @@ export const POST = async (request: NextRequest) => {
       { status: 500 }
     );
   }
+}
+
 }

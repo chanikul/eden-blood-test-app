@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
-export const POST = async (request: NextRequest) {
+export const POST = async (request) => { {
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
   const body = await req.text();
@@ -14,4 +14,6 @@ export const POST = async (request: NextRequest) {
   });
 
   return NextResponse.json({ received: true });
+}
+
 }

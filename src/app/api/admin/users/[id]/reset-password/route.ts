@@ -5,9 +5,7 @@ import { generateRandomPassword } from '../../../../../../lib/utils';
 import { sendEmail } from '../../../../../../lib/services/email';
 import bcrypt from 'bcryptjs';
 
-export const POST = async (request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const POST = async (request) => { {
   try {
     const session = await getServerSession();
     
@@ -67,4 +65,6 @@ export const POST = async (request: NextRequest,
       { status: 500 }
     );
   }
+}
+
 }

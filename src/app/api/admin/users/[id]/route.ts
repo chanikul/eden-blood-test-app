@@ -13,9 +13,7 @@ const updateAdminSchema = z.object({
 });
 
 // Get admin by ID
-export const GET = async (request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const GET = async (request) => { {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('eden_admin_token')?.value;
@@ -45,9 +43,7 @@ export const GET = async (request: NextRequest,
 }
 
 // Update admin
-export const PATCH = async (request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const PATCH = async (request) => { {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('eden_admin_token')?.value;
@@ -76,4 +72,6 @@ export const PATCH = async (request: NextRequest,
       { status: 500 }
     );
   }
+}
+
 }

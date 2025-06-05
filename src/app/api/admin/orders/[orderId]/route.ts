@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendResultReadyEmail } from '../../../../../lib/email-templates/result-ready-email'
 // Using string literal for status since our OrderStatus enum doesn't include 'READY'
 
-export const PATCH = async (request: NextRequest,
-  { params }: { params: { orderId: string } }
-) {
+export const PATCH = async (request: NextRequest, { params }: { params: { orderId: string } }) => {
   try {
     const { orderId } = params
     const { status, internalNotes } = await request.json()

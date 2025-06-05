@@ -19,7 +19,7 @@ async function getSession() {
 }
 
 // Using named export for compatibility with Netlify
-export const GET = async (request: NextRequest) => {
+export const GET = async (request) => { {
   try {
     // Skip authentication check in development mode or when testing is forced
     const isTesting = process.env.NODE_ENV === 'development' || process.env.FORCE_TESTING === 'true';
@@ -63,4 +63,6 @@ export const GET = async (request: NextRequest) => {
       { status: 500 }
     );
   }
+}
+
 }

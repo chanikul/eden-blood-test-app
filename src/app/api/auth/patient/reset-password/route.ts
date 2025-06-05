@@ -3,7 +3,7 @@ import { prisma } from '../../../../../lib/prisma';
 import { hashPassword } from '../../../../../lib/utils/password';
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   try {
     const { token, newPassword } = await request.json();
 
@@ -55,4 +55,6 @@ export const POST = async (request: NextRequest) => {
       { status: 500 }
     );
   }
+}
+
 }

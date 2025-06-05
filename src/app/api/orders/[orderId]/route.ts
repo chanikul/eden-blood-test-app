@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-export const GET = async (request: NextRequest,
-  context: { params: { orderId: string } }
-) {
+export const GET = async (request) => { {
   const { orderId } = context.params;
   console.log('Fetching order details:', { orderId });
   try {
@@ -47,4 +45,6 @@ export const GET = async (request: NextRequest,
   } finally {
     await prisma.$disconnect();
   }
+}
+
 }

@@ -21,7 +21,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11
 // Get the Supabase client singleton
 const supabase = getSupabaseClient();
 
-export const GET = async (request: NextRequest) {
+export const GET = async (request) => { {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
 
@@ -201,4 +201,6 @@ export const GET = async (request: NextRequest) {
     console.error('Error finalizing order:', error);
     return NextResponse.json({ error: 'Failed to finalize order' }, { status: 500 });
   }
+}
+
 }

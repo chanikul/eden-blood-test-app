@@ -5,7 +5,7 @@ import { verifyPassword } from '../../../../../lib/utils/password';
 import { generateSessionToken } from '../../../../../lib/auth';
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   try {
     const { email, password } = await request.json();
 
@@ -95,4 +95,6 @@ export const POST = async (request: NextRequest) => {
       { status: 500 }
     );
   }
+}
+
 }

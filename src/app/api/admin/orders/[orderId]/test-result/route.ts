@@ -5,7 +5,7 @@ import { getSession } from '../../../../../../lib/session';
 export const GET = async (
   request: NextRequest,
   { params }: { params: { orderId: string } }
-) {
+) => {
   try {
     // Check admin authentication
     const session = await getSession();

@@ -13,7 +13,7 @@ const registerSchema = z.object({
 });
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   try {
     const formData = await request.formData();
     const data = {
@@ -50,4 +50,6 @@ export const POST = async (request: NextRequest) => {
       { status: 400 }
     );
   }
+}
+
 }

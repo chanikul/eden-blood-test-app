@@ -4,7 +4,7 @@ import { verifyPassword, hashPassword } from '../../../../../lib/utils/password'
 import { getPatientFromToken } from '../../../../../lib/auth';
 
 // Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export const POST = async (request) => { {
   console.log('=== CHANGE PASSWORD DEBUG ===');
   try {
     const { currentPassword, newPassword } = await request.json();
@@ -82,4 +82,6 @@ export const POST = async (request: NextRequest) => {
       { status: 500 }
     );
   }
+}
+
 }

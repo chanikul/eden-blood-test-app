@@ -8,7 +8,7 @@ import { sendResultReadyEmail } from '../../../../lib/email-templates/result-rea
 
 export const GET = async (
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params } }
 ) {
   try {
     const session = await getSession();
@@ -63,7 +63,7 @@ export const GET = async (
 
 export const PATCH = async (
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params } }
 ) {
   try {
     const session = await getSession();
@@ -138,7 +138,7 @@ export const PATCH = async (
 
 export const DELETE = async (
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params } }
 ) {
   try {
     const session = await getSession();
