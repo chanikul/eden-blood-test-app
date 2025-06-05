@@ -9,6 +9,13 @@ const nextConfig = {
     serverActions: true,
   },
   swcMinify: true,
+  // Don't set assetPrefix as it can conflict with Netlify's Next.js plugin
+  images: {
+    domains: ['eden-clinic-blood-test-app.windsurf.build'],
+    unoptimized: true, // Use unoptimized images for Netlify deployment
+  },
+  // Add trailing slash to help with routing
+  trailingSlash: true,
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
     DIRECT_URL: process.env.DIRECT_URL,

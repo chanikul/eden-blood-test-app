@@ -1,17 +1,8 @@
 [build]
   command = "npm run build"
   publish = ".next"
-  
-[build.processing]
-  skip_processing = false
-  
-  [build.processing.html]
-    pretty_urls = true
 
 [build.environment]
-  # Next.js plugin configuration
-  NETLIFY_NEXT_PLUGIN_SKIP = "false"
-  
   # Node.js configuration
   NODE_VERSION = "18.17.1"
   NODE_OPTIONS = "--max_old_space_size=4096"
