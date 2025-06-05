@@ -51,7 +51,18 @@
 
 # Next.js plugin configuration is already defined above
 
-# Let the Next.js plugin handle static assets
+# Handle static assets with specific redirects
+[[redirects]]
+  from = "/_next/static/css/*"
+  to = "/.next/static/css/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/_next/static/chunks/*"
+  to = "/.next/static/chunks/:splat"
+  status = 200
+  force = true
 
 # Redirect API routes properly
 [[redirects]]
