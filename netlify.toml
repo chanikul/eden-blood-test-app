@@ -1,5 +1,5 @@
 [build]
-  command = "mise settings add idiomatic_version_file_enable_tools node && npm ci --prefer-offline && npm run build"
+  command = "mise settings add idiomatic_version_file_enable_tools node && node ./netlify-build-script.js"
   publish = ".next"
 
 [[plugins]]

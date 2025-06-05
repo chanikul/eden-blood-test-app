@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // Disable SWC minify to avoid dependency issues
+  swcMinify: false,
   images: {
     domains: ['localhost'],
     remotePatterns: [
@@ -12,14 +13,14 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // Ensure SWC is used for compilation
+    // Disable SWC plugins
     swcPlugins: [],
-    // Ensure we're using the most stable features
+    // Keep server actions enabled
     serverActions: true,
   },
-  // Explicitly set compiler options
+  // Disable SWC compiler
   compiler: {
-    // Enables the styled-components SWC transform
+    // Disable SWC transforms
     styledComponents: false,
   }
 };
