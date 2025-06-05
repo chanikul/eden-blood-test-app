@@ -50,10 +50,17 @@ async function downloadFile(url, dest) {
 // Install dependencies with specific flags
 console.log('📦 Installing dependencies...');
 try {
-  // Use npm ci for more reliable installation
-  execSync('npm ci --no-optional --prefer-offline --legacy-peer-deps', { 
-    stdio: 'inherit'
+  // Use npm install with --no-optional to avoid platform-specific dependencies
+  console.log('Using npm install with platform-specific flags for Netlify...');
+  execSync('npm install --no-optional --ignore-scripts --no-audit --prefer-offline --no-fund --legacy-peer-deps', { 
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NEXT_TELEMETRY_DISABLED: '1',
+      NEXT_SKIP_NATIVE_POSTINSTALL: '1' // Skip native dependency installation
+    }
   });
+  console.log('✅ Dependencies installed successfully');
 } catch (error) {
   console.error('⚠️ Error during dependency installation:', error.message);
   console.log('⚠️ Continuing with build despite installation errors...');
