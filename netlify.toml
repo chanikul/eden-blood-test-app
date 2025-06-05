@@ -2,6 +2,12 @@
   command = "npm run build"
   publish = ".next"
 
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    # Use our custom configuration
+    configPath = "./netlify-plugin-nextjs-config.js"
+
 [build.environment]
   # Node.js configuration
   NODE_VERSION = "18.17.1"
