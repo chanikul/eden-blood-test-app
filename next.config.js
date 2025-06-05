@@ -4,11 +4,11 @@ const path = require('path');
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  experimental: {
-    // Removing optimizeCss as it may be causing build issues with Tailwind
-    serverComponentsExternalPackages: ['stripe'],
-    serverActions: true,
-  },
+  // Removed experimental features that were causing build issues
+  // experimental: {
+  //   serverComponentsExternalPackages: ['stripe'],
+  //   serverActions: true,
+  // },
   swcMinify: true,
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
