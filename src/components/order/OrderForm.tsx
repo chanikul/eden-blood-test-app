@@ -8,8 +8,8 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import styles from './OrderForm.module.css';
-import { cn } from '@/lib/utils';
-import { AddressAutocomplete } from '@/components/AddressAutocomplete';
+import { cn } from '../../lib/utils';
+import { AddressAutocomplete } from '../AddressAutocomplete';
 
 interface ShippingAddress {
   line1: string;
