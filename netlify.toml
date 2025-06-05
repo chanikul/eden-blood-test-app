@@ -4,6 +4,9 @@
   
 [build.processing]
   skip_processing = false
+  
+  [build.processing.html]
+    pretty_urls = true
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
@@ -43,18 +46,14 @@
   
   # Environment variables are set in Netlify UI
 
-# Explicitly set processing options
-[build.processing]
-  skip_processing = false
+# Processing options already defined above
 
 # Include Prisma files in functions
 [functions]
   included_files = ["node_modules/@prisma/client/**/*", "node_modules/.prisma/**/*"]
   node_bundler = "esbuild"
 
-# Ensure pretty URLs
-[build.processing.html]
-  pretty_urls = true
+# Pretty URLs setting already moved to main build.processing section
 
 # Next.js plugin configuration is already defined above
 
