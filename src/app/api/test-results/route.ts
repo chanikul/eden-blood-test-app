@@ -7,7 +7,7 @@ import { sendResultReadyEmail } from '../../../lib/email-templates/result-ready-
 export const dynamic = 'force-dynamic';
 
 // Using named export for compatibility with Netlify
-export const GET = async (request) => { {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await getSession();
     
@@ -173,6 +173,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     );
   }
-}
-
 }
