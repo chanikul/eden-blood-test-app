@@ -1,7 +1,7 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../../../../lib/prisma'
 import { NextResponse } from 'next/server'
-import { sendResultReadyEmail } from '@/lib/email-templates/result-ready-email'
-import { OrderStatus } from '@prisma/client'
+import { sendResultReadyEmail } from '../../../../../lib/email-templates/result-ready-email'
+// Using string literal for status since our OrderStatus enum doesn't include 'READY'
 
 export async function PATCH(
   request: Request,
@@ -34,7 +34,7 @@ export async function PATCH(
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
-        status: status as OrderStatus,
+        status: status,
         internalNotes,
         ...(status === 'DISPATCHED' && {
           dispatchedAt: new Date(),

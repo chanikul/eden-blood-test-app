@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma'
-import { sendDispatchNotificationEmail } from '@/lib/services/email'
+import { prisma } from '../../../../../../lib/prisma'
+import { sendDispatchNotificationEmail } from '../../../../../../lib/services/email'
 import { NextResponse } from 'next/server'
 
 export async function POST(
