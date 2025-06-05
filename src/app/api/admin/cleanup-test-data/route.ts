@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
-import { stripe } from '@/lib/stripe';
-import { deleteFile, listFiles } from '@/lib/storage';
+import { getSession } from '../../../../lib/session';
+import { stripe } from '../../../../lib/stripe';
+import { deleteFile, listFiles } from '../../../../lib/storage';
 
 export const dynamic = 'force-dynamic';
 

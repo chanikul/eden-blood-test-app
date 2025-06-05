@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyPassword, hashPassword } from '@/lib/utils/password';
-import { getPatientFromToken } from '@/lib/auth';
+import { prisma } from '../../../../lib/prisma';
+import { verifyPassword, hashPassword } from '../../../../lib/utils/password';
+import { getPatientFromToken } from '../../../../lib/auth';
 
 export async function POST(request: Request) {
   console.log('=== CHANGE PASSWORD DEBUG ===');

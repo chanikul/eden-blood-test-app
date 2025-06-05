@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifySessionToken } from '@/lib/auth';
-import { createAdmin, listAdmins, updateAdmin } from '@/lib/services/admin';
+import { verifySessionToken } from '../../../../lib/auth';
+import { createAdmin, listAdmins, updateAdmin } from '../../../../lib/services/admin';
 import { z } from 'zod';
 
 const createAdminSchema = z.object({

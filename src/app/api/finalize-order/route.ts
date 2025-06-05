@@ -10,10 +10,10 @@ const STRIPE_PRICE_ID_TO_TEST_NAME: Record<string, string> = {
 };
 
 import Stripe from 'stripe';
-import { prisma } from '@/lib/prisma';
-import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
-import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '@/lib/services/email';
-import { sendWelcomeEmail } from '@/lib/services/email';
+import { prisma } from '../../../../lib/prisma';
+import { createClientUser, findClientUserByEmail } from '../../../../lib/services/client-user';
+import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '../../../../lib/services/email';
+import { sendWelcomeEmail } from '../../../../lib/services/email';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });

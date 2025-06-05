@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifySessionToken } from '@/lib/auth';
-import { generatePasswordResetToken } from '@/lib/services/admin';
-import { sendEmail } from '@/lib/services/email';
+import { verifySessionToken } from '../../../../lib/auth';
+import { generatePasswordResetToken } from '../../../../lib/services/admin';
+import { sendEmail } from '../../../../lib/services/email';
 import { z } from 'zod';
 
 const resetPasswordSchema = z.object({

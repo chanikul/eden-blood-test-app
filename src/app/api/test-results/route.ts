@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
+import { getSession } from '../../../../lib/session';
 import { TestStatus } from '@prisma/client';
-import { sendResultReadyEmail } from '@/lib/email-templates/result-ready-email';
+import { sendResultReadyEmail } from '../../../../lib/email-templates/result-ready-email';
 
 export const dynamic = 'force-dynamic';
 

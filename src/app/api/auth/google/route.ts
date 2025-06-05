@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import { generateSessionToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { generateSessionToken } from '../../../../lib/auth';
+import { prisma } from '../../../../lib/prisma';
 import { AdminRole } from '@prisma/client';
 
 // Use string literals for client-side environment variables

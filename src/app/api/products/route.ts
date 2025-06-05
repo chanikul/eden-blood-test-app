@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchBloodTestProducts } from '@/lib/services/stripe-products';
+import { fetchBloodTestProducts } from '../../../../lib/services/stripe-products';
 
 // Simple in-memory cache (per serverless instance)
 let cache: any[] = [];

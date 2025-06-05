@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { generatePasswordResetToken, resetPassword } from '@/lib/services/admin';
-import { sendPasswordResetEmail } from '@/lib/services/email';
+import { generatePasswordResetToken, resetPassword } from '../../../../lib/services/admin';
+import { sendPasswordResetEmail } from '../../../../lib/services/email';
 import { z } from 'zod';
 
 const requestResetSchema = z.object({

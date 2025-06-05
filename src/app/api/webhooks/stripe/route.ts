@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 // Using raw buffer from req.text() instead of micro package
-import { prisma } from '@/lib/prisma';
-import { generateWelcomeEmail } from '@/lib/email-templates/welcome';
-import { generateOrderConfirmationEmail } from '@/lib/email-templates/order-confirmation';
-import { generateAdminNotificationEmail } from '@/lib/email-templates/admin-notification';
-import { sendEmail } from '@/lib/services/email';
+import { prisma } from '../../../../lib/prisma';
+import { generateWelcomeEmail } from '../../../../lib/email-templates/welcome';
+import { generateOrderConfirmationEmail } from '../../../../lib/email-templates/order-confirmation';
+import { generateAdminNotificationEmail } from '../../../../lib/email-templates/admin-notification';
+import { sendEmail } from '../../../../lib/services/email';
 import bcrypt from 'bcryptjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { syncStripeProducts } from '@/lib/services/stripe';
-import { verifySessionToken } from '@/lib/auth';
+import { syncStripeProducts } from '../../../../lib/services/stripe';
+import { verifySessionToken } from '../../../../lib/auth';
 import { cookies } from 'next/headers';
 
 // Force dynamic route to prevent static optimization

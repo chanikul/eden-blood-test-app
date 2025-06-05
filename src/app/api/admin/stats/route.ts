@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { verifySessionToken } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { verifySessionToken } from '../../../../lib/auth'
+import { prisma } from '../../../../lib/prisma'
 import { OrderStatus } from '@prisma/client'
 
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from '../../../../lib/auth';
+import { prisma } from '../../../../lib/prisma';
 
 // Domain restrictions for Eden Clinic staff
 const ALLOWED_DOMAINS = ['edenclinicformen.com', 'edenclinic.co.uk'];

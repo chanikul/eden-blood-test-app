@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getPatientFromToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getPatientFromToken } from '../../../../lib/auth';
+import { prisma } from '../../../../lib/prisma';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {

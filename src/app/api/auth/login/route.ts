@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { generateSessionToken } from '@/lib/auth';
-import { validateAdminPassword } from '@/lib/services/admin';
+import { generateSessionToken } from '../../../../lib/auth';
+import { validateAdminPassword } from '../../../../lib/services/admin';
 
 export async function POST(request: Request) {
   try {

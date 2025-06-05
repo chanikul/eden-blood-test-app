@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resetPassword } from '@/lib/services/admin';
+import { resetPassword } from '../../../../lib/services/admin';
 import { z } from 'zod';
 
 const confirmResetSchema = z.object({
