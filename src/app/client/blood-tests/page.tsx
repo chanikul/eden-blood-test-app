@@ -9,7 +9,7 @@ import {
   Filter,
   Loader2
 } from 'lucide-react';
-import { TestResultDownload } from '@/components/client/TestResultDownload';
+import { TestResultDownload } from '../../../components/client/TestResultDownload';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {

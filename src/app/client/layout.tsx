@@ -15,7 +15,7 @@ import {
   User, 
   LogOut 
 } from 'lucide-react';
-import { features, isFeatureEnabled } from '@/lib/config/features';
+import { features, isFeatureEnabled } from '../../lib/config/features';
 
 // Core navigation items that are always shown
 const coreNavigation = [
