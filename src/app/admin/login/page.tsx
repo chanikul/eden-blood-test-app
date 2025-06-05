@@ -45,6 +45,13 @@ export default function LoginPage() {
       setGoogleLoading(true);
       setError('');
       
+      // In development mode, bypass Google auth and redirect directly to admin
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Development mode: Bypassing Google auth');
+        router.push('/admin');
+        return;
+      }
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -67,6 +74,13 @@ export default function LoginPage() {
   // Handle Google auth callback
   const handleGoogleCallback = async (code: string) => {
     try {
+      // In development mode, bypass domain validation
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Development mode: Bypassing Google auth callback validation');
+        router.push('/admin');
+        return;
+      }
+      
       // Send the code to our backend to validate domain and create/update admin user
       const response = await fetch('/api/auth/google', {
         method: 'POST',

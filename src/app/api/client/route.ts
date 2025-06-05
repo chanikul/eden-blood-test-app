@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getPatientFromToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getPatientFromToken } from '../../../lib/auth';
+import { prisma } from '../../../lib/prisma';
 
 export async function GET() {
   try {
@@ -21,7 +21,7 @@ export async function GET() {
         stripeCustomerId: true,
         orders: {
           where: {
-            status: { in: ['PAID', 'DISPATCHED', 'READY'] as any }
+            status: { in: ['PAID', 'DISPATCHED', 'READY'] }
           },
           orderBy: { createdAt: 'desc' },
           take: 5,

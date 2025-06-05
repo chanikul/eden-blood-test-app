@@ -22,6 +22,12 @@ export async function middleware(request: NextRequest) {
 
   // Protect admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
+    // Bypass authentication in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Bypassing admin authentication in middleware');
+      return NextResponse.next();
+    }
+    
     const token = request.cookies.get('eden_admin_token')?.value
 
     if (!token) {
