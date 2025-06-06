@@ -14,12 +14,12 @@ export function getSupabaseClient() {
   // Use string literals for client-side environment variables with fallbacks
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
   
-  // Provide a fallback dummy key for build time - this won't be used in production
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyNjUzMzgsImV4cCI6MjAwMjg0MTMzOH0.dummy-key-for-build';
+  // Use the anonymous key for client-side authentication
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4ODkwNjgsImV4cCI6MjA2MjQ2NTA2OH0.wsXovBz2DzuZHRLOkoFJC821Tby6BRVXaottKJevAL8';
 
   // Initialize Supabase client
-  supabaseInstance = createClient(supabaseUrl, supabaseServiceKey);
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
   
   return supabaseInstance;
 }

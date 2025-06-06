@@ -1,20 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from './supabase-client';
 
-// Initialize Supabase client for storage with fallback values
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Njg4OTA2OCwiZXhwIjoyMDYyNDY1MDY4fQ.qbO0KymO7nLymwexLcZ2SK4n1owTDU5U63DoNoIygTE';
-
-// Create Supabase client with singleton pattern to prevent multiple instances
-let supabase: ReturnType<typeof createClient> | null = null;
-
-// Get the Supabase client instance
-export function getSupabaseClient() {
-  if (!supabase) {
-    // Only create a new instance if one doesn't exist
-    supabase = createClient(supabaseUrl, supabaseServiceKey);
-  }
-  return supabase;
-}
+// We'll use the singleton pattern from supabase-client.ts to prevent multiple instances
 
 /**
  * Creates a presigned URL for secure file access

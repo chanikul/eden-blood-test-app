@@ -3,14 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import OtpStep from './OtpStep'
-import { createClient } from '@supabase/supabase-js'
 import Image from 'next/image'
+import { getSupabaseClient } from '../../../lib/supabase-client'
 
-// Use string literals for client-side environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dlzfhnnwyvddaoikrung.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4ODkwNjgsImV4cCI6MjA2MjQ2NTA2OH0.wsXovBz2DzuZHRLOkoFJC821Tby6BRVXaottKJevAL8';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Get the singleton instance of Supabase client
+const supabase = getSupabaseClient()
 
 export default function LoginPage() {
   const router = useRouter()
