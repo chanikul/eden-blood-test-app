@@ -86,8 +86,21 @@ function createNetlifyConfig() {
 # Netlify configuration for Next.js
 [[redirects]]
   from = "/_next/static/*"
-  to = "/static/:splat"
+  to = "/.next/static/:splat"
   status = 200
+  force = true
+
+[[redirects]]
+  from = "/_next/static/chunks/*"
+  to = "/.next/static/chunks/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/_next/static/css/*"
+  to = "/.next/static/css/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
@@ -99,7 +112,7 @@ function createNetlifyConfig() {
   console.log('Created netlify.toml file in .next directory');
 }
 
-// Main function
+// Main function to run all tasks
 function main() {
   copyStaticAssets();
   createNetlifyConfig();
