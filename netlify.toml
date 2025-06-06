@@ -65,6 +65,12 @@
   force = true
 
 [[redirects]]
+  from = "/_next/static/[^/]+/*"
+  to = "/.next/static/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/_next/static/*"
   to = "/.next/static/:splat"
   status = 200

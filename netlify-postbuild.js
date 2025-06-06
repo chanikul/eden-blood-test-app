@@ -77,16 +77,36 @@ function copyStaticAssets() {
       copyRecursiveSync(buildSourceDir, buildDestDir);
       console.log('Copied build-specific assets');
     }
+    
+    // Also copy to root static directory for direct access
+    // This helps with the pattern matching in Netlify redirects
+    const rootBuildDestDir = path.join(process.cwd(), '.next', 'static', buildId);
+    fs.mkdirSync(rootBuildDestDir, { recursive: true });
+    
+    // Copy any build-specific chunks to the static directory
+    const buildChunksSourceDir = path.join(process.cwd(), '.next', 'static', 'chunks');
+    if (fs.existsSync(buildChunksSourceDir)) {
+      const buildChunksDestDir = path.join(process.cwd(), '.next', 'static', buildId);
+      copyRecursiveSync(buildChunksSourceDir, buildChunksDestDir);
+      console.log('Copied build-specific chunks to static directory');
+    }
   }
 }
 
 // Create a netlify.toml file inside the .next directory
 function createNetlifyConfig() {
+  // Get the build ID for specific redirects
+  let buildId = '';
+  const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
+  if (fs.existsSync(buildIdPath)) {
+    buildId = fs.readFileSync(buildIdPath, 'utf8').trim();
+  }
+
   const netlifyConfig = `
 # Netlify configuration for Next.js
 [[redirects]]
-  from = "/_next/static/*"
-  to = "/.next/static/:splat"
+  from = "/_next/static/css/*"
+  to = "/.next/static/css/:splat"
   status = 200
   force = true
 
@@ -96,9 +116,22 @@ function createNetlifyConfig() {
   status = 200
   force = true
 
+${buildId ? `[[redirects]]
+  from = "/_next/static/${buildId}/*"
+  to = "/.next/static/${buildId}/:splat"
+  status = 200
+  force = true
+` : ''}
+
 [[redirects]]
-  from = "/_next/static/css/*"
-  to = "/.next/static/css/:splat"
+  from = "/_next/static/*"
+  to = "/.next/static/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/_next/*"
+  to = "/.next/_next/:splat"
   status = 200
   force = true
 
