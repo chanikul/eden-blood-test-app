@@ -39,6 +39,17 @@ export default function LoginPage() {
         console.log('Found access token in URL hash');
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
+        
+        // Fix for localhost redirect in production
+        if (window.location.hostname !== 'localhost' && 
+            window.location.href.includes('localhost')) {
+          console.log('Detected localhost redirect in production, redirecting to correct URL');
+          // Get the current production URL
+          const productionUrl = window.location.origin + '/admin/login' + window.location.hash;
+          window.location.href = productionUrl;
+          return;
+        }
+        
         if (accessToken) {
           // We have a token from the redirect flow
           await handleGoogleCallback(accessToken);
@@ -67,6 +78,9 @@ export default function LoginPage() {
         router.push('/admin');
         return;
       }
+      
+      // Store current hostname in localStorage to verify after redirect
+      localStorage.setItem('eden_auth_origin', window.location.origin);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -97,6 +111,15 @@ export default function LoginPage() {
       if (process.env.NODE_ENV === 'development') {
         console.log('Development mode: Bypassing Google auth callback validation');
         router.push('/admin');
+        return;
+      }
+      
+      // Check if we need to handle a localhost redirect in production
+      const storedOrigin = localStorage.getItem('eden_auth_origin');
+      if (storedOrigin && window.location.origin !== storedOrigin && 
+          window.location.href.includes('localhost')) {
+        console.log('Detected incorrect origin after redirect');
+        window.location.href = `${storedOrigin}/admin/login${window.location.hash}`;
         return;
       }
       
