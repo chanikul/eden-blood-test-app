@@ -26,7 +26,7 @@ function copyRecursiveSync(src, dest) {
 function copyStaticAssets() {
   console.log('Starting to copy static assets for Netlify...');
   
-  // Copy CSS files to both locations to ensure they're accessible
+  // Copy CSS files to ensure they're accessible
   const cssSourceDir = path.join(process.cwd(), '.next', 'static', 'css');
   
   if (fs.existsSync(cssSourceDir)) {
@@ -34,11 +34,6 @@ function copyStaticAssets() {
     const cssDestDir = path.join(process.cwd(), '.next', '_next', 'static', 'css');
     copyRecursiveSync(cssSourceDir, cssDestDir);
     console.log('Copied CSS files to .next/_next/static/css');
-    
-    // Also copy to public/_next/static/css for static file serving
-    const publicCssDestDir = path.join(process.cwd(), 'public', '_next', 'static', 'css');
-    copyRecursiveSync(cssSourceDir, publicCssDestDir);
-    console.log('Copied CSS files to public/_next/static/css');
   } else {
     console.log('CSS source directory not found:', cssSourceDir);
   }
@@ -51,11 +46,6 @@ function copyStaticAssets() {
     const chunksDestDir = path.join(process.cwd(), '.next', '_next', 'static', 'chunks');
     copyRecursiveSync(chunksSourceDir, chunksDestDir);
     console.log('Copied JS chunks to .next/_next/static/chunks');
-    
-    // Also copy to public/_next/static/chunks for static file serving
-    const publicChunksDestDir = path.join(process.cwd(), 'public', '_next', 'static', 'chunks');
-    copyRecursiveSync(chunksSourceDir, publicChunksDestDir);
-    console.log('Copied JS chunks to public/_next/static/chunks');
   } else {
     console.log('Chunks source directory not found:', chunksSourceDir);
   }
