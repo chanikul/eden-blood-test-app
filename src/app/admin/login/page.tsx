@@ -22,13 +22,32 @@ export default function LoginPage() {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.provider_token) {
-          // User has signed in with Google, handle the auth code
-          const { provider_token, provider_refresh_token } = session;
-          await handleGoogleCallback(provider_token);
+        console.log('Auth state changed:', event, session);
+        if (event === 'SIGNED_IN' && session) {
+          // User has signed in with Google, handle the session
+          if (session.user?.app_metadata?.provider === 'google') {
+            console.log('Google sign-in detected');
+            await handleGoogleCallback(session.access_token);
+          }
         }
       }
     );
+
+    // Check for access token in URL hash (for redirect flow)
+    const checkHash = async () => {
+      if (window.location.hash && window.location.hash.includes('access_token=')) {
+        console.log('Found access token in URL hash');
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        if (accessToken) {
+          // We have a token from the redirect flow
+          await handleGoogleCallback(accessToken);
+        }
+      }
+    };
+    
+    // Check hash on initial load
+    checkHash();
 
     // Cleanup subscription
     return () => {
@@ -69,8 +88,11 @@ export default function LoginPage() {
   };
 
   // Handle Google auth callback
-  const handleGoogleCallback = async (code: string) => {
+  const handleGoogleCallback = async (token: string) => {
     try {
+      console.log('Processing Google authentication');
+      setGoogleLoading(true);
+      
       // In development mode, bypass domain validation
       if (process.env.NODE_ENV === 'development') {
         console.log('Development mode: Bypassing Google auth callback validation');
@@ -78,20 +100,36 @@ export default function LoginPage() {
         return;
       }
       
-      // Send the code to our backend to validate domain and create/update admin user
+      // Get user info from the session to check domain
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error getting user data:', userError);
+        throw new Error('Failed to get user information');
+      }
+      
+      console.log('User data:', userData);
+      
+      // Check if user has a valid domain
+      const email = userData.user?.email;
+      if (!email || !email.endsWith('@edenclinic.co.uk') && !email.endsWith('@edenclinicformen.com')) {
+        throw new Error('Only Eden Clinic staff can access the admin area');
+      }
+      
+      // Send the token to our backend to validate domain and create/update admin user
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: token }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Authentication failed');
       }
 
       // Redirect to admin dashboard on success
+      console.log('Authentication successful, redirecting to admin dashboard');
       router.push('/admin');
     } catch (err) {
       console.error('Google auth callback error:', err);

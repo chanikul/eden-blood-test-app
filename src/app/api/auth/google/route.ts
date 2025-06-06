@@ -14,7 +14,7 @@ const supabase = getSupabaseClient();
 const ALLOWED_DOMAINS = ['edenclinicformen.com', 'edenclinic.co.uk'];
 
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   try {
     console.log('Google auth attempt started');
     const { code } = await request.json();
@@ -154,6 +154,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }
