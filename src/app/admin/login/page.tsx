@@ -33,22 +33,47 @@ export default function LoginPage() {
       }
     );
 
-    // Check for access token in URL hash (for redirect flow)
-    const checkHash = async () => {
+    // Check for access token in URL hash or session storage (for redirect flow)
+    const checkForToken = async () => {
+      // Check if this is a token redirect from localhost to production
+      const urlParams = new URLSearchParams(window.location.search);
+      const isTokenRedirect = urlParams.get('token_redirect') === 'true';
+      
+      if (isTokenRedirect) {
+        console.log('Detected token redirect parameter');
+        const savedToken = sessionStorage.getItem('eden_auth_token');
+        if (savedToken) {
+          console.log('Found saved token from redirect');
+          sessionStorage.removeItem('eden_auth_token'); // Clear it after use
+          await handleGoogleCallback(savedToken);
+          return;
+        }
+      }
+      
+      // First check if we're on localhost but should be on production
+      if (window.location.hostname === 'localhost' && localStorage.getItem('eden_auth_origin')) {
+        const productionOrigin = localStorage.getItem('eden_auth_origin');
+        if (productionOrigin && !productionOrigin.includes('localhost')) {
+          console.log('Detected localhost redirect in production, redirecting to production URL');
+          // Save any token we might have in the hash
+          if (window.location.hash && window.location.hash.includes('access_token=')) {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            if (accessToken) {
+              sessionStorage.setItem('eden_auth_token', accessToken);
+            }
+          }
+          // Redirect to production with token_redirect parameter
+          window.location.href = `${productionOrigin}/admin/login?token_redirect=true`;
+          return;
+        }
+      }
+      
+      // Check for token in hash (normal flow)
       if (window.location.hash && window.location.hash.includes('access_token=')) {
         console.log('Found access token in URL hash');
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
-        
-        // Fix for localhost redirect in production
-        if (window.location.hostname !== 'localhost' && 
-            window.location.href.includes('localhost')) {
-          console.log('Detected localhost redirect in production, redirecting to correct URL');
-          // Get the current production URL
-          const productionUrl = window.location.origin + '/admin/login' + window.location.hash;
-          window.location.href = productionUrl;
-          return;
-        }
         
         if (accessToken) {
           // We have a token from the redirect flow
@@ -57,8 +82,8 @@ export default function LoginPage() {
       }
     };
     
-    // Check hash on initial load
-    checkHash();
+    // Check for tokens on initial load
+    checkForToken();
 
     // Cleanup subscription
     return () => {
@@ -80,12 +105,15 @@ export default function LoginPage() {
       }
       
       // Store current hostname in localStorage to verify after redirect
-      localStorage.setItem('eden_auth_origin', window.location.origin);
+      const currentOrigin = window.location.origin;
+      localStorage.setItem('eden_auth_origin', currentOrigin);
+      console.log('Storing origin for redirect verification:', currentOrigin);
       
+      // Force the redirectTo to use the current origin, not localhost
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin/login`,
+          redirectTo: `${currentOrigin}/admin/login`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -104,7 +132,7 @@ export default function LoginPage() {
   // Handle Google auth callback
   const handleGoogleCallback = async (token: string) => {
     try {
-      console.log('Processing Google authentication');
+      console.log('Processing Google authentication with token:', token.substring(0, 10) + '...');
       setGoogleLoading(true);
       
       // In development mode, bypass domain validation
@@ -114,12 +142,17 @@ export default function LoginPage() {
         return;
       }
       
-      // Check if we need to handle a localhost redirect in production
+      // Check if we're on localhost but should be on a production URL
       const storedOrigin = localStorage.getItem('eden_auth_origin');
-      if (storedOrigin && window.location.origin !== storedOrigin && 
-          window.location.href.includes('localhost')) {
-        console.log('Detected incorrect origin after redirect');
-        window.location.href = `${storedOrigin}/admin/login${window.location.hash}`;
+      console.log('Stored origin:', storedOrigin, 'Current origin:', window.location.origin);
+      
+      if (storedOrigin && 
+          window.location.hostname === 'localhost' && 
+          !storedOrigin.includes('localhost')) {
+        console.log('Detected localhost redirect when we should be on production');
+        // Save the token before redirecting
+        sessionStorage.setItem('eden_auth_token', token);
+        window.location.href = `${storedOrigin}/admin/login?token_redirect=true`;
         return;
       }
       
