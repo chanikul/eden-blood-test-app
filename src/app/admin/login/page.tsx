@@ -109,11 +109,11 @@ export default function LoginPage() {
       localStorage.setItem('eden_auth_origin', currentOrigin);
       console.log('Storing origin for redirect verification:', currentOrigin);
       
-      // Force the redirectTo to use the current origin, not localhost
+      // Use our custom redirect page to handle authentication properly
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${currentOrigin}/admin/login`,
+          redirectTo: `${currentOrigin}/auth-redirect.html`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

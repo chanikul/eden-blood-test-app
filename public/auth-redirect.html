@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eden Clinic Authentication</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 1rem;
+    }
+    p {
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #2563eb;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Authentication in Progress</h1>
+    <p>Please wait while we complete your authentication...</p>
+  </div>
+
+  <script>
+    // This script handles the OAuth redirect and ensures it works in both development and production
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get the hash from the URL
+      const hash = window.location.hash;
+      
+      // Check if we have an access token
+      if (hash && hash.includes('access_token=')) {
+        console.log('Found access token in hash');
+        
+        // Get the production origin from localStorage or use the current origin
+        const productionOrigin = localStorage.getItem('eden_auth_origin') || window.location.origin;
+        console.log('Production origin:', productionOrigin);
+        
+        // If we're on localhost but should be on production
+        if (window.location.hostname === 'localhost' && 
+            productionOrigin && 
+            !productionOrigin.includes('localhost')) {
+          console.log('Redirecting from localhost to production with token');
+          // Save token to sessionStorage before redirect
+          sessionStorage.setItem('eden_auth_token', hash);
+          // Redirect to production
+          window.location.href = `${productionOrigin}/admin/login?token_redirect=true`;
+        } else {
+          // We're on the correct domain, redirect to admin login with the hash
+          console.log('Redirecting to admin login with token');
+          window.location.href = `${productionOrigin}/admin/login${hash}`;
+        }
+      } else {
+        console.error('No access token found in URL hash');
+        // Redirect to login page if no token is found
+        window.location.href = '/admin/login';
+      }
+    });
+  </script>
+</body>
+</html>
