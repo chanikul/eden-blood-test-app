@@ -85,7 +85,7 @@ export function generateEmailLayout({ subject, content, showDashboardButton = fa
     <body>
       <div class="container">
         <div class="header">
-          <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/logo.png" alt="Eden Clinic" height="40" style="margin-bottom: 16px;">
+          <img src="https://edenclinic.co.uk/logo.png" alt="Eden Clinic" height="40" style="margin-bottom: 16px;">
           <h1>${subject}</h1>
         </div>
         
@@ -94,7 +94,7 @@ export function generateEmailLayout({ subject, content, showDashboardButton = fa
           
           ${showDashboardButton ? `
             <div style="text-align: center; margin-top: 32px;">
-              <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/admin" class="button">
+              <a href="https://edenclinic.co.uk/admin" class="button">
                 Go to Dashboard
               </a>
             </div>
@@ -102,7 +102,7 @@ export function generateEmailLayout({ subject, content, showDashboardButton = fa
           
           <div class="footer">
             <p>Need help? Contact our support team:</p>
-            <p>📧 <a href="mailto:support@edenclinicformen.com">support@edenclinicformen.com</a></p>
+            <p>📧 <a href="mailto:support@edenclinic.co.uk">support@edenclinic.co.uk</a></p>
             <p>📞 +44 (0)20 1234 5678</p>
             <p style="color: #9ca3af; font-size: 12px; margin-top: 20px;">
               © ${new Date().getFullYear()} Eden Clinic. All rights reserved.

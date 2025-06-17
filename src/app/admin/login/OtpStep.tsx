@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "../../../lib/supabase-client";
+import { createClient } from "@supabase/supabase-js";
 
-// Get the singleton instance of Supabase client
-const supabase = getSupabaseClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function OtpStep({ email, onSuccess }: { email: string; onSuccess: () => void }) {
   const [otp, setOtp] = useState("");

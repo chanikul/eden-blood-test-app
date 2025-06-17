@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { TestStatus } from '@prisma/client';
@@ -6,6 +6,7 @@ import { Download, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-re
 import { formatDistanceToNow } from 'date-fns';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
+import { useTestResultMcp } from './TestResultMcpProvider';
 
 interface TestResultDownloadProps {
   result: {
@@ -30,11 +31,40 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
   const [error, setError] = useState<string | null>(null);
   const [downloadCount, setDownloadCount] = useState(0);
   const [lastDownloaded, setLastDownloaded] = useState<Date | null>(null);
+  const [fileExists, setFileExists] = useState<boolean | null>(null);
+  
+  // Use our MCP provider to verify file existence
+  const { verifyFile } = useTestResultMcp();
   
   const testName = result.bloodTest?.name || result.order?.testName || 'Blood Test';
   const isReady = result.status === TestStatus.ready;
   const createdDate = result.order?.createdAt || result.createdAt;
   const updatedDate = result.updatedAt;
+  
+  // Verify file existence when component mounts
+  useEffect(() => {
+    const checkFileExists = async () => {
+      if (isReady && result.resultUrl) {
+        try {
+          // Extract filename from URL
+          const fileName = result.resultUrl.split('/').pop() || `${result.id}.pdf`;
+          
+          // Use MCP tool to verify file existence
+          const verifyResult = await verifyFile(fileName);
+          setFileExists(verifyResult.exists);
+          
+          if (!verifyResult.exists && result.status === TestStatus.ready) {
+            console.warn(`File marked as ready but does not exist: ${fileName}`);
+          }
+        } catch (err) {
+          console.error('Error verifying file existence:', err);
+          setFileExists(false);
+        }
+      }
+    };
+    
+    checkFileExists();
+  }, [result.id, result.resultUrl, isReady, verifyFile]);
   
   const handleDownload = async () => {
     if (!isReady || !result.resultUrl) return;
@@ -95,17 +125,31 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
         <div className="text-sm text-gray-500">
           {isReady ? (
             <>
-              <p>Your test results are ready to download.</p>
-              {lastDownloaded && (
-                <p className="mt-1 text-xs text-gray-400">
-                  Last downloaded: {formatDistanceToNow(lastDownloaded, { addSuffix: true })}
-                </p>
-              )}
-              {downloadCount > 0 && (
-                <div className="mt-2 flex items-center text-xs text-green-600">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Downloaded {downloadCount} {downloadCount === 1 ? 'time' : 'times'}
-                </div>
+              {fileExists === false ? (
+                <>
+                  <p>Your test results are marked as ready but the file could not be found.</p>
+                  <Alert variant="destructive" className="mt-2 bg-red-50 text-red-800 text-xs p-2">
+                    <AlertCircle className="h-3 w-3" />
+                    <AlertDescription>
+                      Please contact support for assistance with your test results.
+                    </AlertDescription>
+                  </Alert>
+                </>
+              ) : (
+                <>
+                  <p>Your test results are ready to download.</p>
+                  {lastDownloaded && (
+                    <p className="mt-1 text-xs text-gray-400">
+                      Last downloaded: {formatDistanceToNow(lastDownloaded, { addSuffix: true })}
+                    </p>
+                  )}
+                  {downloadCount > 0 && (
+                    <div className="mt-2 flex items-center text-xs text-green-600">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Downloaded {downloadCount} {downloadCount === 1 ? 'time' : 'times'}
+                    </div>
+                  )}
+                </>
               )}
             </>
           ) : (
@@ -125,9 +169,9 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
       <CardFooter>
         <Button
           onClick={handleDownload}
-          disabled={!isReady || isLoading}
+          disabled={!isReady || isLoading || fileExists === false}
           className="w-full"
-          variant={isReady ? "primary" : "secondary"}
+          variant={isReady && fileExists !== false ? "primary" : "secondary"}
         >
           {isLoading ? (
             <>

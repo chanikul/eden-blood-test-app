@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generatePasswordResetToken, resetPassword } from '../../../../lib/services/admin';
-import { sendPasswordResetEmail } from '../../../../lib/services/email';
+import { NextResponse } from 'next/server';
+import { generatePasswordResetToken, resetPassword } from '@/lib/services/admin';
+import { sendPasswordResetEmail } from '@/lib/services/email';
 import { z } from 'zod';
 
 const requestResetSchema = z.object({
@@ -13,8 +13,7 @@ const resetPasswordSchema = z.object({
 });
 
 // Request password reset
-// Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email } = requestResetSchema.parse(body);
@@ -28,11 +27,8 @@ export const POST = async (request: NextRequest) => {
     }
 
     // Send password reset email
-    await sendPasswordResetEmail({
-      to: email,
-      name: 'Admin', // Default name for admin
-      resetToken: resetToken
-    });
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/admin/reset-password?token=${resetToken}`;
+    await sendPasswordResetEmail(email, resetUrl);
 
     return NextResponse.json({
       success: true,
@@ -54,8 +50,7 @@ export const POST = async (request: NextRequest) => {
 }
 
 // Reset password with token
-// Using named export for compatibility with Netlify
-export const PUT = async (request: NextRequest) => {
+export async function PUT(request: Request) {
   try {
     const body = await request.json();
     const { token, password } = resetPasswordSchema.parse(body);

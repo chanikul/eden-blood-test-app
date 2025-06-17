@@ -1,20 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { bloodTestOrderSchema } from '../../../lib/validations/blood-test-order';
-import { sendOrderNotificationEmail } from '../../../lib/services/email';
-import { createClientUser, findClientUserByEmail } from '../../../lib/services/client-user';
+import { bloodTestOrderSchema } from '@/lib/validations/blood-test-order';
+import { sendOrderNotificationEmail } from '@/lib/services/email';
+import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
 import { z, ZodError } from 'zod';
 import Stripe from 'stripe';
 import type { BloodTest } from '@prisma/client';
 
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2022-11-15',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 async function getBloodTestPrice(slug: string) {
-  const bloodTest = await prisma.bloodTest.findFirst({
+  const test = await prisma.bloodTest.findFirst({
     where: {
       slug,
       isActive: true,
@@ -22,13 +20,13 @@ async function getBloodTestPrice(slug: string) {
     }
   });
 
-  if (!bloodTest || !bloodTest.stripePriceId) {
+  if (!test || !test.stripePriceId) {
     throw new Error(`Blood test not found or not available: ${slug}`);
   }
 
   return {
-    price: bloodTest.stripePriceId,
-    name: bloodTest.name
+    price: test.stripePriceId,
+    name: test.name
   };
 }
 
@@ -53,8 +51,7 @@ type StripeSessionData = {
   };
 };
 
-// Using named export for compatibility with Netlify
-export const POST = async (request: NextRequest) => {
+export async function POST(request: Request) {
   try {
     console.log('=== CREATING ORDER ===');
     
@@ -192,7 +189,7 @@ export const POST = async (request: NextRequest) => {
       fullName: validatedData.fullName,
       email: validatedData.email,
       dateOfBirth: validatedData.dateOfBirth,
-      testName: bloodTest.name,
+      testName: test.name,
       notes: validatedData.notes || undefined,
       orderId: order.id,
     });

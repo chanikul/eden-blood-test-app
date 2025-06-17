@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { resetPassword } from '../../../../../../lib/services/admin';
+import { NextResponse } from 'next/server';
+import { resetPassword } from '@/lib/services/admin';
 import { z } from 'zod';
 
 const confirmResetSchema = z.object({
@@ -7,7 +7,7 @@ const confirmResetSchema = z.object({
   password: z.string().min(8),
 });
 
-export const POST = async (request) => { {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { token, password } = confirmResetSchema.parse(body);
@@ -34,6 +34,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }

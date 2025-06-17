@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getPatientFromToken } from '../../../lib/auth';
-import { prisma } from '../../../lib/prisma';
+import { NextResponse } from 'next/server';
+import { getPatientFromToken } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
-export const GET = async () => {
+export async function GET() {
   try {
     const patient = await getPatientFromToken();
     
@@ -13,7 +13,6 @@ export const GET = async () => {
       );
     }
 
-    // Use a type assertion to handle the complex return type
     const clientUser = await prisma.clientUser.findUnique({
       where: { id: patient.id },
       select: {
@@ -21,7 +20,7 @@ export const GET = async () => {
         stripeCustomerId: true,
         orders: {
           where: {
-            status: { in: ['PAID', 'DISPATCHED', 'READY'] }
+            status: { in: ['PAID', 'DISPATCHED'] }
           },
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -29,22 +28,11 @@ export const GET = async () => {
             id: true,
             testName: true,
             status: true,
-            // @ts-ignore - pdf_url field might be added in a migration
-            pdf_url: true,
             createdAt: true,
             bloodTest: {
               select: {
                 name: true
               }
-            },
-            testResults: {
-              select: {
-                id: true,
-                status: true,
-                resultUrl: true
-              },
-              orderBy: { createdAt: 'desc' },
-              take: 1
             }
           }
         }
@@ -66,22 +54,13 @@ export const GET = async () => {
       );
     }
 
-    // Type assertion for clientUser to include orders
-    const typedClientUser = clientUser as any;
-    
     return NextResponse.json({
       firstName: clientUser.name,
-      recentTests: typedClientUser.orders.map((order: any) => ({
+      recentTests: clientUser.orders.map(order => ({
         id: order.id,
         testName: order.bloodTest.name,
         status: order.status,
-        date: order.createdAt,
-        pdf_url: order.pdf_url,
-        testResult: order.testResults && order.testResults.length > 0 ? {
-          id: order.testResults[0].id,
-          status: order.testResults[0].status,
-          resultUrl: order.testResults[0].resultUrl
-        } : null
+        date: order.createdAt
       })),
       hasActivePaymentMethod: paymentMethods?.data.length > 0 || false
     });

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Select, Dialog } from '../../../components/ui';
+import { Button, Input, Select, Dialog } from '@/components/ui';
 import { toast } from 'react-hot-toast';
-import { EditUserDialog } from '../../../components/admin/EditUserDialog';
-import { ResetPasswordDialog } from '../../../components/admin/ResetPasswordDialog';
+import { EditUserDialog } from '@/components/admin/EditUserDialog';
+import { ResetPasswordDialog } from '@/components/admin/ResetPasswordDialog';
 
 interface AdminUser {
   id: string;
@@ -219,7 +219,7 @@ export default function AdminUsersPage() {
                       Reset Password
                     </Button>
                     <Button
-                      variant={user.active ? 'secondary' : 'primary'}
+                      variant={user.active ? 'outline' : 'secondary'}
                       size="sm"
                       onClick={() => toggleUserStatus(user.id, !user.active)}
                     >

@@ -7,9 +7,14 @@ import {
   Plus,
   Search,
   Filter,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { TestResultDownload } from '../../../components/client/TestResultDownload';
+import { TestResultMcpProvider } from '../../../components/client/TestResultMcpProvider';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {
@@ -36,6 +41,9 @@ interface TestResult {
 }
 
 export default function BloodTestsPage() {
+  // We'll use client-side authentication instead of server-side
+  const [userId, setUserId] = useState<string | null>(null);
+
   const [results, setResults] = useState<TestResult[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TestStatus | 'ALL'>('ALL');
@@ -43,33 +51,48 @@ export default function BloodTestsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchTestResults() {
+    async function fetchUserAndResults() {
       try {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('/api/test-results', {
+        // Get the current user
+        const userResponse = await fetch('/api/auth/me');
+        if (!userResponse.ok) {
+          throw new Error('Failed to authenticate');
+        }
+        
+        const userData = await userResponse.json();
+        if (!userData.user?.id) {
+          window.location.href = '/login';
+          return;
+        }
+        
+        setUserId(userData.user.id);
+        
+        // Fetch test results
+        const resultsResponse = await fetch('/api/test-results', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
         });
         
-        if (!response.ok) {
+        if (!resultsResponse.ok) {
           throw new Error('Failed to fetch test results');
         }
         
-        const data = await response.json();
+        const data = await resultsResponse.json();
         setResults(data.results || []);
       } catch (err) {
-        console.error('Error fetching test results:', err);
+        console.error('Error fetching data:', err);
         setError('Failed to load your test results. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     }
     
-    fetchTestResults();
+    fetchUserAndResults();
   }, []);
 
   const filteredResults = results.filter(result => {
@@ -79,27 +102,41 @@ export default function BloodTestsPage() {
     return matchesSearch && matchesStatus;
   });
 
-
-
-  return (
-    <div className="max-w-7xl mx-auto">
-      <div className="md:flex md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">My Results</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            View and download your blood test results
-          </p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <Link
-            href="/client/blood-tests/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Blood Test
-          </Link>
-        </div>
+  // Don't render the MCP provider until we have the user ID
+  if (!userId) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        {isLoading ? (
+          <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-8 text-center">
+            <Loader2 className="h-8 w-8 text-teal-500 mx-auto animate-spin mb-4" />
+            <p className="text-gray-500">Loading your profile...</p>
+          </div>
+        ) : (
+          <div className="bg-white shadow-sm rounded-lg border border-red-200 p-8 text-center">
+            <p className="text-red-500 mb-2">Unable to load your profile. Please try again later.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
       </div>
+    );
+  }
+  
+  return (
+    <TestResultMcpProvider patientId={userId} serviceType="blood-test">
+      <div className="max-w-7xl mx-auto">
+        <div className="md:flex md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">My Results</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              View and download your blood test results
+            </p>
+          </div>
+        </div>
 
       {/* Filters */}
       <div className="mb-6 md:flex md:items-center md:space-x-4">
@@ -135,8 +172,8 @@ export default function BloodTestsPage() {
         </div>
       )}
       
-      {/* Error state */}
-      {error && !isLoading && (
+      {/* Error state - only show for actual errors, not empty results */}
+      {error && !isLoading && error !== 'Failed to load your test results. Please try again later.' && (
         <div className="bg-white shadow-sm rounded-lg border border-red-200 p-8 text-center">
           <p className="text-red-500 mb-2">{error}</p>
           <button
@@ -157,10 +194,10 @@ export default function BloodTestsPage() {
         </div>
       )}
       
-      {!isLoading && !error && filteredResults.length === 0 && (
+      {!isLoading && (!error || error === 'Failed to load your test results. Please try again later.') && filteredResults.length === 0 && (
         <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-8 text-center">
           <TestTube2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Your results are being prepared</h3>
           
           {searchQuery || statusFilter !== 'ALL' ? (
             <p className="text-gray-500 mb-4">
@@ -168,22 +205,18 @@ export default function BloodTestsPage() {
             </p>
           ) : (
             <>
-              <p className="text-gray-500 mb-2">You don't have any blood test results yet</p>
-              <p className="text-sm text-gray-400 mb-6">
-                Order your first blood test to get started with your health journey
+              <p className="text-gray-500 mb-2">Your test results are being processed by our lab team</p>
+              <p className="text-sm text-gray-400 mb-4">
+                You'll receive an email notification when your results are ready to view
+              </p>
+              <p className="text-sm text-gray-400 mb-2">
+                If you have any questions, please contact our support team
               </p>
             </>
           )}
-          
-          <Link
-            href="/client/blood-tests/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Order a Blood Test
-          </Link>
         </div>
       )}
     </div>
+    </TestResultMcpProvider>
   );
 }

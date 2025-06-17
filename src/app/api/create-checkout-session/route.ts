@@ -1,10 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-
-// Direct import of Prisma without path aliases
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
@@ -37,7 +34,7 @@ const requestSchema = z.object({
 
 type CheckoutSessionData = z.infer<typeof requestSchema>;
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(request: Request): Promise<NextResponse> {
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('Missing STRIPE_SECRET_KEY environment variable');
     return NextResponse.json(
@@ -153,7 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         ],
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || `http://${request.headers.get('host') || 'localhost:3000'}`}/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: data.cancelUrl,
         shipping_address_collection: {
           allowed_countries: ['GB']

@@ -1,8 +1,5 @@
-'use client';
-
 import dynamic from 'next/dynamic';
-// Import the default export from the admin layout file instead of a named export
-import AdminLayout from '../layout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 
 // @ts-ignore - Working around module resolution issues
 const StripeProductsTable = dynamic(() => import('@/components/admin/StripeProductsTable'), { ssr: false });

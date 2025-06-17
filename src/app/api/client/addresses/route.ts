@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-import { getClientSession } from '../../../../lib/auth/client';
+import { prisma } from '@/lib/prisma';
+import { getClientSession } from '@/lib/auth/client';
 
-export const GET = async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -30,7 +28,7 @@ export const GET = async (req: NextRequest) => {
   }
 }
 
-export const POST = async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -78,7 +76,7 @@ export const POST = async (req: NextRequest) => {
   }
 }
 
-export const PUT = async (req: NextRequest) => {
+export async function PUT(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -141,7 +139,7 @@ export const PUT = async (req: NextRequest) => {
   }
 }
 
-export const DELETE = async (req: NextRequest) => {
+export async function DELETE(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {

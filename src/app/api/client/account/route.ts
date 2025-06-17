@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-import { getClientSession } from '../../../../lib/auth/client';
-import bcrypt from 'bcryptjs';
-import { getSupabaseClient } from '../../../../lib/supabase-client';
+import { prisma } from '@/lib/prisma';
+import { getClientSession } from '@/lib/auth/client';
+import { createClient } from '@supabase/supabase-js';
 
-// Get the Supabase client singleton
-const supabase = getSupabaseClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+);
 
-// Using named export for compatibility with Netlify
-export const GET = async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -51,8 +49,7 @@ export const GET = async (req: NextRequest) => {
   }
 }
 
-// Using named export for compatibility with Netlify
-export const PUT = async (req: NextRequest) => {
+export async function PUT(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -122,7 +119,7 @@ export const PUT = async (req: NextRequest) => {
   }
 }
 
-export const PATCH = async (req: NextRequest) => {
+export async function PATCH(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -164,7 +161,7 @@ export const PATCH = async (req: NextRequest) => {
         id: session.id,
       },
       data: {
-        passwordHash: await bcrypt.hash(newPassword, 10), // Use bcrypt for password hashing
+        passwordHash: await supabase.auth.admin.generateHash(newPassword),
       },
     });
 

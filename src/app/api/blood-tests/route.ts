@@ -1,9 +1,9 @@
-import { prisma } from '../../../lib/prisma';
-import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = async () => {
+export async function GET() {
   try {
     console.log('=== ENVIRONMENT CHECK ===');
     console.log('NODE_ENV:', process.env.NODE_ENV);

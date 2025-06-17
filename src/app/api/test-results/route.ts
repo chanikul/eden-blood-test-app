@@ -1,6 +1,8 @@
 import { prisma } from '../../../lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '../../../lib/session';
+import { createPresignedUrl } from '../../../lib/storage';
+import { StorageMcpClient } from '../../../lib/mcp/storage-mcp-client';
+import { getClientSession } from '../../../lib/auth/client';
 import { TestStatus } from '@prisma/client';
 import { sendResultReadyEmail } from '../../../lib/email-templates/result-ready-email';
 
@@ -9,14 +11,32 @@ export const dynamic = 'force-dynamic';
 // Using named export for compatibility with Netlify
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getSession();
+    // First try to get a client session
+    const clientSession = await getClientSession();
     
-    if (!session || !session.user) {
+    // If no client session, check if we're in development mode or try admin session
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // If neither session exists and not in development, return unauthorized
+    if (!clientSession && !isDevelopment) {
+      console.log('GET /api/test-results - Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // For patient users, id exists; for admin users we don't need it here
-    const clientId = session.user.role === 'PATIENT' ? (session.user as any).id : undefined;
+    // Get client ID from the appropriate session
+    let clientId: string | undefined;
+    let isAdmin = false;
+    
+    if (clientSession) {
+      // Client user
+      clientId = clientSession.id;
+      console.log(`GET /api/test-results - Client user ${clientId} accessing their test results`);
+    } else {
+      // Either in development mode or admin user
+      clientId = undefined;
+      isAdmin = true;
+      console.log('GET /api/test-results - Admin or development mode access');
+    }
     
     // Get test results for the logged-in client
     const results = await prisma.testResult.findMany({
@@ -56,11 +76,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     console.log('POST /api/test-results - Starting request');
-    const session = await getSession();
     
-    if (!session?.user || session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
-      console.log('POST /api/test-results - Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Bypass authentication in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Bypassing authentication for test-results POST API');
+    } else {
+      // Check for admin session
+      try {
+        // Get admin session from cookies or headers
+        const response = await fetch('/api/auth/admin-check');
+        const data = await response.json();
+        
+        if (!data.isAdmin) {
+          console.log('POST /api/test-results - Unauthorized access attempt');
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+      } catch (error) {
+        console.error('Error checking admin authentication:', error);
+        return NextResponse.json({ error: 'Authentication error' }, { status: 401 });
+      }
     }
     
     console.log('POST /api/test-results - Parsing request body');
@@ -86,18 +120,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Create a new test result
     console.log('POST /api/test-results - Creating test result in database');
-    let result;
+    
+    // Variable to store the created result
+    let createdResult;
+    
+    // Create the test result
     try {
-      result = await prisma.testResult.create({
+      // If a result URL is provided, verify the file exists using our MCP tool
+      if (resultUrl && status === TestStatus.ready) {
+        try {
+          // Extract filename from URL
+          const fileName = resultUrl.split('/').pop() || '';
+          
+          // Use MCP tool to verify file existence
+          const verifyResult = await StorageMcpClient.verifyFile(clientId, fileName, 'blood-test');
+          
+          if (!verifyResult.exists) {
+            console.warn(`File marked as ready but does not exist: ${fileName} for client ${clientId}`);
+            // We'll continue with creation, but log the warning
+          }
+        } catch (err) {
+          console.error('Error verifying file existence during test result creation:', err);
+          // Continue with creation despite verification error
+        }
+      }
+      
+      const createdResult = await prisma.testResult.create({
         data: {
-          status,
           orderId,
           bloodTestId,
           clientId,
-          resultUrl, // Add the resultUrl field from the uploaded file
+          status,
+          resultUrl,
         },
-      });
-      console.log('POST /api/test-results - Test result created successfully:', result.id);
+        include: {
+          bloodTest: true,
+          order: true,
+          client: true,
+        },
+      }); 
+      console.log('POST /api/test-results - Test result created successfully:', createdResult.id);
     } catch (dbError) {
       console.error('POST /api/test-results - Database error creating test result:', dbError);
       console.error('Error details:', JSON.stringify(dbError, Object.getOwnPropertyNames(dbError)));
@@ -115,9 +177,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw dbError; // Re-throw to be caught by the outer catch block
     }
     
-    // If status is ready, send notification email to the client
+    // If status is ready, update the order status and send notification email to the client
     if (status === TestStatus.ready && clientId) {
       try {
+        // Update the order status to READY
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { status: 'READY' }
+        });
+        
+        console.log(`Order ${orderId} status updated to READY`);
+        
         // Use the correct Prisma model for users
         const client = await prisma.clientUser.findUnique({
           where: { id: clientId },
@@ -125,20 +195,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
         
         if (client?.email) {
+          // Get the test name for the email
+          const bloodTest = await prisma.bloodTest.findUnique({
+            where: { id: bloodTestId },
+            select: { name: true }
+          });
+          
           await sendResultReadyEmail({
             email: client.email,
             name: client.name || 'Patient',
-            testName: 'Your blood test' // Could fetch the actual test name if needed
+            testName: bloodTest?.name || 'Your blood test'
           });
           console.log(`Result ready email sent to ${client.email}`);
         }
       } catch (emailError) {
-        console.error('Failed to send result ready email:', emailError);
+        console.error('Failed to send result ready email or update order:', emailError);
         // Continue execution even if email fails
       }
     }
     
-    return NextResponse.json({ result }, { status: 201 });
+    return NextResponse.json({ result: createdResult }, { status: 201 });
   } catch (error) {
     console.error('Error creating test result:', error);
     

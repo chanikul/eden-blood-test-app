@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-export const GET = async (request: NextRequest, { params }: { params: { orderId: string } }) => {
-  const { orderId } = params;
+export async function GET(
+  request: Request,
+  context: { params: { orderId: string } }
+) {
+  const { orderId } = context.params;
   console.log('Fetching order details:', { orderId });
   try {
     // First try to find the order

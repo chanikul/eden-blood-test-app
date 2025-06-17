@@ -9,8 +9,7 @@ import { Link } from '@react-email/link';
 import { Button } from '@react-email/button';
 import { Hr } from '@react-email/hr';
 
-export function WelcomeEmail({ name, email, tempPassword }: { name: string; email: string; tempPassword: string }) {
-
+export default function WelcomeEmail({ name, email, tempPassword }: { name: string; email: string; tempPassword: string }) {
   return (
     <Html>
       <Head />
@@ -39,10 +38,10 @@ export function WelcomeEmail({ name, email, tempPassword }: { name: string; emai
           </ul>
 
           <Hr style={styles.hr} />
-          <Button href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/login`} style={styles.button}>Login to Your Account</Button>
+          <Button href="https://edenclinic.co.uk/login" style={styles.button}>Login to Your Account</Button>
 
           <Text style={styles.help}>
-            Need help? <Link href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/support`}>Contact support</Link>
+            Need help? <Link href="https://edenclinic.co.uk/support">Contact support</Link>
           </Text>
 
           <Hr style={styles.hr} />
@@ -56,15 +55,6 @@ export function WelcomeEmail({ name, email, tempPassword }: { name: string; emai
     </Html>
   );
 }
-
-export function generateWelcomeEmail(name: string, email: string, tempPassword: string) {
-  return {
-    subject: 'Welcome to Eden Clinic – Your account is ready',
-    html: React.createElement(WelcomeEmail, { name, email, tempPassword }).toString(),
-  };
-}
-
-export default WelcomeEmail;
 
 const styles = {
   body: { backgroundColor: '#f6f9fc', fontFamily: 'Arial, sans-serif', padding: '32px' },

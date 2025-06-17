@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifySessionToken } from '../../../../lib/auth';
-import { createAdmin, listAdmins, updateAdmin } from '../../../../lib/services/admin';
+import { verifySessionToken } from '@/lib/auth';
+import { createAdmin, listAdmins, updateAdmin } from '@/lib/services/admin';
 import { z } from 'zod';
 
 const createAdminSchema = z.object({
@@ -20,19 +20,15 @@ const updateAdminSchema = z.object({
 });
 
 // List all admins
-// Using named export for compatibility with Netlify
-export const GET = async () => {
+export async function GET() {
   try {
-    // Skip authentication check in development mode
-    if (process.env.NODE_ENV !== 'development') {
-      const cookieStore = cookies();
-      const token = cookieStore.get('eden_admin_token')?.value;
-      if (!token || !verifySessionToken(token)) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
+    const cookieStore = cookies();
+    const token = cookieStore.get('eden_admin_token')?.value;
+    if (!token || !verifySessionToken(token)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const admins = await listAdmins();
@@ -47,18 +43,15 @@ export const GET = async () => {
 }
 
 // Create new admin
-export const POST = async (request) => { {
+export async function POST(request: Request) {
   try {
-    // Skip authentication check in development mode
-    if (process.env.NODE_ENV !== 'development') {
-      const cookieStore = cookies();
-      const token = cookieStore.get('eden_admin_token')?.value;
-      if (!token || !verifySessionToken(token)) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
+    const cookieStore = cookies();
+    const token = cookieStore.get('eden_admin_token')?.value;
+    if (!token || !verifySessionToken(token)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
@@ -79,6 +72,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }

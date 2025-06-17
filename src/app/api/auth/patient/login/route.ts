@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '../../../../../lib/prisma';
-import { verifyPassword } from '../../../../../lib/utils/password';
-import { generateSessionToken } from '../../../../../lib/auth';
+import { prisma } from '@/lib/prisma';
+import { verifyPassword } from '@/lib/utils/password';
+import { generateSessionToken } from '@/lib/auth';
 
-// Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
@@ -95,6 +94,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }

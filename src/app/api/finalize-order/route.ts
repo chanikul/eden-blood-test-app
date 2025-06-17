@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // NOTE: We no longer use static mapping since testName is now included in the metadata
 // This is kept for backward compatibility with older sessions
@@ -10,18 +10,18 @@ const STRIPE_PRICE_ID_TO_TEST_NAME: Record<string, string> = {
 };
 
 import Stripe from 'stripe';
-import { prisma } from '../../../lib/prisma';
-import { createClientUser, findClientUserByEmail } from '../../../lib/services/client-user';
-import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '../../../lib/services/email';
-import { sendWelcomeEmail } from '../../../lib/services/email';
-import { getSupabaseClient } from '../../../lib/supabase-client';
+import { prisma } from '@/lib/prisma';
+import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
+import { sendOrderNotificationEmail, sendPaymentConfirmationEmail } from '@/lib/services/email';
+import { sendWelcomeEmail } from '@/lib/services/email';
+import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
 
-// Get the Supabase client singleton
-const supabase = getSupabaseClient();
+// Initialize Supabase client
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export const GET = async (request) => { {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
 
@@ -201,6 +201,4 @@ export const GET = async (request) => { {
     console.error('Error finalizing order:', error);
     return NextResponse.json({ error: 'Failed to finalize order' }, { status: 500 });
   }
-}
-
 }

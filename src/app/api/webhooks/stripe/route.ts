@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 // Using raw buffer from req.text() instead of micro package
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-import { generateWelcomeEmail } from '../../../../lib/email-templates/welcome';
-import { generateOrderConfirmationEmail } from '../../../../lib/email-templates/order-confirmation';
-import { generateAdminNotificationEmail } from '../../../../lib/email-templates/admin-notification';
-import { sendEmail } from '../../../../lib/services/email';
+import { prisma } from '@/lib/prisma';
+import { generateWelcomeEmail } from '@/lib/email-templates/welcome';
+import { generateOrderConfirmationEmail } from '@/lib/email-templates/order-confirmation';
+import { generateAdminNotificationEmail } from '@/lib/email-templates/admin-notification';
+import { sendEmail } from '@/lib/services/email';
 import bcrypt from 'bcryptjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -16,14 +14,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
-// Using named export for compatibility with Netlify
-export const POST = async (request) => {
+export async function POST(req: Request) {
   try {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     
     // Get raw body for signature verification
-    const rawBody = await request.text();
-    const signature = request.headers.get('stripe-signature');
+    const rawBody = await req.text();
+    const signature = req.headers.get('stripe-signature');
     
     if (!signature) {
       console.error('Missing Stripe signature');
@@ -314,7 +311,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
       });
 
       await sendEmail({
-        to: process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com',
+        to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
         subject: 'New Blood Test Order',
         text: `New order received: ${order.testName} for ${order.patientName} (${order.patientEmail}). Order ID: ${order.id}.`,
         html: adminHtml,
@@ -335,9 +332,11 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
 }
 
 // This is needed for the webhook handler to properly parse the request body
-// Using the new Next.js App Router route segment config format
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+// Using the new Next.js route segment config format
+export const config = {
+  runtime: 'nodejs',
+  dynamic: 'force-dynamic'
+};
 
 // Disable body parsing as we need the raw body for Stripe signature verification
 export const bodyParser = false;

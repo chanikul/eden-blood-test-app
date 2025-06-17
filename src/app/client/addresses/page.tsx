@@ -1,13 +1,15 @@
 'use client';
 
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Home, Building2, PenSquare, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { createBrowserClient } from '@supabase/ssr';
 import { addressService, Address } from '@/lib/services/address';
 import { addressSchema, AddressFormData } from '@/lib/validations/address';
-import { getSupabaseClient } from '@/lib/supabase-client';
 
 export default function AddressesPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -16,9 +18,10 @@ export default function AddressesPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  
-  // Use the singleton instance of Supabase client
-  const supabase = getSupabaseClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const {
     register,

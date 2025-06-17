@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../../lib/prisma';
-import { getSession } from '../../../../../../lib/session';
+import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
-export const GET = async (
+export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string } }
-) => {
+) {
   try {
     // Check admin authentication
     const session = await getSession();
-    if (!session?.user || session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

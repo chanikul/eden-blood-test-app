@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Order, OrderStatus } from '../../types'
+import { Order, OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { TestResultUploader } from './TestResultUploader'
-import { prisma } from '../../lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { toast } from 'sonner'
 
 
@@ -22,42 +22,34 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [testResultId, setTestResultId] = useState<string | null>(null)
   const router = useRouter()
-  
+
+  if (!order) return null
+
   // Fetch test result for this order when the modal opens
   useEffect(() => {
-    const fetchTestResult = async () => {
-      if (!order) return;
-      
-      try {
-        const response = await fetch(`/api/admin/orders/${order.id}/test-result`, {
-          method: 'GET',
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.result) {
-            setTestResultId(data.result.id);
+    if (order) {
+      const fetchTestResult = async () => {
+        try {
+          const response = await fetch(`/api/admin/orders/${order.id}/test-result`, {
+            method: 'GET',
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.result) {
+              setTestResultId(data.result.id);
+            }
           }
+        } catch (error) {
+          console.error('Error fetching test result:', error);
         }
-      } catch (error) {
-        console.error('Error fetching test result:', error);
-      }
-    };
-    
-    fetchTestResult();
-  }, [order?.id]);
-  
-  // Render null early, but after all hooks are defined
-  if (!order) {
-    return null
-  }
+      };
+      
+      fetchTestResult();
+    }
+  }, [order]);
 
   const handleUpdateOrder = async () => {
-    if (!order) {
-      toast.error('No order to update');
-      return;
-    }
-    
     try {
       setIsLoading(true)
       const response = await fetch(`/api/admin/orders/${order.id}`, {
@@ -94,7 +86,9 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   }
 
   const renderShippingAddress = () => {
-    if (!order) return null;
+    console.log('=== DEBUG: ORDER DETAIL MODAL ===');
+    console.log('1. Order:', order);
+    console.log('2. Shipping Address:', order.shippingAddress);
     
     return (
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">

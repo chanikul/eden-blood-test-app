@@ -1,6 +1,7 @@
 import { prisma } from '../../../../../lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '../../../../../lib/session';
+import { getClientSession } from '../../../../../lib/auth/client';
 import { TestStatus } from '@prisma/client';
 import { createPresignedUrl } from '../../../../../lib/storage';
 
@@ -11,9 +12,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getSession();
+    // First try to get a client session
+    const clientSession = await getClientSession();
     
-    if (!session || !session.user) {
+    // If no client session, try admin session
+    const adminSession = clientSession ? null : await getSession();
+    
+    // If neither session exists, return unauthorized
+    if (!clientSession && (!adminSession || !adminSession.user)) {
+      console.log('GET /api/test-results/[id]/download - Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -34,10 +41,18 @@ export async function GET(
     }
     
     // Check if the user is authorized to download this result
-    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN';
-    const isOwner = session.user.role === 'PATIENT' && result.clientId === (session.user as any).id;
+    let isAuthorized = false;
     
-    if (!isAdmin && !isOwner) {
+    if (clientSession) {
+      // Client user can only access their own results
+      isAuthorized = result.clientId === clientSession.id;
+    } else if (adminSession) {
+      // Admin users can access any result
+      isAuthorized = adminSession.user?.role === 'ADMIN' || adminSession.user?.role === 'SUPER_ADMIN';
+    }
+    
+    if (!isAuthorized) {
+      console.log('GET /api/test-results/[id]/download - Unauthorized access attempt for result:', resultId);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     
@@ -68,8 +83,8 @@ export async function GET(
     // In production, this would be stored in the AuditLog table
     console.log('Test result downloaded', {
       resultId,
-      userId: session.user.role === 'PATIENT' ? (session.user as any).id : 'admin',
-      userRole: session.user.role,
+      userId: clientSession ? clientSession.id : 'admin',
+      userRole: clientSession ? 'CLIENT' : (adminSession?.user?.role || 'UNKNOWN'),
       clientId: result.clientId,
       orderId: result.orderId,
       downloadedAt: new Date().toISOString(),

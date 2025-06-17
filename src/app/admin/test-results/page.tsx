@@ -12,9 +12,9 @@ import {
   Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
-import { TestResultUploader } from '../../../components/admin/TestResultUploader';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { TestResultUploader } from '@/components/admin/TestResultUploader';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {
@@ -136,6 +136,14 @@ export default function AdminTestResultsPage() {
           <p className="mt-1 text-sm text-gray-500">
             Manage and update blood test results
           </p>
+        </div>
+        <div className="mt-4 md:mt-0">
+          <Link
+            href="/admin/test-results/cleanup"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Clean Up Test Data
+          </Link>
         </div>
       </div>
 

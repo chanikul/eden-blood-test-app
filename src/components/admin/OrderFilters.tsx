@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { OrderStatus } from '../../types'
-import { useDebounce } from '../../lib/hooks/useDebounce'
+import { OrderStatus } from '@/types'
+import { useDebounce } from '@/lib/hooks/useDebounce'
 
 interface OrderFiltersProps {
   testTypes: string[]

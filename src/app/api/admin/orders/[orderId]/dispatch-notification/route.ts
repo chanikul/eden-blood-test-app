@@ -1,8 +1,11 @@
-import { prisma } from '../../../../../../lib/prisma'
-import { sendDispatchNotificationEmail } from '../../../../../../lib/services/email'
-import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { sendDispatchNotificationEmail } from '@/lib/services/email'
+import { NextResponse } from 'next/server'
 
-export const POST = async (request, { params }) => {
+export async function POST(
+  request: Request,
+  { params }: { params: { orderId: string } }
+) {
   try {
     const { orderId } = params
 

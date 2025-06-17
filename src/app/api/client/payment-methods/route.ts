@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-import { getClientSession } from '../../../../lib/auth/client';
+import { prisma } from '@/lib/prisma';
+import { getClientSession } from '@/lib/auth/client';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2022-11-15',
+  apiVersion: '2023-10-16',
 });
 
-// Using named export for compatibility with Netlify
-export const GET = async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -33,9 +30,7 @@ export const GET = async (req: NextRequest) => {
 
     // Get default payment method
     const customer = await stripe.customers.retrieve(client.stripeCustomerId);
-    // Add type assertion to fix TypeScript error
-    const defaultPaymentMethodId = typeof customer === 'object' && !('deleted' in customer) ? 
-      (customer as any).invoice_settings?.default_payment_method : null;
+    const defaultPaymentMethodId = typeof customer === 'object' ? customer.invoice_settings?.default_payment_method : null;
 
     const formattedPaymentMethods = paymentMethods.data.map(method => ({
       id: method.id,
@@ -57,8 +52,7 @@ export const GET = async (req: NextRequest) => {
   }
 }
 
-// Using named export for compatibility with Netlify
-export const POST = async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -122,8 +116,7 @@ export const POST = async (req: NextRequest) => {
   }
 }
 
-// Using named export for compatibility with Netlify
-export const PUT = async (req: NextRequest) => {
+export async function PUT(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -171,8 +164,7 @@ export const PUT = async (req: NextRequest) => {
   }
 }
 
-// Using named export for compatibility with Netlify
-export const DELETE = async (req: NextRequest) => {
+export async function DELETE(req: NextRequest) {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -212,7 +204,7 @@ export const DELETE = async (req: NextRequest) => {
 
     // Check if it's the default payment method
     const customer = await stripe.customers.retrieve(client.stripeCustomerId);
-    if (typeof customer === 'object' && !('deleted' in customer) && (customer as any).invoice_settings?.default_payment_method === paymentMethodId) {
+    if (typeof customer === 'object' && customer.invoice_settings?.default_payment_method === paymentMethodId) {
       return NextResponse.json(
         { error: 'Cannot delete default payment method' },
         { status: 400 }

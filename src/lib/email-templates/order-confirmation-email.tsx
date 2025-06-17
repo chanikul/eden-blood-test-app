@@ -78,14 +78,14 @@ export default function OrderConfirmationEmail({
             </ol>
           </Section>
 
-          <Button href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/login`} style={styles.button}>
+          <Button href="https://edenclinic.co.uk/login" style={styles.button}>
             View Order Details
           </Button>
 
           <Hr style={styles.hr} />
           
           <Text style={styles.help}>
-            Need help? <Link href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/support`} style={styles.link}>Contact our support team</Link>
+            Need help? <Link href="https://edenclinic.co.uk/support" style={styles.link}>Contact our support team</Link>
           </Text>
 
           <Text style={styles.footer}>

@@ -1,4 +1,4 @@
-import { OrderForm } from '../components/order/OrderForm';
+import { OrderForm } from '@/components/order/OrderForm';
 
 export default function HomePage() {
   return (

@@ -1,15 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { verifySessionToken } from '../../../../lib/auth'
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+import { verifySessionToken } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { OrderStatus } from '@prisma/client'
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
-export const GET = async () => {
+export async function GET() {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('eden_admin_token')?.value;

@@ -1,9 +1,11 @@
+import { createBrowserClient } from '@supabase/ssr';
 import { Database } from '@/types/supabase';
 import { AddressFormData } from '../validations/address';
-import { getSupabaseClient } from '../supabase-client';
 
-// Get the singleton instance of Supabase client
-const supabase = getSupabaseClient();
+const supabase = createBrowserClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export type Address = Database['public']['Tables']['addresses']['Row'];
 
@@ -20,8 +22,10 @@ export const addressService = {
   },
 
   createAddress: async (clientId: string, address: AddressFormData): Promise<Address> => {
-    // Use the singleton instance
-    const supabase = getSupabaseClient();
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // If this is the first address of its type, make it default
     const { data: existingAddresses } = await supabase
@@ -52,8 +56,10 @@ export const addressService = {
   },
 
   updateAddress: async (clientId: string, id: string, address: AddressFormData): Promise<Address> => {
-    // Use the singleton instance
-    const supabase = getSupabaseClient();
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // If this address is currently default and we're unsetting it,
     // ensure there's another address to make default
@@ -95,8 +101,10 @@ export const addressService = {
   },
 
   deleteAddress: async (clientId: string, id: string): Promise<void> => {
-    // Use the singleton instance
-    const supabase = getSupabaseClient();
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // Get the address details first
     const { data: address } = await supabase
@@ -148,8 +156,10 @@ export const addressService = {
   },
 
   setDefaultAddress: async (clientId: string, id: string, type: 'SHIPPING' | 'BILLING'): Promise<void> => {
-    // Use the singleton instance
-    const supabase = getSupabaseClient();
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // First, unset any existing default address of this type
     const { error: updateError } = await supabase

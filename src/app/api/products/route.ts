@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchBloodTestProducts } from '../../../lib/services/stripe-products';
+import { fetchBloodTestProducts } from '@/lib/services/stripe-products';
 
 // Simple in-memory cache (per serverless instance)
 let cache: any[] = [];
 let lastFetch = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest) {
   const now = Date.now();
   const url = new URL(req.url);
   const isAdmin = url.searchParams.get('admin') === '1';

@@ -60,10 +60,10 @@ export default function WelcomeEmail({ name, email, tempPassword, orderId, testN
           </ul>
 
           <Hr style={styles.hr} />
-          <Button href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/login`} style={styles.button}>Login to Your Account</Button>
+          <Button href="https://edenclinic.co.uk/login" style={styles.button}>Login to Your Account</Button>
 
           <Text style={styles.help}>
-            Need help? <Link href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/support`}>Contact support</Link>
+            Need help? <Link href="https://edenclinic.co.uk/support">Contact support</Link>
           </Text>
 
           <Hr style={styles.hr} />

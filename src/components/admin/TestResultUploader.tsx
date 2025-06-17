@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Select } from '../ui/select';
-import { Loader2, Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import { uploadFile } from '../../lib/storage';
+import { Loader2, Upload, CheckCircle, AlertCircle, FileText, ExternalLink } from 'lucide-react';
+import { createPresignedUrl } from '../../lib/storage';
+import { StorageMcpClient } from '../../lib/mcp/storage-mcp-client';
 import { toast } from 'sonner';
+import { TestStatus } from '@prisma/client';
 import { Alert, AlertDescription } from '../ui/alert';
+import { cn } from '../../lib/utils';
 
-// Define TestStatus enum locally to match the Prisma schema
-enum TestStatus {
-  processing = 'processing',
-  ready = 'ready'
-}
+// Using TestStatus from Prisma client import
 
 interface TestResultUploaderProps {
   orderId: string;
@@ -34,13 +33,23 @@ export function TestResultUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingFileName, setExistingFileName] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Only accept PDF files
-      if (selectedFile.type !== 'application/pdf') {
-        setError('Please upload a PDF file');
+      // Accept multiple file types: PDF, PNG, JPG, DOCX
+      const acceptedTypes = [
+        'application/pdf',                                         // PDF
+        'image/png',                                              // PNG
+        'image/jpeg',                                             // JPG/JPEG
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // DOCX
+      ];
+      
+      if (!acceptedTypes.includes(selectedFile.type)) {
+        setError('Please upload a PDF, PNG, JPG, or DOCX file');
         setFile(null);
         return;
       }
@@ -50,10 +59,45 @@ export function TestResultUploader({
     }
   };
 
+  // Fetch existing file info if we have an existingResultId
+  useEffect(() => {
+    if (existingResultId) {
+      const fetchExistingResult = async () => {
+        try {
+          const response = await fetch(`/api/test-results/${existingResultId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.resultUrl) {
+              setUploadedFileUrl(data.resultUrl);
+              // Extract filename from URL or path
+              const fileName = data.resultUrl.split('/').pop() || `${orderId}.pdf`;
+              setExistingFileName(fileName);
+              
+              // Generate a preview URL
+              try {
+                const previewUrl = await createPresignedUrl(data.resultUrl, 3600);
+                setPreviewUrl(previewUrl);
+              } catch (error) {
+                console.error('Error generating preview URL:', error);
+              }
+            }
+            if (data.status) {
+              setStatus(data.status);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching existing test result:', error);
+        }
+      };
+      
+      fetchExistingResult();
+    }
+  }, [existingResultId, orderId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file && status !== TestStatus.processing) {
+    if (!file && status !== TestStatus.processing && !uploadedFileUrl) {
       setError('Please select a file to upload');
       return;
     }
@@ -66,22 +110,47 @@ export function TestResultUploader({
       let resultUrl = null;
       if (file) {
         try {
-          // Create a secure file path with client ID as the folder name
-          // This structure supports Row Level Security policies in Supabase Storage
-          // Format: test-results/{clientId}/{orderId}.pdf
-          const sanitizedFileName = `${orderId}.pdf`;
-          const filePath = `${clientId}/${sanitizedFileName}`;
+          // Determine file extension based on file type
+          let fileExtension = 'pdf'; // Default
+          if (file.type === 'image/png') fileExtension = 'png';
+          else if (file.type === 'image/jpeg') fileExtension = 'jpg';
+          else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') fileExtension = 'docx';
+          
+          const sanitizedFileName = `${orderId}.${fileExtension}`;
           
           console.log(`Preparing to upload file for client ${clientId}, order ${orderId}`);
           
-          // Upload the file to storage
-          resultUrl = await uploadFile(file, filePath);
+          // Use the MCP client to upload the file
+          // This abstracts the storage logic and provides a consistent interface
+          const uploadResult = await StorageMcpClient.uploadFile(
+            file,
+            sanitizedFileName,
+            clientId,
+            'blood-test', // Service type
+            { orderId, bloodTestId } // Additional metadata
+          );
+          
+          if (!uploadResult.success) {
+            throw new Error(`Failed to upload file: ${uploadResult.error}`);
+          }
+          
+          resultUrl = uploadResult.url;
           
           if (!resultUrl) {
             throw new Error('File upload completed but no URL was returned');
           }
           
           console.log(`File uploaded successfully, URL: ${resultUrl}`);
+          
+          // Store the uploaded file URL and generate a preview URL
+          setUploadedFileUrl(resultUrl);
+          try {
+            const previewUrl = await createPresignedUrl(resultUrl, 3600);
+            setPreviewUrl(previewUrl);
+          } catch (previewError) {
+            console.error('Error generating preview URL:', previewError);
+            // Don't fail the upload if preview generation fails
+          }
         } catch (uploadError) {
           console.error('Error uploading test result file:', uploadError);
           throw new Error(`Failed to upload file: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
@@ -165,6 +234,28 @@ export function TestResultUploader({
       <div className="mb-4">
         <h3 className="text-lg font-medium text-gray-900">Test Result for {testName}</h3>
         <p className="text-sm text-gray-500">Upload test results and set status</p>
+        
+        {/* Display existing or newly uploaded file */}
+        {(uploadedFileUrl || existingFileName) && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+            <div className="flex items-center">
+              <FileText className="h-5 w-5 text-blue-500 mr-2" />
+              <span className="text-sm font-medium">
+                {existingFileName || uploadedFileUrl?.split('/').pop() || `${orderId}.pdf`}
+              </span>
+              {previewUrl && (
+                <a 
+                  href={previewUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="ml-auto text-xs text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  Preview <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -185,12 +276,12 @@ export function TestResultUploader({
         
         <div className="space-y-2">
           <label htmlFor="file" className="block text-sm font-medium text-gray-700">
-            Result PDF (required for Ready status)
+            Result File (PDF, PNG, JPG, or DOCX - required for Ready status)
           </label>
           <Input
             id="file"
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={handleFileChange}
             disabled={isUploading}
             className="cursor-pointer"

@@ -1,20 +1,15 @@
-// Direct import of PrismaClient
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '../../../../lib/session';
-import { stripe } from '../../../../lib/stripe';
-import { deleteFile, listFiles } from '../../../../lib/storage';
+import { getSession } from '@/lib/session';
+import { stripe } from '@/lib/stripe';
+import { deleteFile, listFiles } from '@/lib/storage';
 
-export const dynamic = 'force-dynamic';
-
-export const POST = async (request) => {
-  // Disabled for production - this feature is no longer available
+export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     
     // Only admins can perform cleanup operations
-    if (!session || !session.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+    if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -46,10 +41,9 @@ export const POST = async (request) => {
     // Step 3: Update all test results to use the new status system
     const updatedTestResults = await prisma.testResult.updateMany({
       where: {
-        OR: [
-          { status: { equals: 'WAITING' as any } },
-          { status: { equals: 'IN_PROGRESS' as any } }
-        ]
+        status: {
+          in: ['WAITING', 'IN_PROGRESS'],
+        },
       },
       data: {
         status: 'processing',
@@ -61,7 +55,7 @@ export const POST = async (request) => {
     // Step 4: Update any READY status to 'ready'
     const updatedReadyResults = await prisma.testResult.updateMany({
       where: {
-        status: { equals: 'READY' as any },
+        status: 'READY',
       },
       data: {
         status: 'ready',
@@ -137,11 +131,10 @@ export const POST = async (request) => {
       syncedWithStripe: validProductIds.length,
       deletedFiles,
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error cleaning up test data:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to clean up test data', details: errorMessage },
+      { error: 'Failed to clean up test data', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

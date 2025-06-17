@@ -1,5 +1,5 @@
 import { render } from '@react-email/render';
-import { sendEmail } from '@/lib/services/email';
+import { sendEmail } from '@/lib/email';
 import { 
   Body, 
   Container, 
@@ -21,12 +21,12 @@ export const ResultReadyEmail = ({ name, testName }: ResultReadyEmailProps) => {
   return (
     <Html>
       <Head />
-      <Preview>Your Blood Test Result is Ready</Preview>
+      <Preview>Your Eden Clinic test results are ready</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.logoContainer}>
             <img
-              src={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/logo.png`}
+              src="https://edenclinic.co.uk/logo.png"
               alt="Eden Clinic"
               width="150"
               height="40"
@@ -43,10 +43,10 @@ export const ResultReadyEmail = ({ name, testName }: ResultReadyEmailProps) => {
           </Text>
           <Section style={styles.buttonContainer}>
             <Link
-              href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://bloodtest.edenclinicformen.com'}/client/login?next=/client/orders`}
+              href="https://edenclinic.co.uk/client/blood-tests"
               style={styles.button}
             >
-              Log in to View Result
+              View My Results
             </Link>
           </Section>
           <Text style={styles.text}>
@@ -62,7 +62,7 @@ export const ResultReadyEmail = ({ name, testName }: ResultReadyEmailProps) => {
             </Text>
             <Text style={styles.footerText}>
               <Link
-                href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://edenclinicformen.com'}/bloodtest-support`}
+                href="https://edenclinic.co.uk/bloodtest-support"
                 style={styles.footerLink}
               >
                 Get Support
@@ -157,8 +157,7 @@ export async function sendResultReadyEmail({
 
   await sendEmail({
     to: email,
-    subject: "Your Blood Test Result is Ready",
-    text: `Hello ${name}, Your ${testName} results are now available to view in your Eden Clinic dashboard. Please log in to your account to view and download your results.`,
+    subject: "Your Eden Clinic test results are ready",
     html: emailHtml,
   });
 }
