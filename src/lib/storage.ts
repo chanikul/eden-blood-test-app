@@ -3,8 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 
 // Direct Supabase client for file uploads
 // This avoids issues with the singleton pattern in browser environments
-const SUPABASE_URL = 'https://dlzfhnnwyvddaoikrung.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsemZobm53eXZkZGFvaWtydW5nIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Njg4OTA2OCwiZXhwIjoyMDYyNDY1MDY4fQ.qbO0KymO7nLymwexLcZ2SK4n1owTDU5U63DoNoIygTE';
+// Use environment variables with fallbacks for development only
+// IMPORTANT: These fallbacks should be removed in production
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// Validate environment variables
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing required Supabase environment variables');
+}
 
 // Create a direct admin client for storage operations
 // Export this function so it can be used by the MCP tools
