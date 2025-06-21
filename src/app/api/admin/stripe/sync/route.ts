@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { syncStripeProducts } from '../../../../../lib/services/stripe';
 import { getServerSession } from '../../../../../lib/auth';

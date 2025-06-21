@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { resetPassword } from '../../../../../../lib/services/admin';
 import { z } from 'zod';
@@ -7,7 +9,7 @@ const confirmResetSchema = z.object({
   password: z.string().min(8),
 });
 
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const { token, password } = confirmResetSchema.parse(body);
@@ -34,6 +36,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }
