@@ -4,5 +4,5 @@ This file is used to trigger new deployments when environment variables are upda
 
 ## Latest Deployment
 - Date: 2025-06-21
-- Time: 15:38
-- Update: Updated BASE_URL environment variable
+- Time: 16:01
+- Update: Additional environment variable updates
