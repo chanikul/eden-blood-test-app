@@ -17,11 +17,17 @@ const PROTECTED_ROUTES = {
 const PUBLIC_ROUTES = [
   '/login',
   '/admin-login',
+  '/admin-bypass',
   '/forgot-password',
   '/reset-password',
   '/terms',
   '/privacy'
 ];
+
+// Function to check if we're on a Vercel preview deployment
+function isVercelPreview(hostname: string): boolean {
+  return hostname.includes('vercel.app') || hostname === 'localhost';
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -67,6 +73,13 @@ export function middleware(request: NextRequest) {
 
   // Check admin routes
   if (PROTECTED_ROUTES.DOCTOR.paths.some(path => pathname.startsWith(path))) {
+    // Bypass authentication for Vercel preview deployments
+    const hostname = request.headers.get('host') || '';
+    if (isVercelPreview(hostname)) {
+      console.log('Vercel preview detected in middleware - bypassing admin auth check');
+      return NextResponse.next();
+    }
+    
     if (!authToken || !refreshToken) {
       // Redirect to admin login with return URL
       const adminLoginUrl = new URL('/admin-login', request.url);
