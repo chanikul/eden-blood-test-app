@@ -5,8 +5,10 @@ import { sendPasswordResetEmail } from '../../../../../lib/services/email';
 import { generateSessionToken } from '../../../../../lib/auth';
 import { randomBytes } from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   try {
     const { email } = await request.json();
 
@@ -68,6 +70,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
 import { hashPassword } from '../../../../../lib/utils/password';
 
+export const dynamic = 'force-dynamic';
+
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   try {
     const { token, newPassword } = await request.json();
 
@@ -55,6 +57,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }

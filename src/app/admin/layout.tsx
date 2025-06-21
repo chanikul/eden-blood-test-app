@@ -4,6 +4,8 @@ import { Sidebar } from '@/components/admin/Sidebar'
 import { usePathname } from 'next/navigation'
 import { SafeAuthGuard } from '@/components/admin/SafeAuthGuard'
 import DebugBanner from '@/components/admin/DebugBanner'
+
+export const dynamic = 'force-dynamic'
 // Vitalis Nexus brand colors
 const VITALIS_BLUE = '#0057B8'
 const NEXUS_AQUA = '#00ADEF'

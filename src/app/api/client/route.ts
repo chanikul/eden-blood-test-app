@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPatientFromToken } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = async () => {
   try {
     const patient = await getPatientFromToken();

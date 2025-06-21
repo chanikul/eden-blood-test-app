@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 // Simple session getter function
 async function getServerSession() {
   // In development mode, return a mock admin session

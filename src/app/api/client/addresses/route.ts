@@ -4,6 +4,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 import { getClientSession } from '../../../../lib/auth/client';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = async (req: NextRequest) => {
   try {
     const session = await getClientSession();

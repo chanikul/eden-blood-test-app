@@ -4,6 +4,8 @@ import { prisma } from '../../../../lib/prisma';
 import { createClientUser } from '../../../../lib/services/client-user';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),

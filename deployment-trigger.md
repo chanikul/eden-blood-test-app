@@ -4,5 +4,5 @@ This file is used to trigger new deployments when environment variables are upda
 
 ## Latest Deployment
 - Date: 2025-06-21
-- Time: 16:01
-- Update: Additional environment variable updates
+- Time: 17:37
+- Update: Added 'dynamic = force-dynamic' directive to all admin pages, API routes, and auth routes to fix DynamicServerError issues with cookies

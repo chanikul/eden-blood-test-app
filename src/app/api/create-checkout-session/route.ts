@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 // Direct import of Prisma without path aliases
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();

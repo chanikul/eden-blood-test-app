@@ -1,6 +1,8 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 import { Order } from '@prisma/client'
 import { OrdersTable } from '@/components/admin/OrdersTable'
 import { OrderFiltersWrapper } from '@/components/admin/OrderFiltersWrapper'

@@ -8,6 +8,8 @@ import { z, ZodError } from 'zod';
 import Stripe from 'stripe';
 import type { BloodTest } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',

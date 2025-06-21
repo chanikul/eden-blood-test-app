@@ -4,8 +4,10 @@ import { prisma } from '../../../../../lib/prisma';
 import { verifyPassword } from '../../../../../lib/utils/password';
 import { generateSessionToken } from '../../../../../lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   try {
     const { email, password } = await request.json();
 
@@ -100,6 +102,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }

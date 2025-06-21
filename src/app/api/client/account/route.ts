@@ -7,6 +7,8 @@ import bcrypt from 'bcryptjs';
 import { getSupabaseClient } from '../../../../lib/supabase-client';
 import { jwtVerify } from 'jose';
 
+export const dynamic = 'force-dynamic';
+
 // Get the Supabase client singleton
 const supabase = getSupabaseClient();
 

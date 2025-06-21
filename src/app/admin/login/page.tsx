@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { getSupabaseClient } from '../../../lib/supabase-client'
 
+export const dynamic = 'force-dynamic'
+
 // Get the singleton instance of Supabase client only once outside component
 let supabaseClient: ReturnType<typeof getSupabaseClient> | null = null;
 

@@ -3,8 +3,10 @@ import { prisma } from '../../../../../lib/prisma';
 import { verifyPassword, hashPassword } from '../../../../../lib/utils/password';
 import { getPatientFromToken } from '../../../../../lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Using named export for compatibility with Netlify
-export const POST = async (request) => { {
+export const POST = async (request: NextRequest) => {
   console.log('=== CHANGE PASSWORD DEBUG ===');
   try {
     const { currentPassword, newPassword } = await request.json();
@@ -84,6 +86,4 @@ export const POST = async (request) => { {
       { status: 500 }
     );
   }
-}
-
 }
