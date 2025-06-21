@@ -47,7 +47,7 @@ const nextConfig = {
               img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in https://eden-clinic-blood-test-app.windsurf.build https://edenclinicformen.com https://dlzfhnnwyvddaoikrung.supabase.co https://localhost:* https://edenclinic.netlify.app https://*.googleapis.com https://*.gstatic.com https://*.google.com https://maps.gstatic.com https://*.stripe.com https://*.vercel.app https://vercel.app;
               font-src 'self' https://*.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com;
               connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.stripe.com https://eden-clinic-blood-test-app.windsurf.build https://edenclinicformen.com https://dlzfhnnwyvddaoikrung.supabase.co https://localhost:* https://edenclinic.netlify.app https://*.googleapis.com https://maps.googleapis.com https://*.google.com https://csp.withgoogle.com https://*.hcaptcha.com https://*.vercel.app https://vercel.app;
-              frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://www.google.com https://hcaptcha.com https://*.hcaptcha.com;
+              frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://www.google.com https://hcaptcha.com https://*.hcaptcha.com https://vercel.live https://*.vercel.live https://*.vercel.app https://vercel.app;
               object-src 'none';
             `.replace(/\s+/g, ' ').trim()
           }
