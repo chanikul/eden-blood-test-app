@@ -17,13 +17,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const [isVercelPreview, setIsVercelPreview] = useState(false)
   
-  // Check if we're on Vercel preview deployment
+  // Check if we're on Vercel preview deployment or have bypass cookie
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check for hostname
       const hostname = window.location.hostname
       const isPreview = hostname.includes('vercel.app') || hostname.includes('localhost')
-      setIsVercelPreview(isPreview)
-      console.log('Is Vercel preview deployment:', isPreview)
+      
+      // Check for bypass cookie/storage
+      const hasBypassCookie = document.cookie.includes('eden_admin_bypass=true')
+      const hasBypassStorage = localStorage.getItem('eden_admin_bypass') === 'true' || 
+                              sessionStorage.getItem('eden_admin_bypass') === 'true'
+      
+      const shouldBypass = isPreview || hasBypassCookie || hasBypassStorage
+      
+      console.log('Admin auth check:', {
+        isVercelPreview: isPreview,
+        hasBypassCookie,
+        hasBypassStorage,
+        shouldBypass
+      })
+      
+      setIsVercelPreview(shouldBypass)
     }
   }, [])
   

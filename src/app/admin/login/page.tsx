@@ -41,15 +41,28 @@ function ClientLoginPage() {
   // Initialize Supabase client safely - only on client side
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Check if we're on Vercel preview deployment
+      // Check if we're on Vercel preview deployment or have bypass cookie
       const hostname = window.location.hostname;
       const isPreview = hostname.includes('vercel.app') || hostname.includes('localhost');
-      setIsVercelPreview(isPreview);
-      console.log('Is Vercel preview deployment:', isPreview);
       
-      // Auto-redirect to admin dashboard for Vercel preview
-      if (isPreview) {
-        console.log('Vercel preview detected: Auto-redirecting to admin dashboard');
+      // Check for bypass cookie/storage
+      const hasBypassCookie = document.cookie.includes('eden_admin_bypass=true');
+      const hasBypassStorage = localStorage.getItem('eden_admin_bypass') === 'true' || 
+                              sessionStorage.getItem('eden_admin_bypass') === 'true';
+      
+      const shouldBypass = isPreview || hasBypassCookie || hasBypassStorage;
+      setIsVercelPreview(shouldBypass);
+      
+      console.log('Login auth check:', {
+        isVercelPreview: isPreview,
+        hasBypassCookie,
+        hasBypassStorage,
+        shouldBypass
+      });
+      
+      // Auto-redirect to admin dashboard for Vercel preview or bypass
+      if (shouldBypass) {
+        console.log('Admin bypass detected: Auto-redirecting to admin dashboard');
         router.push('/admin');
         return;
       }
