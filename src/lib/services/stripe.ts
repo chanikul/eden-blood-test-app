@@ -3,18 +3,28 @@ import slugify from 'slugify';
 
 
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is not set');
-}
+// Check if Stripe environment variables are available
+let stripeInitialized = false;
+let stripe: Stripe | null = null;
 
-if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set');
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      // Use the updated API version
+      apiVersion: '2023-10-16' as any
+    });
+    stripeInitialized = true;
+    console.log('Stripe initialized successfully');
+  } else {
+    console.warn('STRIPE_SECRET_KEY is not set - Stripe functionality will be disabled');
+  }
+  
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.warn('STRIPE_WEBHOOK_SECRET is not set - Stripe webhook verification will be disabled');
+  }
+} catch (error) {
+  console.error('Failed to initialize Stripe:', error);
 }
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // Use the updated API version
-  apiVersion: '2023-10-16' as any
-});
 
 interface StripeMode {
   isTestMode: boolean;
@@ -40,8 +50,11 @@ interface SyncResult {
   }>;
 }
 
-async function getStripeMode(): Promise<StripeMode> {
-  const secretKey = process.env.STRIPE_SECRET_KEY!;
+async function getStripeMode(): Promise<StripeMode | null> {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return null;
+  }
+  const secretKey = process.env.STRIPE_SECRET_KEY;
   const isTestMode = secretKey.startsWith('sk_test_');
   return { isTestMode, secretKey };
 }
@@ -61,8 +74,38 @@ export async function syncStripeProducts(): Promise<SyncResult> {
   console.log('Starting complete Stripe sync...');
   
   try {
+    // Check if Stripe is initialized
+    if (!stripeInitialized || !stripe) {
+      console.warn('Stripe is not initialized - sync operation aborted');
+      return {
+        success: false,
+        message: 'Stripe is not configured',
+        details: {
+          created: 0,
+          updated: 0,
+          archived: 0
+        },
+        products: []
+      };
+    }
+    
     // Step 1: Get Stripe mode
-    const { isTestMode } = await getStripeMode();
+    const stripeMode = await getStripeMode();
+    if (!stripeMode) {
+      console.warn('Could not determine Stripe mode - sync operation aborted');
+      return {
+        success: false,
+        message: 'Stripe configuration is incomplete',
+        details: {
+          created: 0,
+          updated: 0,
+          archived: 0
+        },
+        products: []
+      };
+    }
+    
+    const { isTestMode } = stripeMode;
     const mode = isTestMode ? 'test' : 'live';
     console.log(`Operating in ${mode} mode`);
 

@@ -5,6 +5,12 @@ import { getServerSession } from '../../../../../lib/auth';
 export const POST = async () => {
   console.log('Starting sync request...');
   try {
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.log('STRIPE_SECRET_KEY is not set - Stripe sync functionality will be disabled');
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+    }
+    
     console.log('Getting server session...');
     const session = await getServerSession();
     console.log('Session:', session);
