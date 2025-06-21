@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
+// import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'; // Temporarily removed for deployment
+// import { Button } from '../ui/button'; // Temporarily removed for deployment
 import { Loader2, Download, X, FileText } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -66,31 +66,29 @@ export function TestResultViewerModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle className="text-xl font-semibold">{testName} Result</DialogTitle>
+    isOpen ? (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+          <div className="mb-4 flex flex-row items-center justify-between">
+            <h2 className="text-xl font-semibold">{testName} Result</h2>
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
               onClick={handleDownload}
               disabled={isLoading || !pdfUrl}
+              className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm"
             >
-              <Download className="h-4 w-4 mr-1" />
+              <Download className="h-4 w-4 mr-1 inline" />
               Download
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
+            </button>
+            <button
               onClick={onClose}
-              className="h-8 w-8 p-0 rounded-full"
+              className="h-8 w-8 p-0 rounded-full bg-gray-200 hover:bg-gray-300"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 m-auto" />
               <span className="sr-only">Close</span>
-            </Button>
+            </button>
           </div>
-        </DialogHeader>
+        </div>
         
         <div className="flex-1 overflow-hidden mt-4 bg-gray-50 rounded-md border border-gray-200">
           {isLoading ? (
@@ -104,35 +102,31 @@ export function TestResultViewerModal({
             <div className="flex items-center justify-center h-full min-h-[400px]">
               <div className="text-center text-red-500">
                 <p>{error}</p>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
+                <button 
                   onClick={fetchSecureUrl} 
-                  className="mt-4"
+                  className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm mt-4"
                 >
                   Try Again
-                </Button>
+                </button>
               </div>
             </div>
           ) : pdfUrl ? (
             <div className="flex flex-col h-full">
               <div className="bg-gray-100 p-2 mb-2 rounded flex justify-center">
-                <Button
-                  variant="primary"
+                <button
                   onClick={handleDownload}
-                  className="mx-2"
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mx-2"
                 >
-                  <Download className="h-4 w-4 mr-1" />
+                  <Download className="h-4 w-4 mr-1 inline" />
                   Download PDF
-                </Button>
-                <Button
-                  variant="secondary"
+                </button>
+                <button
                   onClick={() => window.open(pdfUrl, '_blank')}
-                  className="mx-2"
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 mx-2"
                 >
-                  <FileText className="h-4 w-4 mr-1" />
+                  <FileText className="h-4 w-4 mr-1 inline" />
                   Open in New Tab
-                </Button>
+                </button>
               </div>
               
               <div className="flex-1 bg-white rounded border border-gray-200">
@@ -152,7 +146,8 @@ export function TestResultViewerModal({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    ) : null
   );
 }
