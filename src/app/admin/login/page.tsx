@@ -36,10 +36,24 @@ function ClientLoginPage() {
   const [password, setPassword] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
   const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseClient> | null>(null)
+  const [isVercelPreview, setIsVercelPreview] = useState(false)
 
   // Initialize Supabase client safely - only on client side
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check if we're on Vercel preview deployment
+      const hostname = window.location.hostname;
+      const isPreview = hostname.includes('vercel.app') || hostname.includes('localhost');
+      setIsVercelPreview(isPreview);
+      console.log('Is Vercel preview deployment:', isPreview);
+      
+      // Auto-redirect to admin dashboard for Vercel preview
+      if (isPreview) {
+        console.log('Vercel preview detected: Auto-redirecting to admin dashboard');
+        router.push('/admin');
+        return;
+      }
+      
       try {
         setSupabase(getSafeSupabaseClient());
       } catch (error) {
@@ -47,7 +61,7 @@ function ClientLoginPage() {
         setError('Failed to initialize authentication. Please try again later.');
       }
     }
-  }, []);
+  }, [router]);
 
   // Handle Supabase auth state changes
   useEffect(() => {
