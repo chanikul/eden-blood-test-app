@@ -3,14 +3,16 @@ import { getClientSession } from '../../../../lib/auth/client';
 import { prisma } from '../../../../lib/prisma';
 import { StorageMcpClient } from '../../../../lib/mcp/storage-mcp-client';
 
+// Mark as dynamic to ensure proper execution
+export const dynamic = 'force-dynamic';
+
 // Using named export for compatibility with Netlify
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     console.log('GET /api/test-results/download - Starting request');
     
-    // Get the test result ID from the URL
-    const url = new URL(request.url);
-    const testResultId = url.searchParams.get('id');
+    // Get the test result ID from searchParams directly
+    const testResultId = request.nextUrl.searchParams.get('id');
     
     if (!testResultId) {
       console.log('GET /api/test-results/download - Missing test result ID');
