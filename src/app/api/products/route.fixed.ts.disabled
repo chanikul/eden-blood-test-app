@@ -14,34 +14,21 @@ function getStripeClient(): Stripe | null {
     const stripeKey = process.env.STRIPE_SECRET_KEY || FALLBACK_STRIPE_KEY;
     
     if (!stripeKey) {
-      console.warn('Missing Stripe secret key - products API will use mock data');
+      console.error('Missing Stripe secret key');
       return null;
     }
     
     return new Stripe(stripeKey, {
-      apiVersion: '2022-11-15' as any, // Using type assertion to avoid TypeScript errors
+      apiVersion: '2022-11-15',
     });
   } catch (error) {
-    console.warn('Failed to initialize Stripe client - products API will use mock data:', error);
+    console.error('Failed to initialize Stripe client:', error);
     return null;
   }
 }
 
-// Enable CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-// OPTIONS handler for CORS preflight requests
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
-export async function GET(request: Request) {
+export async function GET() {
   console.log('GET /api/products - Fetching blood test products');
-  console.log('Request URL:', request.url);
   
   try {
     // Check if we have a Stripe key
@@ -56,22 +43,20 @@ export async function GET(request: Request) {
       return NextResponse.json(mockBloodTests, {
         status: 200,
         headers: {
-          ...corsHeaders,
           'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
           'Content-Type': 'application/json',
         },
       });
     }
     
-    // Fetch all active products from Stripe with expanded price data
-    console.log('Fetching active products from Stripe with expanded price data...');
+    // Fetch all active products from Stripe
+    console.log('Fetching products from Stripe...');
     const productsResponse = await stripe.products.list({
       active: true,
       limit: 100,
-      expand: ['data.default_price']
     });
     
-    console.log(`Found ${productsResponse.data.length} total active products`);
+    console.log(`Found ${productsResponse.data.length} total products`);
     
     // Filter for blood test products only
     const bloodTestProducts = productsResponse.data.filter(
@@ -86,36 +71,53 @@ export async function GET(request: Request) {
       return NextResponse.json(mockBloodTests, {
         status: 200,
         headers: {
-          ...corsHeaders,
           'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
           'Content-Type': 'application/json',
         },
       });
     }
     
-    // Format the response as requested
-    const formattedProducts = bloodTestProducts.map(product => {
-      const price = product.default_price as Stripe.Price;
-      const priceAmount = price?.unit_amount ? (price.unit_amount / 100).toFixed(2) : '0.00';
-      
-      return {
-        value: product.id,
-        label: `${product.name} - $${priceAmount}`,
-        // Include additional data that might be useful for the frontend
-        price_id: price?.id || '',
-        price_amount: price?.unit_amount || 0,
-        description: product.description || '',
-        image: product.images?.[0] || ''
-      };
-    });
+    // Fetch prices for each product
+    const bloodTestsWithPrices = await Promise.all(
+      bloodTestProducts.map(async (product) => {
+        try {
+          const pricesResponse = await stripe.prices.list({
+            product: product.id,
+            active: true,
+          });
+          
+          const price = pricesResponse.data[0];
+          
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: price ? price.unit_amount : 0,
+            priceId: price ? price.id : '',
+            image: product.images?.[0] || '',
+            metadata: product.metadata || {},
+          };
+        } catch (priceError) {
+          console.error(`Error fetching price for product ${product.id}:`, priceError);
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: 0,
+            priceId: '',
+            image: product.images?.[0] || '',
+            metadata: product.metadata || {},
+          };
+        }
+      })
+    );
     
-    console.log(`Successfully formatted ${formattedProducts.length} blood test products`);
+    console.log(`Successfully processed ${bloodTestsWithPrices.length} blood test products with prices`);
     
-    // Return the formatted blood test products
-    return NextResponse.json(formattedProducts, {
+    // Return the blood tests with prices
+    return NextResponse.json(bloodTestsWithPrices, {
       status: 200,
       headers: {
-        ...corsHeaders,
         'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
         'Content-Type': 'application/json',
       },
@@ -129,12 +131,11 @@ export async function GET(request: Request) {
         error: 'Failed to fetch blood test products',
         message: error instanceof Error ? error.message : 'Unknown error',
         fallback: true,
-        products: [] // Don't return mock data in error case as requested
+        products: mockBloodTests 
       },
       {
         status: 500,
         headers: {
-          ...corsHeaders,
           'Content-Type': 'application/json',
         },
       }
