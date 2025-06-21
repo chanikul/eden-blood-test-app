@@ -12,15 +12,15 @@ const nextConfig = {
     serverActions: true,
   },
   swcMinify: true,
-  // Configure images for Netlify
+  // Configure images for Vercel deployment
   images: {
-    domains: ['eden-clinic-blood-test-app.windsurf.build', 'edenclinicformen.com', 'dlzfhnnwyvddaoikrung.supabase.co'],
+    domains: ['eden-clinic-blood-test-app.windsurf.build', 'edenclinicformen.com', 'dlzfhnnwyvddaoikrung.supabase.co', 'vercel.app', 'eden-blood-test-app.vercel.app'],
     unoptimized: true,
   },
   // Add trailing slash to help with routing
   trailingSlash: true,
-  // Disable asset prefix in development
-  assetPrefix: isProd ? 'https://eden-clinic-blood-test-app.windsurf.build' : '',
+  // Remove asset prefix for Vercel deployment
+  assetPrefix: '',
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
     DIRECT_URL: process.env.DIRECT_URL,
@@ -40,13 +40,13 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googleapis.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com https://hcaptcha.com https://*.hcaptcha.com;
-              style-src 'self' 'unsafe-inline' https://*.googleapis.com https://fonts.googleapis.com https://hcaptcha.com https://*.hcaptcha.com;
-              style-src-elem 'self' 'unsafe-inline' https://*.googleapis.com https://fonts.googleapis.com https://hcaptcha.com https://*.hcaptcha.com;
-              img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in https://eden-clinic-blood-test-app.windsurf.build https://edenclinicformen.com https://dlzfhnnwyvddaoikrung.supabase.co https://localhost:* https://edenclinic.netlify.app https://*.googleapis.com https://*.gstatic.com https://*.google.com https://maps.gstatic.com https://*.stripe.com;
+              default-src 'self' https://*.vercel.app https://vercel.app;
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googleapis.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com https://hcaptcha.com https://*.hcaptcha.com https://*.vercel.app https://vercel.app;
+              style-src 'self' 'unsafe-inline' https://*.googleapis.com https://fonts.googleapis.com https://hcaptcha.com https://*.hcaptcha.com https://*.vercel.app https://vercel.app;
+              style-src-elem 'self' 'unsafe-inline' https://*.googleapis.com https://fonts.googleapis.com https://hcaptcha.com https://*.hcaptcha.com https://*.vercel.app https://vercel.app;
+              img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in https://eden-clinic-blood-test-app.windsurf.build https://edenclinicformen.com https://dlzfhnnwyvddaoikrung.supabase.co https://localhost:* https://edenclinic.netlify.app https://*.googleapis.com https://*.gstatic.com https://*.google.com https://maps.gstatic.com https://*.stripe.com https://*.vercel.app https://vercel.app;
               font-src 'self' https://*.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com;
-              connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.stripe.com https://eden-clinic-blood-test-app.windsurf.build https://edenclinicformen.com https://dlzfhnnwyvddaoikrung.supabase.co https://localhost:* https://edenclinic.netlify.app https://*.googleapis.com https://maps.googleapis.com https://*.google.com https://csp.withgoogle.com https://*.hcaptcha.com;
+              connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.stripe.com https://eden-clinic-blood-test-app.windsurf.build https://edenclinicformen.com https://dlzfhnnwyvddaoikrung.supabase.co https://localhost:* https://edenclinic.netlify.app https://*.googleapis.com https://maps.googleapis.com https://*.google.com https://csp.withgoogle.com https://*.hcaptcha.com https://*.vercel.app https://vercel.app;
               frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://www.google.com https://hcaptcha.com https://*.hcaptcha.com;
               object-src 'none';
             `.replace(/\s+/g, ' ').trim()
