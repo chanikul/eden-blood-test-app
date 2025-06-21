@@ -39,8 +39,14 @@ export function SafeAuthGuard({ children, fallback }: SafeAuthGuardProps) {
 
   useEffect(() => {
     // Development mode bypass for easier local testing
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Development mode: Bypassing authentication check');
+    // Also add a temporary bypass for Vercel deployment testing
+    const isDevMode = process.env.NODE_ENV === 'development';
+    const isVercelPreview = typeof window !== 'undefined' && 
+      (window.location.hostname.includes('vercel.app') || 
+       window.location.hostname.includes('localhost'));
+    
+    if (isDevMode || isVercelPreview) {
+      console.log('Development/Preview mode: Bypassing authentication check');
       setIsAuthenticated(true);
       setIsLoading(false);
       return () => {}; // Return empty cleanup function for development mode
