@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { TestResultViewerModal } from './TestResultViewerModal';
-import { Button } from '../ui/button';
+// import { Button } from '../ui/button'; // Temporarily removed for deployment
 import { formatDate } from '@/lib/utils';
 import { OrderStatus, TestStatus } from '@prisma/client';
 
@@ -73,15 +73,13 @@ export function BloodTestResultsTable({ results }: BloodTestResultsTableProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex space-x-2">
-                    <Button
+                    <button
                       onClick={() => test.resultId && handleViewResult(test.resultId, test.testName)}
                       disabled={!test.resultId || test.resultStatus !== TestStatus.ready}
-                      size="sm"
-                      variant="secondary"
-                      className="text-blue-600 hover:text-blue-800"
+                      className="p-1 bg-gray-100 text-blue-600 hover:text-blue-800 rounded"
                     >
                       <Eye className="h-4 w-4" />
-                    </Button>
+                    </button>
                   </div>
                 </td>
               </tr>

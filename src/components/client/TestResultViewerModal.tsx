@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
+// import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'; // Temporarily removed for deployment
+// import { Button } from '../ui/button'; // Temporarily removed for deployment
 import { Download, FileText, Loader2, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -72,19 +72,18 @@ export function TestResultViewerModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle>{testName} Result</DialogTitle>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 rounded-full"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </DialogHeader>
+    isOpen ? (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-[900px] w-full mx-4 max-h-[90vh] flex flex-col">
+          <div className="mb-4 flex flex-row items-center justify-between">
+            <h2 className="text-xl font-semibold">{testName} Result</h2>
+            <button
+              onClick={onClose}
+              className="h-8 w-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
@@ -98,30 +97,28 @@ export function TestResultViewerModal({
             <div className="flex items-center justify-center h-full min-h-[400px]">
               <div className="text-center">
                 <p className="text-red-500 mb-4">{error}</p>
-                <Button variant="secondary" size="sm" onClick={fetchPdfUrl}>
+                <button className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm" onClick={fetchPdfUrl}>
                   Try Again
-                </Button>
+                </button>
               </div>
             </div>
           ) : pdfUrl ? (
             <div className="flex flex-col h-full">
               <div className="bg-gray-100 p-2 mb-2 rounded flex justify-center">
-                <Button
-                  variant="primary"
+                <button
                   onClick={handleDownload}
-                  className="mx-2"
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mx-2 flex items-center"
                 >
                   <Download className="h-4 w-4 mr-1" />
                   Download PDF
-                </Button>
-                <Button
-                  variant="secondary"
+                </button>
+                <button
                   onClick={() => window.open(pdfUrl, '_blank')}
-                  className="mx-2"
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 mx-2 flex items-center"
                 >
                   <FileText className="h-4 w-4 mr-1" />
                   Open in New Tab
-                </Button>
+                </button>
               </div>
               
               <div className="flex-1 bg-white rounded border border-gray-200">
@@ -140,7 +137,8 @@ export function TestResultViewerModal({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    ) : null
   );
 }

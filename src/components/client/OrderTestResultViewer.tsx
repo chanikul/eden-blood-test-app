@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+// import { Button } from '../ui/button'; // Temporarily removed for deployment
+// import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card'; // Temporarily removed for deployment
 import { TestStatus, OrderStatus } from '@prisma/client';
 import { Download, FileText, Loader2, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Badge } from '../ui/badge';
+// import { Alert, AlertDescription } from '../ui/alert'; // Temporarily removed for deployment
+// import { Badge } from '../ui/badge'; // Temporarily removed for deployment
 import { TestResultViewerModal } from './TestResultViewerModal';
 
 interface OrderTestResultViewerProps {
@@ -72,32 +72,33 @@ export function OrderTestResultViewer({ order, testResult }: OrderTestResultView
   };
   
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <div className="w-full border rounded-lg shadow-sm">
+      <div className="p-4 border-b">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg">{testName}</CardTitle>
-            <CardDescription>
+            <h3 className="text-lg font-semibold">{testName}</h3>
+            <p className="text-sm text-gray-500">
               Test ordered {formatDistanceToNow(new Date(createdDate), { addSuffix: true })}
-            </CardDescription>
+            </p>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge
-              variant={canDownload ? 'primary' : 'outline'}
+            <span
               className={
+                `px-2 py-1 text-xs font-medium rounded-full ${
                 canDownload 
-                  ? 'bg-green-100 text-green-800 border-green-200' 
+                  ? 'bg-green-100 text-green-800 border border-green-200' 
                   : order.status === OrderStatus.DISPATCHED 
-                    ? 'bg-blue-100 text-blue-800 border-blue-200'
-                    : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                    : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                }`
               }
             >
               {canDownload ? 'Results Ready' : order.status === OrderStatus.DISPATCHED ? 'Dispatched' : order.status}
-            </Badge>
+            </span>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="p-4 border-b">
         <div className="text-sm text-gray-500">
           {canViewResults ? (
             <>
@@ -108,45 +109,43 @@ export function OrderTestResultViewer({ order, testResult }: OrderTestResultView
               ) : (
                 <>
                   <p>Your test has been dispatched. Results will be available soon.</p>
-                  <Alert variant="info" className="mt-2 bg-blue-50 text-blue-800 text-xs p-2">
-                    <AlertCircle className="h-3 w-3" />
-                    <AlertDescription>
+                  <div className="mt-2 bg-blue-50 text-blue-800 text-xs p-2 rounded flex items-center">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    <p>
                       You'll receive an email when your results are ready to view.
-                    </AlertDescription>
-                  </Alert>
+                    </p>
+                  </div>
                 </>
               )}
             </>
           ) : (
             <>
               <p>Your test is still being processed. We'll notify you when it's dispatched.</p>
-              <Alert variant="info" className="mt-2 bg-blue-50 text-blue-800 text-xs p-2">
-                <AlertCircle className="h-3 w-3" />
-                <AlertDescription>
+              <div className="mt-2 bg-blue-50 text-blue-800 text-xs p-2 rounded flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                <p>
                   You'll receive an email when your test is dispatched and when results are ready.
-                </AlertDescription>
-              </Alert>
+                </p>
+              </div>
             </>
           )}
           {error && <p className="text-red-500 mt-2">{error}</p>}
         </div>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
+      </div>
+      <div className="p-4 flex flex-col space-y-2">
         {canDownload && testResult && (
-          <Button
+          <button
             onClick={() => setIsViewerOpen(true)}
-            className="w-full"
-            variant="secondary"
+            className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 flex items-center justify-center"
           >
             <Eye className="mr-2 h-4 w-4" />
             View Results
-          </Button>
+          </button>
         )}
-        <Button
+        <button
           onClick={handleDownload}
           disabled={!canDownload || isLoading}
-          className="w-full"
-          variant={canDownload ? "primary" : "secondary"}
+          className={`w-full px-4 py-2 rounded flex items-center justify-center ${canDownload ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
         >
           {isLoading ? (
             <>
@@ -164,7 +163,7 @@ export function OrderTestResultViewer({ order, testResult }: OrderTestResultView
               {order.status === OrderStatus.DISPATCHED ? 'Results Processing' : 'Test Processing'}
             </>
           )}
-        </Button>
+        </button>
         
         {/* Viewer Modal */}
         {canDownload && testResult && (
@@ -175,7 +174,7 @@ export function OrderTestResultViewer({ order, testResult }: OrderTestResultView
             testName={testName}
           />
         )}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
