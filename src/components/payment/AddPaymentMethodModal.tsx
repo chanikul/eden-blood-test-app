@@ -1,12 +1,13 @@
 import { useState } from 'react';
+// Temporarily removed problematic UI components for deployment
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  Button,
-  Input,
+  // Dialog,
+  // DialogContent,
+  // DialogHeader,
+  // DialogTitle,
+  // DialogTrigger,
+  // Button,
+  // Input,
   Label,
   RadioGroup,
   RadioGroupItem,

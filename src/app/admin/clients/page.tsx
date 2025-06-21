@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '../../../components/ui';
+// import { Button } from '../../../components/ui'; // Temporarily removed for deployment
 import { toast } from 'sonner';
 import { AddClientDialog } from '../../../components/admin/AddClientDialog';
 import { Loader2, Search, Filter } from 'lucide-react';

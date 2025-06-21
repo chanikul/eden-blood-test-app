@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui';
+// import { Button } from '@/components/ui'; // Temporarily removed for deployment
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Loader2, ArrowLeft, Upload, Calendar } from 'lucide-react';
