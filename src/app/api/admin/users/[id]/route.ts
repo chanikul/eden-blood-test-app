@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifySessionToken } from '@/lib/auth';
-import { updateAdmin, getAdminById } from '@/lib/services/admin';
+import { verifySessionToken } from '../../../../../lib/auth';
+import { updateAdmin, getAdminById } from '../../../../../lib/services/admin';
 import { z } from 'zod';
 
 const updateAdminSchema = z.object({
@@ -13,10 +13,7 @@ const updateAdminSchema = z.object({
 });
 
 // Get admin by ID
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const GET = async (request: NextRequest, { params }: { params: { id: string } }) => {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('eden_admin_token')?.value;
@@ -46,10 +43,7 @@ export async function GET(
 }
 
 // Update admin
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const PATCH = async (request: NextRequest, { params }: { params: { id: string } }) => {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('eden_admin_token')?.value;

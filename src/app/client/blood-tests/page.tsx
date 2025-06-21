@@ -8,9 +8,12 @@ import {
   Search,
   Filter,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  LayoutGrid,
+  List
 } from 'lucide-react';
-import { TestResultDownload } from '../../../components/client/TestResultDownload';
+import { OrderTestResultViewer } from '../../../components/client/OrderTestResultViewer';
+import { BloodTestResultsTable } from '../../../components/client/BloodTestResultsTable';
 import { TestResultMcpProvider } from '../../../components/client/TestResultMcpProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -49,6 +52,7 @@ export default function BloodTestsPage() {
   const [statusFilter, setStatusFilter] = useState<TestStatus | 'ALL'>('ALL');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   useEffect(() => {
     async function fetchUserAndResults() {
@@ -56,33 +60,41 @@ export default function BloodTestsPage() {
         setIsLoading(true);
         setError(null);
         
-        // Get the current user
-        const userResponse = await fetch('/api/auth/me');
+        // Get the current user - use the patient token from getPatientFromToken
+        const userResponse = await fetch('/api/client/profile-data');
         if (!userResponse.ok) {
+          console.error('Authentication failed:', await userResponse.text());
           throw new Error('Failed to authenticate');
         }
         
         const userData = await userResponse.json();
-        if (!userData.user?.id) {
+        if (!userData?.id) {
+          console.error('No user data found in response');
           window.location.href = '/login';
           return;
         }
         
-        setUserId(userData.user.id);
+        // Set the user ID from the profile data
+        setUserId(userData.id);
         
-        // Fetch test results
+        // Fetch test results - the API will use the patient token from cookies
         const resultsResponse = await fetch('/api/test-results', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
           },
+          // Add cache busting to prevent stale data
+          cache: 'no-store'
         });
         
         if (!resultsResponse.ok) {
+          console.error('Failed to fetch test results:', await resultsResponse.text().catch(() => 'No response text'));
           throw new Error('Failed to fetch test results');
         }
         
         const data = await resultsResponse.json();
+        console.log(`Loaded ${data.results?.length || 0} test results`);
         setResults(data.results || []);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -150,7 +162,7 @@ export default function BloodTestsPage() {
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
           />
         </div>
-        <div className="relative inline-block">
+        <div className="relative inline-block mr-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as TestStatus | 'ALL')}
@@ -161,6 +173,22 @@ export default function BloodTestsPage() {
             <option value="processing">Processing</option>
           </select>
           <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+        </div>
+        <div className="flex border border-gray-300 rounded-md overflow-hidden">
+          <button
+            onClick={() => setViewMode('cards')}
+            className={`px-3 py-2 flex items-center ${viewMode === 'cards' ? 'bg-teal-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+          >
+            <LayoutGrid className="h-4 w-4 mr-1" />
+            <span className="text-sm">Cards</span>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-3 py-2 flex items-center ${viewMode === 'table' ? 'bg-teal-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+          >
+            <List className="h-4 w-4 mr-1" />
+            <span className="text-sm">Table</span>
+          </button>
         </div>
       </div>
 
@@ -187,11 +215,48 @@ export default function BloodTestsPage() {
       
       {/* Tests List */}
       {!isLoading && !error && filteredResults.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredResults.map((result) => (
-            <TestResultDownload key={result.id} result={result} />
-          ))}
-        </div>
+        <>
+          {/* Card View */}
+          {viewMode === 'cards' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredResults.map((result) => (
+                <OrderTestResultViewer 
+                  key={result.id}
+                  order={{
+                    id: result.orderId,
+                    status: result.order?.testName?.includes('DISPATCHED') ? 'DISPATCHED' : result.status === 'ready' ? 'READY' : 'PENDING',
+                    createdAt: result.order?.createdAt || result.createdAt,
+                    updatedAt: result.updatedAt,
+                    testName: result.order?.testName || result.bloodTest?.name || 'Blood Test'
+                  }}
+                  testResult={{
+                    id: result.id,
+                    status: result.status,
+                    resultUrl: result.resultUrl || null,
+                    createdAt: result.createdAt,
+                    updatedAt: result.updatedAt
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* Table View */}
+          {viewMode === 'table' && (
+            <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+              <BloodTestResultsTable 
+                results={filteredResults.map(result => ({
+                  id: result.id,
+                  testName: result.order?.testName || result.bloodTest?.name || 'Blood Test',
+                  orderDate: result.order?.createdAt || result.createdAt,
+                  status: result.order?.testName?.includes('DISPATCHED') ? 'DISPATCHED' : result.status === 'ready' ? 'READY' : 'PENDING',
+                  resultStatus: result.status,
+                  resultId: result.status === 'ready' ? result.id : undefined
+                }))}
+              />
+            </div>
+          )}
+        </>
       )}
       
       {!isLoading && (!error || error === 'Failed to load your test results. Please try again later.') && filteredResults.length === 0 && (

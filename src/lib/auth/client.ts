@@ -55,8 +55,16 @@ export async function verifyClientToken(token: string) {
 }
 
 export async function getClientSession() {
-  const token = cookies().get('eden_client_token')?.value;
-  if (!token) return null;
+  // Check for both token types since the login page uses eden_patient_token
+  // but the client API expects eden_client_token
+  const clientToken = cookies().get('eden_client_token')?.value;
+  const patientToken = cookies().get('eden_patient_token')?.value;
+  
+  const token = clientToken || patientToken;
+  if (!token) {
+    console.log('No client session token found');
+    return null;
+  }
 
   return verifyClientToken(token);
 }

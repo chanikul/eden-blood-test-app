@@ -33,14 +33,14 @@ export const createDirectAdminClient = () => {
  * @param expiresIn Expiration time in seconds (default: 60)
  * @returns Presigned URL string
  */
-export async function createPresignedUrl(filePath: string, bucket = 'test-results', expiresIn = 60): Promise<string> {
+export async function createPresignedUrl(filePath: string, bucketName = 'test-results', expiresIn = 60): Promise<string> {
   try {
     if (!filePath) {
       throw new Error('No file path provided for creating presigned URL');
     }
     
-    // Default bucket name
-    let bucket = 'test-results';
+    // Initialize variables
+    let bucket = bucketName;
     let path = filePath;
     
     console.log('Creating presigned URL for:', filePath);
@@ -52,8 +52,16 @@ export async function createPresignedUrl(filePath: string, bucket = 'test-result
       
       console.log('URL path parts:', pathParts);
       
-      if (pathParts.length > 0) {
-        // In Supabase storage URLs, the bucket name is the first path segment
+      // Handle Supabase storage URL format: /storage/v1/object/public/bucket-name/path/to/file
+      if (pathParts.length >= 4 && pathParts[0] === 'storage' && pathParts[1] === 'v1' && pathParts[2] === 'object') {
+        // The bucket name is after 'public' in the path
+        const publicIndex = pathParts.indexOf('public');
+        if (publicIndex !== -1 && pathParts.length > publicIndex + 1) {
+          bucket = pathParts[publicIndex + 1];
+          path = pathParts.slice(publicIndex + 2).join('/');
+        }
+      } else if (pathParts.length > 0) {
+        // Fallback to original logic
         bucket = pathParts[0];
         path = pathParts.slice(1).join('/');
       }

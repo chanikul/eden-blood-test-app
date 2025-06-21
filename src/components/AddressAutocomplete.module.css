@@ -20,9 +20,12 @@
   ring: 2px solid rgba(45, 55, 73, 0.1);
 }
 
-.input:disabled {
+.input:disabled,
+.disabled {
   background-color: #F3F4F6;
   cursor: not-allowed;
+  color: #6B7280;
+  border-color: #E5E7EB;
 }
 
 .error {

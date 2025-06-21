@@ -145,7 +145,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
       
-      const createdResult = await prisma.testResult.create({
+      createdResult = await prisma.testResult.create({
         data: {
           orderId,
           bloodTestId,

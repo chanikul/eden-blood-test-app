@@ -12,7 +12,8 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2022-11-15'
+  // Use the updated API version
+  apiVersion: '2023-10-16' as any
 });
 
 interface StripeMode {

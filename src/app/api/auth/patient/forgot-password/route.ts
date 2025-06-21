@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { generateSecurePassword } from '@/lib/utils/password';
-import { sendPasswordResetEmail } from '@/lib/services/email';
-import { generateSessionToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import { generateSecurePassword } from '../../../../../lib/utils/password';
+import { sendPasswordResetEmail } from '../../../../../lib/services/email';
+import { generateSessionToken } from '../../../../../lib/auth';
 import { randomBytes } from 'crypto';
 
-export async function POST(request: Request) {
+// Using named export for compatibility with Netlify
+export const POST = async (request) => { {
   try {
     const { email } = await request.json();
 
@@ -67,4 +68,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
 }

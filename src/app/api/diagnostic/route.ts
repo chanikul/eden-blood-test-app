@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../lib/prisma';
 import sgMail from '@sendgrid/mail';
 
 interface EmailTest {
@@ -10,7 +10,7 @@ interface EmailTest {
   response?: any;
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     // Check environment variables
     const envCheck = {

@@ -5,6 +5,7 @@ export enum OrderStatus {
   PAID = 'PAID',
   DISPATCHED = 'DISPATCHED',
   CANCELLED = 'CANCELLED',
+  READY = 'READY',
 }
 
 export type ShippingAddress = {

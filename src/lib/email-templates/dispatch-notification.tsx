@@ -34,7 +34,7 @@ export const DispatchNotificationEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Img
-            src="https://www.edenclinic.co.uk/images/logo.png"
+            src={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.edenclinicformen.com'}/images/logo.png`}
             width="170"
             height="50"
             alt="Eden Clinic"
@@ -68,8 +68,8 @@ export const DispatchNotificationEmail = ({
             
             <Text style={text}>
               If you have any questions or need assistance, please don't hesitate to contact our support team at{' '}
-              <Link href="mailto:support@edenclinic.co.uk" style={link}>
-                support@edenclinic.co.uk
+              <Link href="mailto:support@edenclinicformen.com" style={link}>
+                support@edenclinicformen.com
               </Link>
               .
             </Text>

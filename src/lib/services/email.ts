@@ -45,19 +45,12 @@ export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResp
   
   console.log('Email Details:', {
     to,
-    from: `Eden Clinic <${process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk'}>`,
+    from: `Eden Clinic for Men <${process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com'}>`,
     subject,
     textLength: text?.length,
     htmlLength: html?.length,
     hasHtml: !!html
   });
-
-  // Log full email HTML content for debugging
-  if (html) {
-    console.log('\n=== FULL EMAIL HTML CONTENT ===');
-    console.log(html);
-    console.log('=== END EMAIL HTML CONTENT ===\n');
-  }
 
   // In development mode without forced real emails, just log and return
   if (!isProduction && !forceRealEmails) {
@@ -69,45 +62,57 @@ export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResp
   // Prepare email data - ALWAYS include HTML content if available
   const emailData: MailDataRequired = {
     to,
-    from: `Eden Clinic <${process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk'}>`,
+    from: `Eden Clinic for Men <${process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com'}>`,
     subject,
     text, // Plain text fallback for email clients that don't support HTML
     html: html || undefined // Always prioritize HTML content
   };
 
-  // Log the full email payload for debugging
-  console.log('FULL EMAIL PAYLOAD:', JSON.stringify(emailData, null, 2));
+  // Add retry logic for email sending
+  const MAX_RETRIES = 3;
+  let retryCount = 0;
+  let lastError: any = null;
 
-  console.log('Sending email via SendGrid...', {
-    apiKey: process.env.SENDGRID_API_KEY ? `${process.env.SENDGRID_API_KEY.substring(0, 10)}...` : 'NOT SET',
-    from: emailData.from,
-    to: emailData.to,
-    subject: emailData.subject,
-    hasHtml: !!emailData.html
-  });
-
-  try {
-    // Send the email via SendGrid - no fallbacks, we want to ensure styled emails
-    const response = await sgMail.send(emailData);
-    console.log('✅ Email sent successfully via SendGrid:', { 
-      statusCode: response[0]?.statusCode,
-      messageId: response[0]?.headers['x-message-id'] 
-    });
-    return response;
-  } catch (error) {
-    console.error('❌ Error sending email via SendGrid:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
+  while (retryCount < MAX_RETRIES) {
+    try {
+      console.log(`Sending email to ${to} (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      
+      // Send the email via SendGrid
+      const response = await sgMail.send(emailData);
+      
+      console.log('✅ Email sent successfully via SendGrid:', { 
+        statusCode: response[0]?.statusCode,
+        messageId: response[0]?.headers['x-message-id'],
+        recipient: to,
+        subject: subject
       });
+      
+      return response;
+    } catch (error) {
+      lastError = error;
+      retryCount++;
+      
+      console.error(`❌ Error sending email to ${to} (Attempt ${retryCount}/${MAX_RETRIES}):`, error);
+      
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      
+      if (retryCount < MAX_RETRIES) {
+        // Wait before retrying (exponential backoff)
+        const delay = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-    
-    // No fallbacks - we want to ensure all emails are properly styled
-    // If there's an error, we should fix the root cause rather than falling back
-    console.error('Email sending failed. No fallback will be used to ensure styled emails only.');
-    throw error;
   }
+  
+  // If we've exhausted all retries, throw the last error
+  console.error(`Failed to send email to ${to} after ${MAX_RETRIES} attempts`);
+  throw lastError;
 };
 
 interface ShippingAddress {
@@ -208,7 +213,7 @@ export async function sendOrderNotificationEmail({
   });
 
   const response = await sendEmail({
-    to: process.env.SUPPORT_EMAIL || 'no-reply@edenclinic.co.uk',
+    to: process.env.SUPPORT_EMAIL || 'admin@edenclinicformen.com',
     subject: 'New Blood Test Order',
     text: `New order received: ${testName} for ${fullName} (${email}). Order ID: ${orderId}. DOB: ${dateOfBirth}. ${notes ? `Notes: ${notes}` : ''}`,
     html,
@@ -290,18 +295,16 @@ export async function sendWelcomeEmail({
   console.log('Preparing welcome email for:', email);
 
   try {
-    const { subject, html } = await generateWelcomeEmail({
+    // Import the server-side implementation to avoid client/server boundary issues
+    const { generateWelcomeEmailServer } = require('../email-templates/welcome-server.js');
+    
+    // Call the async function with the proper parameters
+    const { subject, html } = await generateWelcomeEmailServer({
       name,
       email,
       password,
-      order: {
-        id: orderId,
-        patientName: name,
-        patientEmail: email,
-        bloodTest: {
-          name: testName
-        }
-      }
+      orderId,
+      testName
     });
 
     const response = await sendEmail({

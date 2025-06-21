@@ -1,16 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+
+// Direct import of Prisma without path aliases
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
 }) as Stripe;
 
 const requestSchema = z.object({
-  fullName: z.string(),
-  email: z.string().email(),
-  dateOfBirth: z.string(),
+  // Patient info can be optional when using profile data
+  fullName: z.string().optional(),
+  email: z.string().email().optional(),
+  dateOfBirth: z.string().optional(),
   testSlug: z.string(),
   testName: z.string(),
   price: z.number(),
@@ -29,12 +33,15 @@ const requestSchema = z.object({
     state: z.string().optional(),
     postalCode: z.string(),
     country: z.string()
-  })
+  }),
+  // New fields for logged-in clients
+  clientId: z.string().optional(),
+  useProfileData: z.boolean().optional().default(false)
 });
 
 type CheckoutSessionData = z.infer<typeof requestSchema>;
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('Missing STRIPE_SECRET_KEY environment variable');
     return NextResponse.json(
@@ -45,6 +52,48 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const data: CheckoutSessionData = requestSchema.parse(await request.json());
+    
+    // If using profile data, fetch client information
+    let clientData = {
+      fullName: data.fullName,
+      email: data.email,
+      dateOfBirth: data.dateOfBirth,
+      mobile: data.mobile
+    };
+    
+    if (data.useProfileData && data.clientId) {
+      try {
+        // Fetch client data from the database
+        const client = await prisma.clientUser.findUnique({
+          where: { id: data.clientId },
+          select: {
+            name: true,
+            email: true,
+            dateOfBirth: true,
+            mobile: true
+          }
+        });
+        
+        if (client) {
+          console.log('Using client profile data for order:', {
+            clientId: data.clientId,
+            email: client.email
+          });
+          
+          // Override with client data
+          clientData = {
+            fullName: client.name,
+            email: client.email,
+            dateOfBirth: client.dateOfBirth,
+            mobile: client.mobile || data.mobile
+          };
+        } else {
+          console.error('Client not found with ID:', data.clientId);
+        }
+      } catch (error) {
+        console.error('Error fetching client data:', error);
+      }
+    }
 
     // Log blood test details (dynamic price ID)
     console.log('Creating checkout for blood test:', {
@@ -102,19 +151,33 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
       
       // Now create the order with the BloodTest ID
-      order = await prisma.order.create({
-        data: {
-          patientName: data.fullName,
-          patientEmail: data.email,
-          patientDateOfBirth: data.dateOfBirth,
-          patientMobile: data.mobile,
-          testName: data.testName,
-          notes: data.notes,
-          bloodTestId: bloodTest.id, // Use the actual BloodTest ID
-          createAccount: data.createAccount,
-          shippingAddress: standardizedShippingAddress
-        }
-      });
+      const orderData = {
+        patientName: clientData.fullName,
+        patientEmail: clientData.email,
+        patientDateOfBirth: clientData.dateOfBirth,
+        patientMobile: clientData.mobile,
+        testName: data.testName,
+        notes: data.notes,
+        bloodTestId: bloodTest.id, // Use the actual BloodTest ID
+        createAccount: data.createAccount,
+        shippingAddress: standardizedShippingAddress
+      };
+      
+      // If this is a logged-in client, associate the order with their account
+      if (data.clientId) {
+        order = await prisma.order.create({
+          data: {
+            ...orderData,
+            clientUser: {
+              connect: { id: data.clientId }
+            }
+          }
+        });
+      } else {
+        order = await prisma.order.create({
+          data: orderData
+        });
+      }
 
       console.log('Order created successfully:', {
         orderId: order.id,
@@ -134,15 +197,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.log('Account creation details:', {
       createAccount: data.createAccount,
       hasPassword: !!data.password,
-      email: data.email,
-      name: data.fullName
+      email: clientData.email,
+      name: clientData.fullName,
+      isLoggedInClient: !!data.clientId
     });
 
     // Create Stripe checkout session
     try {
       const params: Stripe.Checkout.SessionCreateParams = {
         payment_method_types: ['card'],
-        customer_email: data.email,
+        customer_email: clientData.email,
         line_items: [
           {
             price: data.stripePriceId,
@@ -150,7 +214,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           }
         ],
         mode: 'payment',
-        success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || `http://${request.headers.get('host') || 'localhost:3000'}`}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: data.cancelUrl,
         shipping_address_collection: {
           allowed_countries: ['GB']
@@ -170,17 +234,18 @@ export async function POST(request: Request): Promise<NextResponse> {
         ],
         metadata: {
           orderId: order.id.toString(),
-          fullName: data.fullName,
-          email: data.email,
-          dateOfBirth: data.dateOfBirth, // Add dateOfBirth for client user creation
+          fullName: clientData.fullName || null,
+          email: clientData.email || null,
+          dateOfBirth: clientData.dateOfBirth || null, // Add dateOfBirth for client user creation
           priceId: data.stripePriceId,
           testName: data.testName,
           testSlug: data.testSlug,
           notes: data.notes || '',
-          mobile: data.mobile || '',
+          mobile: clientData.mobile || '',
           orderCreatedAt: new Date().toISOString(),
           createAccount: data.createAccount.toString(),
-          password: data.createAccount && data.password ? data.password : ''
+          password: data.createAccount && data.password ? data.password : '',
+          clientId: data.clientId || ''
         }
       };
 

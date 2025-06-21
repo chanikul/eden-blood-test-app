@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Order, OrderStatus } from '@/types'
+import { Order, OrderStatus } from '../../types'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { TestResultUploader } from './TestResultUploader'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../lib/prisma'
 import { toast } from 'sonner'
 
 
@@ -22,73 +22,117 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [testResultId, setTestResultId] = useState<string | null>(null)
   const router = useRouter()
-
-  if (!order) return null
-
+  
   // Fetch test result for this order when the modal opens
   useEffect(() => {
-    if (order) {
-      const fetchTestResult = async () => {
-        try {
-          const response = await fetch(`/api/admin/orders/${order.id}/test-result`, {
-            method: 'GET',
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.result) {
-              setTestResultId(data.result.id);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching test result:', error);
-        }
-      };
+    const fetchTestResult = async () => {
+      if (!order) return;
       
-      fetchTestResult();
-    }
-  }, [order]);
+      try {
+        const response = await fetch(`/api/admin/orders/${order.id}/test-result`, {
+          method: 'GET',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.result) {
+            setTestResultId(data.result.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching test result:', error);
+      }
+    };
+    
+    fetchTestResult();
+  }, [order?.id]);
+  
+  // Render null early, but after all hooks are defined
+  if (!order) {
+    return null
+  }
 
   const handleUpdateOrder = async () => {
+    if (!order) {
+      toast.error('No order to update');
+      return;
+    }
+    
     try {
-      setIsLoading(true)
-      const response = await fetch(`/api/admin/orders/${order.id}`, {
-        method: 'PATCH',
+      setIsLoading(true);
+      console.log('Button clicked - Updating order:', order.id);
+      console.log('Current state values:', { status, internalNotes });
+      
+      // First, update the status using the dedicated status update endpoint
+      console.log(`Sending status update request to /api/admin/orders/${order.id}/update-status`);
+      const statusResponse = await fetch(`/api/admin/orders/${order.id}/update-status`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Development-Mode': 'true', // Add development mode header for local testing
         },
         body: JSON.stringify({
           status,
-          internalNotes,
         }),
-      })
+      });
 
-      if (!response.ok) {
-        throw new Error('Failed to update order')
-      }
-
-      // Optionally trigger email if status changed to DISPATCHED
-      if (status === OrderStatus.DISPATCHED && order.status !== OrderStatus.DISPATCHED) {
-        await fetch(`/api/admin/orders/${order.id}/dispatch-notification`, {
-          method: 'POST',
-        })
+      console.log('Status update response received - Status:', statusResponse.status);
+      
+      // Get response as text first to debug
+      const statusResponseText = await statusResponse.text();
+      console.log('Status update raw response text:', statusResponseText);
+      
+      // Try to parse the response as JSON if possible
+      let statusResponseData;
+      try {
+        statusResponseData = JSON.parse(statusResponseText);
+        console.log('Status update parsed response data:', statusResponseData);
+      } catch (parseError) {
+        console.error('Could not parse status update response as JSON:', parseError);
       }
       
+      if (!statusResponse.ok) {
+        throw new Error(`Failed to update order status: ${statusResponse.status} ${statusResponseText}`);
+      }
+      
+      // Now update internal notes if needed
+      if (internalNotes !== order.internalNotes) {
+        console.log('Updating internal notes');
+        try {
+          const notesResponse = await fetch('/api/update-order', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: order.id,
+              internalNotes,
+            }),
+          });
+          
+          console.log('Notes update response status:', notesResponse.status);
+          if (!notesResponse.ok) {
+            console.warn('Failed to update internal notes, but status was updated successfully');
+          }
+        } catch (notesError) {
+          console.warn('Error updating internal notes, but status was updated successfully:', notesError);
+        }
+      }
+      
+      console.log('Update successful - showing toast and refreshing');
       toast.success('Order updated successfully');
       router.refresh();
       onClose();
     } catch (error) {
-      console.error('Error updating order:', error)
-      toast.error('Failed to update order')
+      console.error('Error updating order:', error);
+      toast.error(`Failed to update order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false)
     }
   }
 
   const renderShippingAddress = () => {
-    console.log('=== DEBUG: ORDER DETAIL MODAL ===');
-    console.log('1. Order:', order);
-    console.log('2. Shipping Address:', order.shippingAddress);
+    if (!order) return null;
     
     return (
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">

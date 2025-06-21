@@ -1,12 +1,14 @@
-import { NextResponse } from 'next/server';
-import { validateAdminPassword, updateLastLogin } from '@/lib/services/admin';
-import { generateSessionToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { validateAdminPassword, updateLastLogin } from '../../../../lib/services/admin';
+import { generateSessionToken } from '../../../../lib/auth';
+// Direct import of PrismaClient
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 import * as bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+export const POST = async (request) => {
   try {
     // Test database connection first
     try {

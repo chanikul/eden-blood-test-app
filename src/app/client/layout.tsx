@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSelectedLayoutSegment } from 'next/navigation';
+import { PageTransition } from '@/components/client/PageTransition';
 import { 
   Home, 
   TestTube2, 
@@ -15,7 +17,8 @@ import {
   User, 
   LogOut 
 } from 'lucide-react';
-import { features, isFeatureEnabled } from '@/lib/config/features';
+import { features, isFeatureEnabled } from '../../lib/config/features';
+import { ClientAuthGuard } from '@/components/client/ClientAuthGuard';
 
 // Core navigation items that are always shown
 const coreNavigation = [
@@ -47,23 +50,101 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const segment = useSelectedLayoutSegment();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  
+  // This effect ensures we only render client-side to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     
     try {
-      const response = await fetch('/api/auth/logout', {
+      console.log('Starting logout process');
+      
+      // First try the new force-logout API
+      const timestamp = new Date().getTime();
+      const forceLogoutResponse = await fetch(`/api/auth/force-logout?_=${timestamp}`, {
         method: 'POST',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include'
       });
       
-      if (!response.ok) {
+      console.log('Force logout response status:', forceLogoutResponse.status);
+      
+      // Also call the regular logout endpoint as a backup
+      const logoutResponse = await fetch(`/api/auth/logout?_=${timestamp}`, {
+        method: 'POST',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include'
+      });
+      
+      console.log('Regular logout response status:', logoutResponse.status);
+      
+      if (!forceLogoutResponse.ok && !logoutResponse.ok) {
         throw new Error('Logout failed');
       }
       
-      // Redirect to home page after successful logout
-      router.push('/');
+      // Clear any local storage items that might contain session data
+      if (typeof window !== 'undefined') {
+        console.log('Clearing client-side storage');
+        
+        // Clear all localStorage items
+        localStorage.clear();
+        
+        // Specifically target known session items
+        const sessionKeys = [
+          'supabase.auth.token',
+          'eden-client-session',
+          'sb-access-token',
+          'sb-refresh-token',
+          'supabase-auth-token'
+        ];
+        
+        sessionKeys.forEach(key => localStorage.removeItem(key));
+        
+        // Force clear any cached data
+        window.sessionStorage.clear();
+        
+        // Clear any application cache if available
+        if ('caches' in window) {
+          try {
+            caches.keys().then(names => {
+              names.forEach(name => {
+                caches.delete(name);
+                console.log(`Deleted cache: ${name}`);
+              });
+            });
+          } catch (e) {
+            console.error('Error clearing caches:', e);
+          }
+        }
+        
+        // Clear cookies
+        document.cookie.split(';').forEach(cookie => {
+          const cookieName = cookie.trim().split('=')[0];
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+        });
+      }
+      
+      // Add a small delay to ensure all cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      console.log('Logout successful, redirecting to login page');
+      
+      // Redirect to login page after successful logout
+      // Use replace instead of push to prevent back navigation to authenticated pages
+      router.replace('/login');
     } catch (error) {
       console.error('Logout error:', error);
       alert('Failed to logout. Please try again.');
@@ -73,8 +154,9 @@ export default function ClientLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex h-screen">
+    <ClientAuthGuard>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200">
           <div className="h-16 flex items-center px-6">
@@ -121,10 +203,13 @@ export default function ClientLayout({
         {/* Main content */}
         <div className="flex-1 overflow-auto">
           <main className="py-6 px-8">
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
           </main>
         </div>
+        </div>
       </div>
-    </div>
+    </ClientAuthGuard>
   );
 }

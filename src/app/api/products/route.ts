@@ -1,34 +1,143 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { fetchBloodTestProducts } from '@/lib/services/stripe-products';
+import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { mockBloodTests } from '../../../lib/mock-data';
 
-// Simple in-memory cache (per serverless instance)
-let cache: any[] = [];
-let lastFetch = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// Cache control settings
+const CACHE_MAX_AGE = 60 * 60; // 1 hour in seconds
 
-export async function GET(req: NextRequest) {
-  const now = Date.now();
-  const url = new URL(req.url);
-  const isAdmin = url.searchParams.get('admin') === '1';
-  if (cache.length > 0 && now - lastFetch < CACHE_TTL && !isAdmin) {
-    return NextResponse.json(cache);
-  }
+// Fallback Stripe key for production
+const FALLBACK_STRIPE_KEY = process.env.NEXT_PUBLIC_FALLBACK_STRIPE_KEY;
 
+// Helper function to safely initialize Stripe
+function getStripeClient(): Stripe | null {
   try {
-    // For admin users, fetch all products including inactive ones
-    // For regular users, only fetch active products
-    const products = await fetchBloodTestProducts({ fetchAll: isAdmin });
+    const stripeKey = process.env.STRIPE_SECRET_KEY || FALLBACK_STRIPE_KEY;
     
-    // For non-admin users, filter out products with hidden=true
-    const filteredProducts = isAdmin ? products : products.filter(p => p && p.active && !p.hidden);
-    
-    if (!isAdmin) {
-      cache = filteredProducts;
-      lastFetch = now;
+    if (!stripeKey) {
+      console.error('Missing Stripe secret key');
+      return null;
     }
-    return NextResponse.json(filteredProducts);
-  } catch (e: any) {
-    console.error('Failed to fetch Stripe products:', e);
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+    
+    return new Stripe(stripeKey, {
+      apiVersion: '2022-11-15',
+    });
+  } catch (error) {
+    console.error('Failed to initialize Stripe client:', error);
+    return null;
+  }
+}
+
+// Enable CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// OPTIONS handler for CORS preflight requests
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
+export async function GET(request: Request) {
+  console.log('GET /api/products - Fetching blood test products');
+  console.log('Request URL:', request.url);
+  
+  try {
+    // Check if we have a Stripe key
+    const hasStripeKey = !!(process.env.STRIPE_SECRET_KEY || FALLBACK_STRIPE_KEY);
+    console.log('Stripe API key present:', hasStripeKey);
+    
+    // Initialize Stripe client
+    const stripe = getStripeClient();
+    
+    if (!stripe) {
+      console.warn('Using mock data due to missing Stripe configuration');
+      return NextResponse.json(mockBloodTests, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+    
+    // Fetch all active products from Stripe with expanded price data
+    console.log('Fetching active products from Stripe with expanded price data...');
+    const productsResponse = await stripe.products.list({
+      active: true,
+      limit: 100,
+      expand: ['data.default_price']
+    });
+    
+    console.log(`Found ${productsResponse.data.length} total active products`);
+    
+    // Filter for blood test products only
+    const bloodTestProducts = productsResponse.data.filter(
+      (product) => product.metadata?.type === 'blood_test'
+    );
+    
+    console.log(`Found ${bloodTestProducts.length} blood test products`);
+    
+    // If no blood test products found, return mock data
+    if (bloodTestProducts.length === 0) {
+      console.log('No blood test products found, returning mock data');
+      return NextResponse.json(mockBloodTests, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+    
+    // Format the response as requested
+    const formattedProducts = bloodTestProducts.map(product => {
+      const price = product.default_price as Stripe.Price;
+      const priceAmount = price?.unit_amount ? (price.unit_amount / 100).toFixed(2) : '0.00';
+      
+      return {
+        value: product.id,
+        label: `${product.name} - $${priceAmount}`,
+        // Include additional data that might be useful for the frontend
+        price_id: price?.id || '',
+        price_amount: price?.unit_amount || 0,
+        description: product.description || '',
+        image: product.images?.[0] || ''
+      };
+    });
+    
+    console.log(`Successfully formatted ${formattedProducts.length} blood test products`);
+    
+    // Return the formatted blood test products
+    return NextResponse.json(formattedProducts, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching blood test products:', error);
+    
+    // Always return JSON even in error cases
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch blood test products',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        fallback: true,
+        products: [] // Don't return mock data in error case as requested
+      },
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 }

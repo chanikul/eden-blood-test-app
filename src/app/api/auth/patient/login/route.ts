@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
-import { verifyPassword } from '@/lib/utils/password';
-import { generateSessionToken } from '@/lib/auth';
+import { prisma } from '../../../../../lib/prisma';
+import { verifyPassword } from '../../../../../lib/utils/password';
+import { generateSessionToken } from '../../../../../lib/auth';
 
-export async function POST(request: Request) {
+// Using named export for compatibility with Netlify
+export const POST = async (request) => { {
   try {
     const { email, password } = await request.json();
 
@@ -24,7 +25,8 @@ export async function POST(request: Request) {
         passwordHash: true,
         active: true,
         resetToken: true,
-        resetTokenExpires: true
+        resetTokenExpires: true,
+        must_reset_password: true
       }
     });
 
@@ -52,9 +54,13 @@ export async function POST(request: Request) {
     }
 
     // Check if password change is required
-    const passwordChangeRequired = !!patient.resetToken && 
-      patient.resetTokenExpires && 
-      new Date() < patient.resetTokenExpires;
+    const passwordChangeRequired = 
+      // Either there's an active reset token
+      (!!patient.resetToken && 
+       patient.resetTokenExpires && 
+       new Date() < patient.resetTokenExpires) || 
+      // Or the must_reset_password flag is set (for admin-created accounts)
+      !!patient.must_reset_password;
 
     // Generate session token
     const token = await generateSessionToken({ 
@@ -94,4 +100,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
 }

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { syncStripeProducts } from '@/lib/services/stripe';
-import { verifySessionToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { syncStripeProducts } from '../../../../lib/services/stripe';
+import { verifySessionToken } from '../../../../lib/auth';
 import { cookies } from 'next/headers';
 
 // Force dynamic route to prevent static optimization
@@ -9,7 +9,7 @@ export const fetchCache = 'force-no-store'
 export const revalidate = 0
 export const runtime = 'nodejs'
 
-export async function POST(request: Request) {
+export const POST = async (request: NextRequest) => {
   try {
     console.log('\n=== SYNCING STRIPE PRODUCTS ===');
 
@@ -79,4 +79,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+};

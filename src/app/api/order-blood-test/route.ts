@@ -1,18 +1,20 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { bloodTestOrderSchema } from '@/lib/validations/blood-test-order';
-import { sendOrderNotificationEmail } from '@/lib/services/email';
-import { createClientUser, findClientUserByEmail } from '@/lib/services/client-user';
+import { bloodTestOrderSchema } from '../../../lib/validations/blood-test-order';
+import { sendOrderNotificationEmail } from '../../../lib/services/email';
+import { createClientUser, findClientUserByEmail } from '../../../lib/services/client-user';
 import { z, ZodError } from 'zod';
 import Stripe from 'stripe';
 import type { BloodTest } from '@prisma/client';
 
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2022-11-15',
+});
 
 async function getBloodTestPrice(slug: string) {
-  const test = await prisma.bloodTest.findFirst({
+  const bloodTest = await prisma.bloodTest.findFirst({
     where: {
       slug,
       isActive: true,
@@ -20,13 +22,13 @@ async function getBloodTestPrice(slug: string) {
     }
   });
 
-  if (!test || !test.stripePriceId) {
+  if (!bloodTest || !bloodTest.stripePriceId) {
     throw new Error(`Blood test not found or not available: ${slug}`);
   }
 
   return {
-    price: test.stripePriceId,
-    name: test.name
+    price: bloodTest.stripePriceId,
+    name: bloodTest.name
   };
 }
 
@@ -48,10 +50,13 @@ type StripeSessionData = {
     testSlug: string;
     testName: string;
     notes?: string;
+    createAccount?: string;
+    password?: string;
   };
 };
 
-export async function POST(request: Request) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     console.log('=== CREATING ORDER ===');
     
@@ -161,7 +166,7 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/client/blood-tests?success=true&orderId=${order.id}`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order?error=payment-cancelled`,
       customer_email: validatedData.email,
       metadata: {
@@ -173,6 +178,8 @@ export async function POST(request: Request) {
         testSlug: validatedData.testSlug,
         testName: bloodTest.name,
         notes: validatedData.notes,
+        createAccount: validatedData.createAccount ? 'true' : 'false',
+        ...(validatedData.password ? { password: validatedData.password } : {}),
       },
     };
 
@@ -189,7 +196,7 @@ export async function POST(request: Request) {
       fullName: validatedData.fullName,
       email: validatedData.email,
       dateOfBirth: validatedData.dateOfBirth,
-      testName: test.name,
+      testName: bloodTest.name,
       notes: validatedData.notes || undefined,
       orderId: order.id,
     });

@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { createClientUser } from '@/lib/services/client-user';
+import { NextRequest, NextResponse } from 'next/server';
+// Import shared prisma instance
+import { prisma } from '../../../../lib/prisma';
+import { createClientUser } from '../../../../lib/services/client-user';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -11,7 +12,8 @@ const registerSchema = z.object({
   orderId: z.string()
 });
 
-export async function POST(request: Request) {
+// Using named export for compatibility with Netlify
+export const POST = async (request: NextRequest) => {
   try {
     const formData = await request.formData();
     const data = {

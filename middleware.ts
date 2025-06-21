@@ -89,6 +89,18 @@ export function middleware(request: NextRequest) {
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
   
+  // Set Content Security Policy with proper configuration for hCaptcha and Stripe
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com 'unsafe-inline'; " +
+    "style-src 'self' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com 'unsafe-inline'; " +
+    "connect-src 'self' https://api.stripe.com https://api.hcaptcha.com https://hcaptcha.com https://*.hcaptcha.com https://newassets.hcaptcha.com https://www.google-analytics.com https://analytics.google.com https://play.google.com https://www.recaptcha.net https://www.gstatic.com https://*.ingest.sentry.io https://api.segment.io https://csp.withgoogle.com; " +
+    "frame-src 'self' https://js.stripe.com https://payments.stripe.com https://checkout.link.com https://hcaptcha.com https://*.hcaptcha.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "font-src 'self' data:;"
+  );
+  
   // Only allow HTTPS
   if (process.env.NODE_ENV === 'production') {
     response.headers.set(

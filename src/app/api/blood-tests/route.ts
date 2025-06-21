@@ -1,9 +1,9 @@
-import { prisma } from '@/lib/prisma';
-import { NextResponse } from 'next/server';
+import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export const GET = async () => {
   try {
     console.log('=== ENVIRONMENT CHECK ===');
     console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -67,7 +67,7 @@ export async function GET() {
       // Get blood tests for the response
       console.log('\nFetching blood tests...');
       const tests = await prisma.bloodTest.findMany({
-        where: process.env.NODE_ENV === 'development' ? undefined : { isActive: true },
+        where: { isActive: true },
         select: {
           id: true,
           name: true,
@@ -85,7 +85,26 @@ export async function GET() {
         console.log('First test:', tests[0]);
       }
       
-      return NextResponse.json({ tests });
+      // Sort tests to prioritize ones with valid Stripe price IDs
+      const sortedTests = tests.sort((a, b) => {
+        // First prioritize active tests
+        if (a.isActive !== b.isActive) {
+          return a.isActive ? -1 : 1;
+        }
+        
+        // Then prioritize tests with valid Stripe price IDs
+        const aHasValidStripeId = a.stripePriceId && a.stripePriceId.startsWith('price_');
+        const bHasValidStripeId = b.stripePriceId && b.stripePriceId.startsWith('price_');
+        
+        if (aHasValidStripeId !== bHasValidStripeId) {
+          return aHasValidStripeId ? -1 : 1;
+        }
+        
+        // Finally sort alphabetically by name
+        return a.name.localeCompare(b.name);
+      });
+      
+      return NextResponse.json({ tests: sortedTests });
     } catch (queryError: any) {
       console.error('Database query error:', {
         message: queryError.message,

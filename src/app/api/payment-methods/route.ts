@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
-import { getPatientFromToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { getPatientFromToken } from '../../../lib/auth';
+import { prisma } from '../../../lib/prisma';
 import Stripe from 'stripe';
+import { getSupabaseClient } from '../../../lib/supabase-client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('=== PAYMENT METHODS API DEBUG ===');
   try {
     const patient = await getPatientFromToken();
@@ -30,27 +31,28 @@ export async function POST(request: Request) {
     if (billingAddress) {
       // Save to Supabase 'addresses' table if available, otherwise Prisma
       try {
-        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          // Use the already imported Supabase client singleton
+          const supabase = getSupabaseClient();
           await supabase.from('addresses').insert({
             user_email: patient.email,
             ...billingAddress
           });
         } else {
-          // Fallback: Save to Prisma if you have an Address model
-          if (prisma.address) {
-            await prisma.address.create({
-              data: {
-                email: patient.email,
-                line1: billingAddress.line1,
-                line2: billingAddress.line2,
-                city: billingAddress.city,
-                postalCode: billingAddress.postalCode,
-                country: billingAddress.country
-              }
-            });
-          }
+          // Save to Prisma Address model
+          await prisma.address.create({
+            data: {
+              type: 'BILLING',
+              name: billingAddress.name || 'Billing Address',
+              line1: billingAddress.line1,
+              line2: billingAddress.line2 || null,
+              city: billingAddress.city,
+              postcode: billingAddress.postalCode,
+              country: billingAddress.country,
+              isDefault: true,
+              clientId: patient.id
+            }
+          });
         }
       } catch (err) {
         console.error('Failed to save billing address:', err);
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const patient = await getPatientFromToken();
     if (!patient || !patient.stripeCustomerId) {
@@ -124,7 +126,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const patient = await getPatientFromToken();
     if (!patient) {

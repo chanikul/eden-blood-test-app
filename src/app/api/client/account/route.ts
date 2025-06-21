@@ -1,29 +1,137 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getClientSession } from '@/lib/auth/client';
-import { createClient } from '@supabase/supabase-js';
+// Direct import of PrismaClient
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+import { getClientSession } from '../../../../lib/auth/client';
+import bcrypt from 'bcryptjs';
+import { getSupabaseClient } from '../../../../lib/supabase-client';
+import { jwtVerify } from 'jose';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+// Get the Supabase client singleton
+const supabase = getSupabaseClient();
 
-export async function GET(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const GET = async (req: NextRequest) => {
   try {
-    const session = await getClientSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    console.log('Client account API: Checking session...');
+    
+    // Get the patient token directly from cookies
+    const patientToken = req.cookies.get('eden_patient_token')?.value;
+    console.log('Patient token present in API:', !!patientToken);
+    
+    let userId;
+    
+    // Development mode bypass for easier testing
+    if (process.env.NODE_ENV === 'development' && !patientToken) {
+      console.log('Client account API: Development mode, bypassing authentication');
+      // Use a sample client ID for development
+      const sampleClient = await prisma.clientUser.findFirst({
+        where: { isSample: true },
+        select: { id: true }
+      });
+      
+      if (sampleClient) {
+        userId = sampleClient.id;
+        console.log('Client account API: Using sample client ID:', userId);
+      } else {
+        console.log('Client account API: No sample client found, using first client');
+        const firstClient = await prisma.clientUser.findFirst({
+          select: { id: true }
+        });
+        
+        if (!firstClient) {
+          console.log('Client account API: No clients found in database');
+          return NextResponse.json({ error: 'No clients found in database' }, { status: 404 });
+        }
+        
+        userId = firstClient.id;
+        console.log('Client account API: Using first client ID:', userId);
+      }
+    } else if (patientToken) {
+      // Verify the token directly
+      try {
+        const { payload } = await jwtVerify(
+          patientToken,
+          new TextEncoder().encode(process.env.JWT_SECRET || '')
+        );
+        
+        console.log('API token verification result:', { 
+          success: !!payload,
+          role: payload?.role,
+          email: payload?.email,
+          id: payload?.id
+        });
+        
+        if (
+          typeof payload !== 'object' ||
+          !payload ||
+          !('role' in payload) ||
+          String(payload.role) !== 'PATIENT' ||
+          !('id' in payload)
+        ) {
+          console.log('Client account API: Invalid token payload');
+          return NextResponse.json({ error: 'Unauthorized', details: 'Invalid token' }, { status: 401 });
+        }
+        
+        userId = String(payload.id);
+        console.log('Client account API: Valid token for user:', userId);
+      } catch (error) {
+        console.error('Client token verification failed:', error);
+        return NextResponse.json({ error: 'Unauthorized', details: 'Token verification failed' }, { status: 401 });
+      }
+    } else {
+      console.log('Client account API: No token found, returning 401');
+      return NextResponse.json({ error: 'Unauthorized', details: 'No token found' }, { status: 401 });
     }
 
+    // Get client details with comprehensive information
     const client = await prisma.clientUser.findUnique({
       where: {
-        id: session.id,
+        id: userId,
       },
       select: {
         name: true,
         email: true,
         dateOfBirth: true,
         mobile: true,
+        createdAt: true,
+        // Include addresses
+        addresses: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        // Include orders with blood test details and test results
+        orders: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 5,
+          select: {
+            id: true,
+            testName: true,
+            status: true,
+            createdAt: true,
+            bloodTest: {
+              select: {
+                name: true,
+                description: true,
+              },
+            },
+            testResults: {
+              select: {
+                id: true,
+                status: true,
+                resultUrl: true,
+                createdAt: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1,
+            },
+          },
+        },
       },
     });
 
@@ -34,11 +142,17 @@ export async function GET(req: NextRequest) {
     // Split name into first and last name
     const [firstName, ...lastNameParts] = client.name.split(' ');
     const lastName = lastNameParts.join(' ');
+    
+    // Get default shipping address if available
+    const defaultShippingAddress = client.addresses.find(
+      (address: any) => address.type === 'SHIPPING' && address.isDefault
+    ) || client.addresses.find((address: any) => address.type === 'SHIPPING');
 
     return NextResponse.json({
       ...client,
       firstName,
       lastName,
+      defaultAddress: defaultShippingAddress || null,
     });
   } catch (error) {
     console.error('Error fetching client details:', error);
@@ -49,7 +163,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+// Using named export for compatibility with Netlify
+export const PUT = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -119,7 +234,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export const PATCH = async (req: NextRequest) => {
   try {
     const session = await getClientSession();
     if (!session) {
@@ -161,7 +276,7 @@ export async function PATCH(req: NextRequest) {
         id: session.id,
       },
       data: {
-        passwordHash: await supabase.auth.admin.generateHash(newPassword),
+        passwordHash: await bcrypt.hash(newPassword, 10), // Use bcrypt for password hashing
       },
     });
 

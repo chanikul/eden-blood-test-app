@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { hashPassword } from '@/lib/utils/password';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import { hashPassword } from '../../../../../lib/utils/password';
 
-export async function POST(request: Request) {
+// Using named export for compatibility with Netlify
+export const POST = async (request) => { {
   try {
     const { token, newPassword } = await request.json();
 
@@ -54,4 +55,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
 }

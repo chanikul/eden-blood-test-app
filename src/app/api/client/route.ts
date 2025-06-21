@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { getPatientFromToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { getPatientFromToken } from '../../../lib/auth';
+import { prisma } from '../../../lib/prisma';
 
-export async function GET() {
+export const GET = async () => {
   try {
     const patient = await getPatientFromToken();
     
@@ -13,6 +13,7 @@ export async function GET() {
       );
     }
 
+    // Use a type assertion to handle the complex return type
     const clientUser = await prisma.clientUser.findUnique({
       where: { id: patient.id },
       select: {
@@ -20,7 +21,7 @@ export async function GET() {
         stripeCustomerId: true,
         orders: {
           where: {
-            status: { in: ['PAID', 'DISPATCHED'] }
+            status: { in: ['PAID', 'DISPATCHED', 'READY'] }
           },
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -33,6 +34,15 @@ export async function GET() {
               select: {
                 name: true
               }
+            },
+            testResults: {
+              select: {
+                id: true,
+                status: true,
+                resultUrl: true
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 1
             }
           }
         }
@@ -54,13 +64,32 @@ export async function GET() {
       );
     }
 
+    // Type assertion for clientUser to include orders
+    const typedClientUser = clientUser as any;
+    
+    // Make sure orders exist before filtering
+    const orders = typedClientUser.orders || [];
+    
+    // Filter orders to only include those that should show results
+    const filteredOrders = orders.filter((order: any) => {
+      // Only show test results for orders that have been DISPATCHED or are READY
+      return ['DISPATCHED', 'READY'].includes(order.status);
+    });
+    
+    console.log(`Filtered ${orders.length} orders to ${filteredOrders.length} that can show results`);
+    
     return NextResponse.json({
       firstName: clientUser.name,
-      recentTests: clientUser.orders.map(order => ({
+      recentTests: filteredOrders.map((order: any) => ({
         id: order.id,
-        testName: order.bloodTest.name,
+        testName: order.bloodTest?.name || order.testName || 'Blood Test',
         status: order.status,
-        date: order.createdAt
+        date: order.createdAt,
+        testResult: order.testResults && order.testResults.length > 0 ? {
+          id: order.testResults[0].id,
+          status: order.testResults[0].status,
+          resultUrl: order.testResults[0].resultUrl
+        } : null
       })),
       hasActivePaymentMethod: paymentMethods?.data.length > 0 || false
     });

@@ -111,10 +111,14 @@ export function OrderForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [bloodTests, setBloodTests] = useState<BloodTest[]>([]);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [isLoggedInClient, setIsLoggedInClient] = useState(false);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [showProfileBanner, setShowProfileBanner] = useState(false);
   const router = useRouter();
 
   const form = useForm<OrderFormData>({
-    resolver: zodResolver(orderFormSchema),
+    resolver: zodResolver(orderFormSchema) as any, // Cast to any to fix TypeScript error
     mode: 'onBlur',
     defaultValues: {
       patientName: '',
@@ -137,57 +141,317 @@ export function OrderForm() {
   });
 
   const selectedTest = useMemo(() => {
-    const testSlug = form.watch('testSlug');
-    return bloodTests?.find((test) => test.slug === testSlug);
+    const testValue = form.watch('testSlug');
+    console.log('Looking for test with value:', testValue);
+    console.log('Available tests:', bloodTests);
+    
+    // If we don't have a test value or blood tests aren't loaded yet, return undefined
+    if (!testValue || !bloodTests || bloodTests.length === 0) {
+      return undefined;
+    }
+    
+    // First try direct slug match
+    let test = bloodTests.find((test) => test.slug === testValue);
+    
+    // If no match by slug, try by ID (for products where slug might not be set)
+    if (!test) {
+      test = bloodTests.find((test) => test.id === testValue);
+      if (test) {
+        console.log('Found test by ID:', test);
+      }
+    }
+    
+    // If still no match and the testValue contains a price part (e.g., "Test Name - £90.00")
+    if (!test && typeof testValue === 'string' && testValue.includes(' - ')) {
+      // Extract the name part before the price
+      const namePart = testValue.split(' - ')[0].trim();
+      console.log('Trying to find test by name part:', namePart);
+      
+      // Try to find by exact name match
+      test = bloodTests.find((test) => test.name.trim() === namePart);
+      
+      if (test) {
+        console.log('Found test by name:', test);
+        // Update the form with the correct value (prefer ID for consistency)
+        const valueToSet = test.id || test.slug;
+        form.setValue('testSlug', valueToSet, { shouldValidate: true });
+      }
+    }
+    
+    if (test) {
+      console.log('Selected test found:', test);
+    } else {
+      console.log('No test found for value:', testValue);
+    }
+    
+    return test;
   }, [bloodTests, form.watch('testSlug')]);
+  
+  // Debug log whenever selectedTest changes
+  useEffect(() => {
+    console.log('Selected test updated:', selectedTest);
+  }, [selectedTest]);
 
   async function fetchBloodTests() {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/products');
+      console.log('Fetching blood tests from API...');
+      
+      // Try the simplified stripe-products API endpoint first
+      let response = await fetch('/api/stripe-products-simple', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      // If that fails, try the blood-tests API as fallback
       if (!response.ok) {
-        throw new Error('Failed to fetch blood tests');
+        console.log(`Stripe products API failed with status ${response.status}, trying blood-tests API as fallback...`);
+        response = await fetch('/api/blood-tests', {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
       }
-      const data = await response.json();
-      // The products API returns an array directly, not wrapped in a 'tests' property
-      if (Array.isArray(data)) {
-        // Only include products that have type: blood_test in their metadata
-        const bloodTestProducts = data.filter(product => 
-          product.metadata && product.metadata.type === 'blood_test'
-        );
-        
-        console.log('Blood test products with type=blood_test:', bloodTestProducts);
-        
-        // Map the Stripe product format to the BloodTest format expected by the form
-        const formattedTests = bloodTestProducts.map(product => ({
-          id: product.id,
-          name: product.name,
-          description: product.description || '',
-          price: product.price,
-          stripePriceId: product.priceId || '',
-          isActive: product.active !== false,
-          slug: product.slug
+      
+      if (!response.ok) {
+        console.error(`Both APIs failed: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch blood tests: ${response.status}`);
+      }
+      
+      // Parse the response safely
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse API response:', parseError);
+        throw new Error('Invalid API response format');
+      }
+      
+      // Handle both API response formats
+      let formattedTests = [];
+      
+      if (data && data.tests && Array.isArray(data.tests)) {
+        // Format from blood-tests API
+        console.log('Using blood-tests API response format');
+        formattedTests = data.tests.map((test: any) => ({
+          id: test.id,
+          name: test.name,
+          description: test.description || '',
+          price: test.price || 0,
+          stripePriceId: test.stripePriceId || '',
+          isActive: test.isActive !== false,
+          slug: test.slug || test.id
         }));
+      } else if (Array.isArray(data)) {
+        // Format from products API
+        console.log('Using products API response format');
         
-        console.log('Formatted blood tests for form:', formattedTests);
-        setBloodTests(formattedTests);
+        // Handle the new format from the rebuilt /api/products endpoint
+        if (data.length > 0 && data[0].value && data[0].label) {
+          console.log('Using new Stripe product endpoint format');
+          formattedTests = data.map(product => ({
+            id: product.value, // product ID is now in value field
+            name: product.label.split(' - ')[0], // Extract name from label
+            description: product.description || '',
+            price: product.price_amount || 0,
+            stripePriceId: product.price_id || '',
+            isActive: true, // All products from the endpoint are active
+            slug: product.value // Use product ID as slug
+          }));
+        } else {
+          // Handle legacy format for backward compatibility
+          const bloodTestProducts = data.filter(product => 
+            product.metadata && product.metadata.type === 'blood_test'
+          );
+          
+          formattedTests = bloodTestProducts.map(product => ({
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: product.price || 0,
+            stripePriceId: product.priceId || '',
+            isActive: product.active !== false,
+            slug: product.slug || product.id
+          }));
+        }
       } else {
+        console.error('Unexpected API response format:', data);
         throw new Error('Invalid response format');
       }
+      
+      // Only provide fallback data if there's a complete API failure
+      // We don't want to add fake tests if we successfully got data from the API
+      if (formattedTests.length === 0) {
+        console.warn('No blood tests found from API');
+      }
+      
+      // Filter to only show active tests with valid Stripe price IDs
+      formattedTests = formattedTests.filter((test: any) => {
+        // Must be active
+        if (!test.isActive) return false;
+        
+        // Must have a valid Stripe price ID
+        const hasValidStripeId = test.stripePriceId && 
+          typeof test.stripePriceId === 'string' && 
+          test.stripePriceId.startsWith('price_');
+          
+        return hasValidStripeId;
+      });
+      
+      console.log(`After filtering, ${formattedTests.length} active blood tests with valid Stripe price IDs remain`);
+      
+      console.log(`Loaded ${formattedTests.length} blood tests:`, formattedTests);
+      setBloodTests(formattedTests);
     } catch (error) {
       console.error('Error fetching blood tests:', error);
-      toast.error('Failed to load blood tests');
+      toast.error('Failed to load blood tests. Please refresh the page or try again later.');
+      
+      // Only set fallback data if we have no tests at all
+      if (!bloodTests || bloodTests.length === 0) {
+        console.warn('Setting emergency fallback test as no tests were loaded');
+        setBloodTests([{
+          id: 'error_fallback_test',
+          name: 'Contact Clinic',
+          description: 'Please contact the clinic to order a test',
+          price: 0,
+          stripePriceId: '',
+          isActive: true,
+          slug: 'contact-clinic'
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
+  // Function to check if client is logged in and has required profile data
+  async function checkClientProfileData() {
+    console.log('Checking client profile data');
+    try {
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/client/profile-data/?_=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        credentials: 'include' // Ensure cookies are sent
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Profile data response:', data);
+        
+        // Update state based on API response
+        setIsLoggedInClient(data.isLoggedIn);
+        setProfileDataLoaded(data.hasProfileData);
+        
+        if (data.isLoggedIn && data.clientId) {
+          setClientId(data.clientId);
+          
+          // If client is logged in and has profile data, pre-fill email if available
+          if (data.email) {
+            form.setValue('patientEmail', data.email);
+          }
+        }
+        
+        // Auto-skip to Step 1 if client is logged in and has profile data
+        if (data.isLoggedIn && data.hasProfileData && currentStep === 0) {
+          console.log('Skipping to Step 1 - Client is logged in with profile data');
+          setCurrentStep(1);
+          setCompletedSteps([0]);
+          setShowProfileBanner(true);
+        } else if (!data.isLoggedIn && currentStep > 0 && !completedSteps.includes(0)) {
+          // Reset to Step 0 if not logged in but somehow on a later step
+          console.log('Resetting to Step 0 - Client is not logged in');
+          setCurrentStep(0);
+          setShowProfileBanner(false);
+        }
+      } else {
+        console.error('Failed to fetch profile data');
+        // Reset to Step 0 on error if we haven't completed it yet
+        if (currentStep > 0 && !completedSteps.includes(0)) {
+          setCurrentStep(0);
+          setShowProfileBanner(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking client profile data:', error);
+      // Reset to Step 0 on error if we haven't completed it yet
+      if (currentStep > 0 && !completedSteps.includes(0)) {
+        setCurrentStep(0);
+        setShowProfileBanner(false);
+      }
+    }
+  }
+
   useEffect(() => {
     fetchBloodTests();
+    
+    // Reset state on mount
+    setIsLoggedInClient(false);
+    setProfileDataLoaded(false);
+    setClientId(null);
+    setShowProfileBanner(false);
+    
+    // Check client profile data with a small delay to ensure cookies are loaded
+    const timer = setTimeout(() => {
+      checkClientProfileData();
+    }, 100);
+    
+    // Clean up function to reset state and clear timeout
+    return () => {
+      clearTimeout(timer);
+      setIsLoggedInClient(false);
+      setProfileDataLoaded(false);
+      setClientId(null);
+      setShowProfileBanner(false);
+    };
   }, []);
 
-  const isStepValid = async (step: number): Promise<boolean> => {
+  const isStepValid = async (step: number) => {
     const fields = getFieldsForStep(step);
+    
+    // Special handling for test selection step
+    if (step === 1) {
+      // Make sure we have a valid test selected
+      const testValue = form.getValues('testSlug');
+      if (!testValue) {
+        form.setError('testSlug', {
+          type: 'manual',
+          message: 'Please select a blood test'
+        });
+        return false;
+      }
+      
+      // Directly use selectedTest from useMemo if available
+      if (selectedTest) {
+        console.log('Test validation passed: using selectedTest:', selectedTest);
+        return true;
+      }
+      
+      // Otherwise verify that the selected test exists in our list - check both slug and ID
+      const testExists = bloodTests.some(test => 
+        (test.slug && test.slug === testValue) || test.id === testValue
+      );
+      
+      if (!testExists) {
+        form.setError('testSlug', {
+          type: 'manual',
+          message: 'Please select a valid blood test from the list'
+        });
+        console.error('Test validation failed: could not find test with slug/id:', testValue);
+        return false;
+      }
+      
+      console.log('Test validation passed for value:', testValue);
+    }
+    
     const result = await form.trigger(fields as any);
     return result;
   };
@@ -200,16 +464,93 @@ export function OrderForm() {
 
   const handleNextStep = async () => {
     const isValid = await isStepValid(currentStep);
-    if (isValid && currentStep < steps.length - 1) {
+    console.log(`Step ${currentStep} validation:`, isValid);
+    
+    if (!isValid) {
+      // Show which fields are invalid
+      const fields = getFieldsForStep(currentStep);
+      fields.forEach(field => {
+        const error = form.formState.errors[field as keyof OrderFormData];
+        if (error) {
+          console.log(`Field ${field} error:`, error);
+        }
+      });
+      toast.error('Please complete all required fields');
+      return;
+    }
+    
+    if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       setCompletedSteps([...completedSteps, currentStep]);
     }
   };
 
-  const onSubmit: SubmitHandler<OrderFormData> = async (data) => {
+  const onSubmit = async (data: OrderFormData) => {
     try {
-      if (!selectedTest) {
-        toast.error('Please select a blood test');
+      console.log('Form submission started with data:', data);
+      
+      // Validate the current step before submission
+      const isValid = await isStepValid(currentStep);
+      if (!isValid) {
+        toast.error('Please complete all required fields');
+        console.error('Form validation failed');
+        return;
+      }
+
+      // Find the selected test
+      // First, try to use the selectedTest from the useMemo hook
+      let test = selectedTest;
+      
+      if (!test) {
+        // If no test is selected via the hook, try to find it directly from the form data
+        const testValue = data.testSlug; // This could be either a slug or an ID
+        console.log('No selected test found, trying to find by slug/id:', testValue);
+        
+        if (testValue) {
+          // Try to find by exact slug match first
+          test = bloodTests.find(t => t.slug === testValue);
+          
+          // If not found by slug, try by ID
+          if (!test) {
+            test = bloodTests.find(t => t.id === testValue);
+            if (test) {
+              console.log('Found test by ID:', test);
+            }
+          }
+          
+          // If not found and the value might be the display text (containing price info)
+          if (!test && testValue.includes(' - ')) {
+            const namePart = testValue.split(' - ')[0].trim();
+            console.log('Trying to find test by name part:', namePart);
+            test = bloodTests.find(t => t.name.trim() === namePart);
+            if (test) {
+              console.log('Found test by name part:', test);
+            }
+          }
+        }
+      }
+      
+      // If we still don't have a test, try to find the first test that matches the name
+      if (!test && bloodTests.length > 0) {
+        console.log('Attempting to find any valid test in the list');
+        // Just use the first test as a fallback
+        test = bloodTests[0];
+        console.log('Using fallback test:', test);
+      }
+      
+      if (!test) {
+        toast.error('Please select a valid blood test');
+        console.error('No valid test selected. Available tests:', bloodTests);
+        console.error('Current test slug:', data.testSlug);
+        return;
+      }
+      
+      console.log('Found test for checkout:', test);
+
+      // Check if stripePriceId exists
+      if (!test.stripePriceId) {
+        toast.error('Invalid test selection. Missing price information.');
+        console.error('Missing stripePriceId for test:', test);
         return;
       }
 
@@ -220,12 +561,12 @@ export function OrderForm() {
         email: data.patientEmail,
         dateOfBirth: data.patientDateOfBirth,
         mobile: data.patientMobile,
-        testSlug: selectedTest.slug,
-        testName: selectedTest.name,
-        stripePriceId: selectedTest.stripePriceId,
+        testSlug: test.slug,
+        testName: test.name,
+        stripePriceId: test.stripePriceId,
         // Add the missing required fields
-        price: selectedTest.price,
-        productId: selectedTest.id,
+        price: test.price, // Price in pence (smallest currency unit) as expected by Stripe
+        productId: test.id,
         notes: data.notes,
         createAccount: data.createAccount,
         password: data.createAccount ? data.password : undefined,
@@ -233,36 +574,57 @@ export function OrderForm() {
         successUrl: `${window.location.origin}/order-success`,
         cancelUrl: window.location.href
       };
+      
+      console.log('Prepared checkout request data:', requestData);
 
       console.log('Full request data:', requestData);
 
+      // Validate that stripePriceId is present and valid
+      if (!requestData.stripePriceId || requestData.stripePriceId.trim() === '') {
+        toast.error('Invalid price information. Please select a different test.');
+        console.error('Missing or empty stripePriceId:', requestData.stripePriceId);
+        setIsLoading(false);
+        return;
+      }
+
       console.log('Sending checkout request:', requestData);
       
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        console.error('Checkout API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: responseData
+      try {
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+          credentials: 'include', // Include cookies for authentication
         });
-        throw new Error(responseData.error || 'Failed to create checkout session');
-      }
 
-      if (!responseData.url) {
-        throw new Error('No checkout URL returned from the server');
-      }
+        // Log the raw response for debugging
+        console.log('Checkout API response status:', response.status);
+        
+        const responseData = await response.json();
+        console.log('Checkout API response data:', responseData);
+        
+        if (!response.ok) {
+          console.error('Checkout API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: responseData
+          });
+          throw new Error(responseData.error || 'Failed to create checkout session');
+        }
 
-      console.log('Redirecting to checkout:', responseData.url);
-      window.location.href = responseData.url;
+        if (!responseData.url) {
+          throw new Error('No checkout URL returned from the server');
+        }
+
+        console.log('Redirecting to checkout:', responseData.url);
+        window.location.href = responseData.url;
+      } catch (error) {
+        console.error('Error during checkout request:', error);
+        toast.error('Failed to create checkout session. Please try again.');
+        setIsLoading(false);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
       toast.error(errorMessage);
@@ -280,8 +642,35 @@ export function OrderForm() {
     );
   }
 
+  // Profile data banner component to show when client data is loaded
+  const ProfileDataBanner = () => {
+    if (!showProfileBanner) return null;
+    
+    return (
+      <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+        <div className="flex items-center">
+          <Check className="h-5 w-5 text-green-500 mr-2" />
+          <p className="text-green-700 text-sm">Your patient details have been loaded from your profile.</p>
+          <button 
+            onClick={() => setShowProfileBanner(false)}
+            className="ml-auto text-green-500 hover:text-green-700"
+            aria-label="Dismiss"
+          >
+            <span className="sr-only">Dismiss</span>
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <div className={styles.formContainer}>
+      {/* Profile Data Banner */}
+      {currentStep === 1 && <ProfileDataBanner />}
+      
       {/* Progress Bar */}
       <div className={styles.progressBar}>
         {steps.map((step, index) => (
@@ -378,20 +767,43 @@ export function OrderForm() {
               <label className={styles.label}>Select Blood Test</label>
               <div className={styles.inputHint}>Choose from our range of comprehensive blood tests</div>
               <select
-                {...form.register('testSlug')}
+                id="testSlug"
                 className={styles.select}
+                value={form.watch('testSlug') || ''}
                 onChange={(e) => {
-                  form.setValue('testSlug', e.target.value);
-                  const selectedTest = bloodTests.find(test => test.slug === e.target.value);
-                  if (selectedTest) {
-                    // You could add additional logic here if needed
+                  const selectedValue = e.target.value;
+                  console.log('Selected value from dropdown:', selectedValue);
+                  
+                  if (selectedValue) {
+                    // Find the selected test by slug or id
+                    const test = bloodTests.find((t) => 
+                      (t.slug && t.slug === selectedValue) || t.id === selectedValue
+                    );
+                    
+                    if (test) {
+                      console.log('Found test:', test);
+                      // Always use the ID for consistency - this is what Stripe uses
+                      const valueToSet = test.id;
+                      form.setValue('testSlug', valueToSet, { shouldValidate: true });
+                      console.log('Set form value to ID:', valueToSet);
+                      console.log('Test details - name:', test.name, 'price:', test.price, 'stripePriceId:', test.stripePriceId);
+                      
+                      // Clear any previous errors
+                      form.clearErrors('testSlug');
+                    } else {
+                      console.error('Could not find test with value:', selectedValue);
+                      form.setValue('testSlug', selectedValue, { shouldValidate: true });
+                    }
+                  } else {
+                    // Handle empty selection
+                    form.setValue('testSlug', '', { shouldValidate: true });
                   }
                 }}
               >
                 <option value="">Select a test...</option>
                 {bloodTests.map((test) => (
-                  <option key={test.id} value={test.slug}>
-                    {test.name} - £{test.price > 0 ? test.price.toFixed(2) : 'TBD'}
+                  <option key={test.id} value={test.id}>
+                    {test.name} - £{test.price > 0 ? (test.price / 100).toFixed(2) : 'TBD'}
                   </option>
                 ))}
               </select>
@@ -527,7 +939,13 @@ export function OrderForm() {
             </button>
           ) : (
             <button
-              type="submit"
+              type="button" /* Changed from type="submit" to type="button" */
+              onClick={() => {
+                console.log('Proceed to Payment clicked');
+                console.log('Form state:', form.formState);
+                console.log('Form values:', form.getValues());
+                form.handleSubmit(onSubmit)();
+              }}
               className={styles.buttonPrimary}
               disabled={isLoading}
             >

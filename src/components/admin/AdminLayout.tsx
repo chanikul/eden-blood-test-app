@@ -13,6 +13,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin', label: 'Dashboard', icon: '📊' },
     { href: '/admin/orders', label: 'Orders', icon: '📦' },
     { href: '/admin/users', label: 'Users', icon: '👥' },
+    { href: '/admin/clients', label: 'Clients', icon: '👤' },
+    { href: '/admin/audit-logs', label: 'Audit Logs', icon: '📝' },
   ];
 
   return (
@@ -28,7 +30,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <Link
                 href={item.href}
                 className={`flex items-center px-4 py-3 text-sm font-medium ${
-                  pathname === item.href
+                  pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`))
                     ? 'text-blue-600 bg-blue-50'
                     : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                 }`}
@@ -46,7 +48,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <header className="bg-white shadow">
           <div className="px-4 py-6">
             <h1 className="text-3xl font-bold text-gray-900">
-              {navItems.find(item => item.href === pathname)?.label || 'Admin'}
+              {pathname && navItems.find(item => 
+                pathname === item.href || pathname.startsWith(`${item.href}/`)
+              )?.label || 'Admin'}
             </h1>
           </div>
         </header>

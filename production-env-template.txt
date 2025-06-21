@@ -1,0 +1,42 @@
+# Eden Clinic Production Environment Variables Template
+# Copy this file to .env.production and fill in the values before deployment
+
+# Node Environment
+NODE_ENV=production
+
+# Database Configuration
+DATABASE_URL=postgresql://username:password@host:port/database
+DIRECT_URL=postgresql://username:password@host:port/database
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Authentication
+JWT_SECRET=your-secure-jwt-secret
+NEXT_PUBLIC_JWT_SECRET=your-public-jwt-secret
+
+# Payment Processing
+STRIPE_SECRET_KEY=sk_live_your-stripe-secret-key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-publishable-key
+STRIPE_WEBHOOK_SECRET=whsec_your-stripe-webhook-secret
+
+# Email Configuration
+SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_FROM_EMAIL=noreply@edenclinicformen.com
+SUPPORT_EMAIL=support@edenclinicformen.com
+FORCE_REAL_EMAILS=true
+
+# Application URLs
+NEXT_PUBLIC_API_URL=https://eden-clinic-blood-test-app.windsurf.build
+NEXT_PUBLIC_BASE_URL=https://eden-clinic-blood-test-app.windsurf.build
+BASE_URL=https://eden-clinic-blood-test-app.windsurf.build
+
+# Feature Flags
+ENABLE_TEST_DATA_CLEANUP=true
+ENABLE_USER_DELETION=false
+
+# Disable Development Features
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=false
+USE_MOCK_DATA=false

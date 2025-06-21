@@ -1,0 +1,8 @@
+# Handle static assets in the new static export approach
+/_next/*  /_next/:splat  200
+
+# Handle API routes by redirecting to a static fallback
+/api/*  /api-fallback.html  200
+
+# Handle client-side routing for Next.js app router
+/*  /index.html  200

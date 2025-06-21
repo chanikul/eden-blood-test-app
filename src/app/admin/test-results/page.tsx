@@ -12,9 +12,10 @@ import {
   Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { TestResultUploader } from '@/components/admin/TestResultUploader';
+import { Input } from '../../../components/ui/input';
+import { Select } from '../../../components/ui/select';
+import { TestResultUploader } from '../../../components/admin/TestResultUploader';
+import { TestResultViewerModal } from '../../../components/admin/TestResultViewerModal';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {
@@ -50,6 +51,8 @@ export default function AdminTestResultsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
+  const [viewingTestResult, setViewingTestResult] = useState<string | null>(null);
+  const [viewingTestName, setViewingTestName] = useState<string>('');
 
   useEffect(() => {
     async function fetchTestResults() {
@@ -136,14 +139,6 @@ export default function AdminTestResultsPage() {
           <p className="mt-1 text-sm text-gray-500">
             Manage and update blood test results
           </p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <Link
-            href="/admin/test-results/cleanup"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Clean Up Test Data
-          </Link>
         </div>
       </div>
 
@@ -266,22 +261,26 @@ export default function AdminTestResultsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedResult(result)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                    {result.resultUrl && (
-                      <a
-                        href={result.resultUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-600 hover:text-gray-900"
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setSelectedResult(result)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       >
-                        <FileText className="h-4 w-4 inline" />
-                      </a>
-                    )}
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (result.resultUrl) {
+                            setViewingTestResult(result.id);
+                            setViewingTestName(result.bloodTest?.name || 'Test Result');
+                          }
+                        }}
+                        className={`text-teal-600 hover:text-teal-800 text-sm font-medium ${!result.resultUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!result.resultUrl}
+                      >
+                        View
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -307,6 +306,14 @@ export default function AdminTestResultsPage() {
           )}
         </div>
       )}
+      
+      {/* Test Result Viewer Modal */}
+      <TestResultViewerModal
+        isOpen={!!viewingTestResult}
+        onClose={() => setViewingTestResult(null)}
+        testResultId={viewingTestResult}
+        testName={viewingTestName}
+      />
     </div>
   );
 }

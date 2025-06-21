@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Maps API Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    pre {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Maps API Test</h1>
+  <p>This page tests if your Google Maps API key is working correctly.</p>
+  
+  <div id="result" class="result">Testing API key...</div>
+  
+  <script>
+    // Function to extract API key from URL or use a default
+    function getApiKey() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const key = urlParams.get('key');
+      return key;
+    }
+    
+    // Function to test the API key
+    function testApiKey(apiKey) {
+      const resultDiv = document.getElementById('result');
+      
+      if (!apiKey) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h2>No API Key Found</h2>
+          <p>No Google Maps API key was found in the environment variables.</p>
+          <p>Make sure you have set the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file.</p>
+        `;
+        return;
+      }
+      
+      resultDiv.innerHTML = `<p>Testing API key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}</p>`;
+      
+      // Create a script element to load the Google Maps API
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+      script.async = true;
+      script.defer = true;
+      
+      // Handle successful load
+      window.initMap = function() {
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `
+          <h2>Success! ✅</h2>
+          <p>The Google Maps API loaded successfully with your API key.</p>
+          <p>API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}</p>
+          <p>This means your key is valid and has the necessary permissions.</p>
+        `;
+      };
+      
+      // Handle load error
+      script.onerror = function() {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h2>Error! ❌</h2>
+          <p>Failed to load the Google Maps API with your key.</p>
+          <p>API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}</p>
+          <h3>Possible issues:</h3>
+          <ul>
+            <li>The API key is invalid or has expired</li>
+            <li>The API key doesn't have the Places API enabled</li>
+            <li>There are domain restrictions on the API key that prevent it from being used on localhost</li>
+            <li>You've exceeded your API quota</li>
+          </ul>
+          <p>Check your Google Cloud Console to verify your API key settings.</p>
+        `;
+      };
+      
+      // Add the script to the page
+      document.body.appendChild(script);
+    }
+    
+    // Start the test when the page loads
+    window.onload = function() {
+      // Try to get the API key from Next.js environment
+      fetch('/api/get-maps-key')
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.apiKey) {
+            testApiKey(data.apiKey);
+          } else {
+            // If API endpoint doesn't exist or doesn't return a key, try from URL
+            const urlKey = getApiKey();
+            if (urlKey) {
+              testApiKey(urlKey);
+            } else {
+              const resultDiv = document.getElementById('result');
+              resultDiv.className = 'result error';
+              resultDiv.innerHTML = `
+                <h2>No API Key Available</h2>
+                <p>Could not retrieve a Google Maps API key.</p>
+                <p>You can test a specific key by adding it to the URL: ?key=YOUR_API_KEY</p>
+              `;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching API key:', error);
+          // Try from URL if API fails
+          const urlKey = getApiKey();
+          if (urlKey) {
+            testApiKey(urlKey);
+          } else {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result error';
+            resultDiv.innerHTML = `
+              <h2>Error Fetching API Key</h2>
+              <p>Failed to fetch the API key from the server.</p>
+              <p>You can test a specific key by adding it to the URL: ?key=YOUR_API_KEY</p>
+              <pre>${error.toString()}</pre>
+            `;
+          }
+        });
+    };
+  </script>
+</body>
+</html>

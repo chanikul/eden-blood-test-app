@@ -1,14 +1,11 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { generateRandomPassword } from '@/lib/utils';
-import { sendEmail } from '@/lib/services/email';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from '../../../../../../lib/auth';
+import { prisma } from '../../../../../../lib/prisma';
+import { generateRandomPassword } from '../../../../../../lib/utils';
+import { sendEmail } from '../../../../../../lib/services/email';
 import bcrypt from 'bcryptjs';
 
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const POST = async (request) => { {
   try {
     const session = await getServerSession();
     
@@ -68,4 +65,6 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
 }

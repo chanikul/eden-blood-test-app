@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { TestStatus } from '@prisma/client';
-import { Download, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Download, FileText, Loader2, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { useTestResultMcp } from './TestResultMcpProvider';
+import { TestResultViewerModal } from './TestResultViewerModal';
 
 interface TestResultDownloadProps {
   result: {
@@ -32,11 +33,14 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
   const [downloadCount, setDownloadCount] = useState(0);
   const [lastDownloaded, setLastDownloaded] = useState<Date | null>(null);
   const [fileExists, setFileExists] = useState<boolean | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   
   // Use our MCP provider to verify file existence
   const { verifyFile } = useTestResultMcp();
   
   const testName = result.bloodTest?.name || result.order?.testName || 'Blood Test';
+  // Only consider READY status as valid for viewing/downloading results
+  // TestStatus only has 'processing' and 'ready' values
   const isReady = result.status === TestStatus.ready;
   const createdDate = result.order?.createdAt || result.createdAt;
   const updatedDate = result.updatedAt;
@@ -166,7 +170,17 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
           {error && <p className="text-red-500 mt-2">{error}</p>}
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col space-y-2">
+        {isReady && fileExists !== false && (
+          <Button
+            onClick={() => setIsViewerOpen(true)}
+            className="w-full"
+            variant="secondary"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            View Results
+          </Button>
+        )}
         <Button
           onClick={handleDownload}
           disabled={!isReady || isLoading || fileExists === false}
@@ -190,6 +204,16 @@ export function TestResultDownload({ result }: TestResultDownloadProps) {
             </>
           )}
         </Button>
+        
+        {/* Viewer Modal */}
+        {isReady && (
+          <TestResultViewerModal
+            isOpen={isViewerOpen}
+            onClose={() => setIsViewerOpen(false)}
+            testId={result.id}
+            testName={testName}
+          />
+        )}
       </CardFooter>
     </Card>
   );

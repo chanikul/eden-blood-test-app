@@ -1,0 +1,206 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import OtpStep from './OtpStep'
+import { getSupabaseClient } from '../../../lib/supabase-client'
+
+// Get the singleton instance of Supabase client only once outside component
+let supabaseClientSingleton: ReturnType<typeof getSupabaseClient> | null = null;
+
+// Initialize client safely
+function getSafeSupabaseClient() {
+  if (!supabaseClientSingleton) {
+    try {
+      supabaseClientSingleton = getSupabaseClient();
+    } catch (error) {
+      console.error('Failed to initialize Supabase client:', error);
+    }
+  }
+  return supabaseClientSingleton;
+}
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [step, setStep] = useState<'login' | 'otp'>('login')
+  const [adminEmail, setAdminEmail] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseClient> | null>(null)
+
+  // Initialize Supabase client safely on component mount
+  useEffect(() => {
+    setSupabase(getSafeSupabaseClient());
+  }, []);
+
+  // Handle Google sign-in
+  const handleGoogleSignIn = useCallback(async () => {
+    if (!supabase) {
+      setError('Authentication system is not available. Please try again later.');
+      return;
+    }
+    
+    try {
+      setGoogleLoading(true);
+      setError('');
+      
+      // In development mode, bypass Google auth
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Development mode: Bypassing Google auth');
+        router.push('/admin');
+        return;
+      }
+      
+      // Store the current origin in localStorage before redirecting
+      const currentOrigin = window.location.origin;
+      localStorage.setItem('eden_auth_origin', currentOrigin);
+      
+      // Use the production URL for redirect
+      const redirectUrl = 'https://eden-clinic-blood-test-app.windsurf.build/admin/callback';
+      
+      // Use Supabase OAuth with the production redirect URL
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error starting Google sign-in:', error);
+      setError('Failed to start Google authentication');
+      setGoogleLoading(false);
+    }
+  }, [router, supabase]);
+
+  // Handle traditional email/password login
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Login failed')
+      }
+      
+      // Password correct, redirect to admin dashboard
+      router.push('/admin')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [router]);
+
+  // Render the login page
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div>
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+            Eden Clinic Admin
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Please sign in with your Eden Clinic account
+          </p>
+        </div>
+        
+        {error && (
+          <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md border border-red-200">
+            {error}
+          </div>
+        )}
+
+        {/* Google Sign-In Button */}
+        <div className="mt-6">
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            {googleLoading ? (
+              <span>Signing in...</span>
+            ) : (
+              <>
+                <span>Sign in with Google</span>
+              </>
+            )}
+          </button>
+          <p className="mt-2 text-xs text-center text-gray-500">
+            Only @edenclinicformen.com or @edenclinic.co.uk email addresses are allowed
+          </p>
+        </div>
+
+        <div className="mt-6 relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with password</span>
+          </div>
+        </div>
+
+        {step === 'login' ? (
+          <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+            <div className="rounded-md shadow-sm -space-y-px">
+              <div>
+                <label htmlFor="email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Email address"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Password"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Signing in...' : 'Sign in'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <OtpStep email={adminEmail} onSuccess={() => { setStep('login'); }} />
+        )}
+      </div>
+    </div>
+  );
+}

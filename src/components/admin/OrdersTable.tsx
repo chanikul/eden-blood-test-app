@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Order, OrderStatus } from '@/types'
+import { useState } from 'react'
+import { Order, OrderStatus } from '../../types'
 import { format } from 'date-fns'
-import { OrderDetailModal } from '@/components/admin/OrderDetailModal'
+import { OrderDetailModal } from './OrderDetailModal'
 import { useRouter } from 'next/navigation'
+import { Eye } from 'lucide-react'
 
 interface OrdersTableProps {
   orders: Order[]
@@ -83,12 +84,13 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">
                     <button
-                      className="text-blue-700 hover:text-blue-900 font-medium"
+                      className="text-blue-700 hover:text-blue-900 font-medium flex items-center"
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedOrder(order)
                       }}
                     >
+                      <Eye className="h-4 w-4 mr-1" />
                       View Details
                     </button>
                   </td>

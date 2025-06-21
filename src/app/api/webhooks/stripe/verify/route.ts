@@ -1,19 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export async function POST(req: Request) {
+export const POST = async (request: NextRequest) => {
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
-  const body = await req.text();
+  const body = await request.text();
 
   console.log('=== WEBHOOK VERIFY TEST ===');
   console.log('Request details:', {
-    url: req.url,
-    method: req.method,
+    url: request.url,
+    method: request.method,
     headers: {
       'stripe-signature': signature?.substring(0, 20) + '...',
       'content-type': headersList.get('content-type'),

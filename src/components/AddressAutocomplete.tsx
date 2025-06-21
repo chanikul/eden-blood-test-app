@@ -18,8 +18,13 @@ interface AddressAutocompleteProps {
 }
 
 export function AddressAutocomplete({ onAddressSelect, defaultValue, error }: AddressAutocompleteProps) {
+  // Check if API key exists before trying to load the script
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const hasApiKey = !!apiKey && apiKey.length > 10; // Basic validation that it's not empty or too short
+  
+  // Only attempt to load the script if we have an API key
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: apiKey,
     libraries,
   });
 
@@ -94,7 +99,41 @@ export function AddressAutocomplete({ onAddressSelect, defaultValue, error }: Ad
 
   if (loadError) {
     console.error('Error loading Google Maps:', loadError);
-    return <div>Error loading Google Maps</div>;
+    return (
+      <div className={styles.container}>
+        <input
+          type="text"
+          placeholder="Address lookup unavailable"
+          className={`${styles.input} ${styles.disabled}`}
+          disabled
+        />
+        {error && <span className={styles.error}>{error}</span>}
+        {process.env.NODE_ENV === 'development' && (
+          <div className={styles.error}>
+            Google Maps API error: {loadError.message || 'Failed to load'}
+            {!hasApiKey && <p>Missing or invalid Google Maps API key</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  if (!hasApiKey) {
+    console.error('Missing or invalid Google Maps API key');
+    return (
+      <div className={styles.container}>
+        <input
+          type="text"
+          placeholder="Address lookup unavailable"
+          className={`${styles.input} ${styles.disabled}`}
+          disabled
+        />
+        {error && <span className={styles.error}>{error}</span>}
+        {process.env.NODE_ENV === 'development' && (
+          <div className={styles.error}>Missing or invalid Google Maps API key</div>
+        )}
+      </div>
+    );
   }
 
   return (

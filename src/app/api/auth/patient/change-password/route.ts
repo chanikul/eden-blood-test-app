@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyPassword, hashPassword } from '@/lib/utils/password';
-import { getPatientFromToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import { verifyPassword, hashPassword } from '../../../../../lib/utils/password';
+import { getPatientFromToken } from '../../../../../lib/auth';
 
-export async function POST(request: Request) {
+// Using named export for compatibility with Netlify
+export const POST = async (request) => { {
   console.log('=== CHANGE PASSWORD DEBUG ===');
   try {
     const { currentPassword, newPassword } = await request.json();
@@ -33,7 +34,8 @@ export async function POST(request: Request) {
       select: {
         passwordHash: true,
         resetToken: true,
-        resetTokenExpires: true
+        resetTokenExpires: true,
+        must_reset_password: true
       }
     });
 
@@ -58,14 +60,15 @@ export async function POST(request: Request) {
     // Hash new password
     const newPasswordHash = await hashPassword(newPassword);
 
-    // Update password and clear reset token
+    // Update password, clear reset token, and reset must_reset_password flag
     console.log('Updating password in database...');
     await prisma.clientUser.update({
       where: { id: patient.id },
       data: {
         passwordHash: newPasswordHash,
         resetToken: null,
-        resetTokenExpires: null
+        resetTokenExpires: null,
+        must_reset_password: false // Reset the flag after password change
       }
     });
 
@@ -81,4 +84,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
 }

@@ -12,16 +12,38 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // First try to get a client session
-    const clientSession = await getClientSession();
+    // Check if we're in development mode and bypass authentication if so
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isDevelopmentRequest = request.headers.get('X-Development-Mode') === 'true';
     
-    // If no client session, try admin session
-    const adminSession = clientSession ? null : await getSession();
+    // Log development mode status
+    console.log('GET /api/test-results/[id]/download - Development mode:', { 
+      isDevelopment, 
+      isDevelopmentRequest,
+      headers: Object.fromEntries(request.headers.entries())
+    });
     
-    // If neither session exists, return unauthorized
-    if (!clientSession && (!adminSession || !adminSession.user)) {
-      console.log('GET /api/test-results/[id]/download - Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Initialize session variables
+    let clientSession = null;
+    let adminSession = null;
+    let isAuthorized = false;
+    
+    // Skip authentication in development mode
+    if (isDevelopment) {
+      console.log('Development mode: Bypassing authentication check');
+      isAuthorized = true;
+    } else {
+      // First try to get a client session
+      clientSession = await getClientSession();
+      
+      // If no client session, try admin session
+      adminSession = clientSession ? null : await getSession();
+      
+      // If neither session exists, return unauthorized
+      if (!clientSession && (!adminSession || !adminSession.user)) {
+        console.log('GET /api/test-results/[id]/download - Unauthorized access attempt');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
     
     const resultId = params.id;
@@ -40,15 +62,15 @@ export async function GET(
       return NextResponse.json({ error: 'Test result not found' }, { status: 404 });
     }
     
-    // Check if the user is authorized to download this result
-    let isAuthorized = false;
-    
-    if (clientSession) {
-      // Client user can only access their own results
-      isAuthorized = result.clientId === clientSession.id;
-    } else if (adminSession) {
-      // Admin users can access any result
-      isAuthorized = adminSession.user?.role === 'ADMIN' || adminSession.user?.role === 'SUPER_ADMIN';
+    // Check if the user is authorized to download this result if not in development mode
+    if (!isAuthorized) { // Only check if not already authorized via development mode
+      if (clientSession) {
+        // Client user can only access their own results
+        isAuthorized = result.clientId === clientSession.id;
+      } else if (adminSession) {
+        // Admin users can access any result
+        isAuthorized = adminSession.user?.role === 'ADMIN' || adminSession.user?.role === 'SUPER_ADMIN';
+      }
     }
     
     if (!isAuthorized) {
@@ -67,7 +89,7 @@ export async function GET(
     // Create a short-lived presigned URL for secure download
     // This prevents direct access to the PDF and ensures authentication
     // The URL will expire in 5 minutes (300 seconds)
-    const downloadUrl = await createPresignedUrl(result.resultUrl, 300);
+    const downloadUrl = await createPresignedUrl(result.resultUrl, '300');
     
     // Log the download attempt for audit purposes
     await prisma.testResult.update({
