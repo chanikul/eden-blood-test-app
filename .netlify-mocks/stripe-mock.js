@@ -1,1 +1,0 @@
-exports.Elements = () => null; exports.PaymentElement = () => null; exports.useStripe = () => ({}); exports.useElements = () => ({});
