@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, FileText, Calendar, User, Mail, Phone, MapPin, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+// import { Button } from '@/components/ui/button'; // Temporarily removed for deployment
+// import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'; // Temporarily removed for deployment
+// import { Badge } from '@/components/ui/badge'; // Temporarily removed for deployment
 import { format } from 'date-fns';
 import { OrderStatus } from '@/types';
 
@@ -98,17 +98,16 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   if (error || !order) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Button 
-          variant="secondary" 
+        <button 
           onClick={() => router.back()}
-          className="mb-6"
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 mb-6"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-2 h-4 w-4 inline" />
           Back to Orders
-        </Button>
+        </button>
         
-        <Card className="bg-white shadow-sm border border-red-200">
-          <CardContent className="pt-6 text-center">
+        <div className="bg-white shadow-sm border border-red-200 rounded-lg">
+          <div className="pt-6 text-center p-6">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               {error || 'Order not found'}
@@ -116,11 +115,11 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
             <p className="text-gray-500 mb-4">
               We couldn't find the order you're looking for. It may have been deleted or you may not have permission to view it.
             </p>
-            <Button onClick={() => router.push('/admin/orders')}>
+            <button onClick={() => router.push('/admin/orders')} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
               Return to Orders List
-            </Button>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -137,14 +136,13 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <Button 
-        variant="secondary" 
+      <button 
         onClick={() => router.back()}
-        className="mb-6"
+        className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 mb-6"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
+        <ArrowLeft className="mr-2 h-4 w-4 inline" />
         Back to Orders
-      </Button>
+      </button>
       
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
@@ -156,29 +154,29 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
           </p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Badge 
-            className={`text-sm px-3 py-1 ${
-              order.status === OrderStatus.PAID ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-              order.status === OrderStatus.DISPATCHED ? 'bg-green-100 text-green-800 border-green-200' :
-              order.status === OrderStatus.CANCELLED ? 'bg-red-100 text-red-800 border-red-200' :
-              'bg-gray-100 text-gray-800 border-gray-200'
+          <span 
+            className={`text-sm px-3 py-1 rounded-full inline-block ${
+              order.status === OrderStatus.PAID ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+              order.status === OrderStatus.DISPATCHED ? 'bg-green-100 text-green-800 border border-green-200' :
+              order.status === OrderStatus.CANCELLED ? 'bg-red-100 text-red-800 border border-red-200' :
+              'bg-gray-100 text-gray-800 border border-gray-200'
             }`}
           >
             {order.status}
-          </Badge>
+          </span>
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Order Summary */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-            <CardDescription>
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg md:col-span-2">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold">Order Summary</h2>
+            <p className="text-sm text-gray-500">
               Order placed on {format(new Date(order.createdAt), 'PPP')} at {format(new Date(order.createdAt), 'p')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
+          </div>
+          <div className="p-6">
             <div className="space-y-4">
               <div className="flex items-start">
                 <FileText className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
@@ -214,15 +212,15 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
         
         {/* Patient Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Information</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold">Patient Information</h2>
+          </div>
+          <div className="p-6">
             <div className="space-y-4">
               <div className="flex items-start">
                 <User className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
@@ -274,45 +272,45 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
       
       {/* Admin Actions */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Update Order Status</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-white shadow-sm border border-gray-200 rounded-lg mt-6">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold">Update Order Status</h2>
+        </div>
+        <div className="p-6">
           <div className="flex flex-wrap gap-3">
-            <Button
-              variant={order.status === OrderStatus.PAID ? "primary" : "secondary"}
+            <button
               onClick={() => handleUpdateStatus(OrderStatus.PAID)}
               disabled={order.status === OrderStatus.PAID || updateStatus.loading}
+              className={`px-4 py-2 rounded mr-2 ${order.status === OrderStatus.PAID ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
             >
               Mark as Paid
-            </Button>
-            <Button
-              variant={order.status === OrderStatus.DISPATCHED ? "primary" : "secondary"}
+            </button>
+            <button
               onClick={() => handleUpdateStatus(OrderStatus.DISPATCHED)}
               disabled={order.status === OrderStatus.DISPATCHED || updateStatus.loading}
+              className={`px-4 py-2 rounded mr-2 ${order.status === OrderStatus.DISPATCHED ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
             >
               Mark as Dispatched
-            </Button>
-            <Button
-              variant={order.status === OrderStatus.READY ? "primary" : "secondary"}
+            </button>
+            <button
               onClick={() => handleUpdateStatus(OrderStatus.READY)}
               disabled={order.status === OrderStatus.READY || updateStatus.loading}
+              className={`px-4 py-2 rounded mr-2 ${order.status === OrderStatus.READY ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
             >
               Mark as Ready
-            </Button>
-            <Button
-              variant="danger"
+            </button>
+            <button
               onClick={() => handleUpdateStatus(OrderStatus.CANCELLED)}
               disabled={order.status === OrderStatus.CANCELLED || updateStatus.loading}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             >
               Cancel Order
-            </Button>
+            </button>
           </div>
           
           {updateStatus.loading && (
@@ -334,8 +332,8 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
               Order status updated successfully
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

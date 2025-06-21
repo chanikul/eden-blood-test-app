@@ -12,8 +12,8 @@ import {
   Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+// import { Input } from '@/components/ui/input'; // Temporarily removed for deployment
+// import { Select } from '@/components/ui/select'; // Temporarily removed for deployment
 import { TestResultUploader } from '../../../components/admin/TestResultUploader';
 import { TestResultViewerModal } from '../../../components/admin/TestResultViewerModal';
 
@@ -146,24 +146,24 @@ export default function AdminTestResultsPage() {
       <div className="mb-6 md:flex md:items-center md:space-x-4">
         <div className="relative flex-1 mb-4 md:mb-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
+          <input
             type="text"
             placeholder="Search by test name, patient, or order ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
         <div className="relative inline-block w-full md:w-48">
-          <Select
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as TestStatus | 'ALL')}
-            className="block w-full"
+            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-3 pr-10 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="ALL">All statuses</option>
             <option value={TestStatus.processing}>Processing</option>
             <option value={TestStatus.ready}>Ready</option>
-          </Select>
+          </select>
           <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
         </div>
       </div>

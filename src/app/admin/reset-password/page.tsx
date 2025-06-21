@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// import { Button } from '@/components/ui/button'; // Temporarily removed for deployment
+// import { Input } from '@/components/ui/input'; // Temporarily removed for deployment
 import { toast } from 'react-hot-toast';
 
 export default function ResetPasswordPage() {
@@ -23,13 +23,12 @@ export default function ResetPasswordPage() {
           <p className="text-gray-600 mb-6">
             This password reset link is invalid or has expired. Please request a new password reset.
           </p>
-          <Button
-            variant="primary"
+          <button
             onClick={() => router.push('/admin/login')}
-            className="w-full"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
           >
             Return to Login
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -74,36 +73,37 @@ export default function ResetPasswordPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               New Password
             </label>
-            <Input
+            <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
               placeholder="••••••••"
+              className="border border-gray-300 rounded px-3 py-2 w-full"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Confirm Password
             </label>
-            <Input
+            <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
               placeholder="••••••••"
+              className="border border-gray-300 rounded px-3 py-2 w-full"
             />
           </div>
-          <Button
+          <button
             type="submit"
-            variant="primary"
-            className="w-full"
-            loading={loading}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
+            disabled={loading}
           >
-            Reset Password
-          </Button>
+            {loading ? 'Resetting...' : 'Reset Password'}
+          </button>
         </form>
       </div>
     </div>

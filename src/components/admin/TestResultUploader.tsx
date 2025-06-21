@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Input } from '../ui/input';
-import { Select } from '../ui/select';
+// import { Input } from '../ui/input'; // Temporarily removed for deployment
+// import { Select } from '../ui/select'; // Temporarily removed for deployment
 import { Loader2, Upload, CheckCircle, AlertCircle, FileText, ExternalLink } from 'lucide-react';
 import { createPresignedUrl } from '../../lib/storage';
 import { StorageMcpClient } from '../../lib/mcp/storage-mcp-client';
 import { toast } from 'sonner';
 import { TestStatus } from '@prisma/client';
-import { Alert, AlertDescription } from '../ui/alert';
+// import { Alert, AlertDescription } from '../ui/alert'; // Temporarily removed for deployment
 import { cn } from '../../lib/utils';
 
 // Using TestStatus from Prisma client import
@@ -75,7 +75,7 @@ export function TestResultUploader({
               
               // Generate a preview URL
               try {
-                const previewUrl = await createPresignedUrl(data.resultUrl, 3600);
+                const previewUrl = await createPresignedUrl(data.resultUrl, '3600');
                 setPreviewUrl(previewUrl);
               } catch (error) {
                 console.error('Error generating preview URL:', error);
@@ -145,7 +145,7 @@ export function TestResultUploader({
           // Store the uploaded file URL and generate a preview URL
           setUploadedFileUrl(resultUrl);
           try {
-            const previewUrl = await createPresignedUrl(resultUrl, 3600);
+            const previewUrl = await createPresignedUrl(resultUrl, '3600');
             setPreviewUrl(previewUrl);
           } catch (previewError) {
             console.error('Error generating preview URL:', previewError);
@@ -263,39 +263,40 @@ export function TestResultUploader({
           <label htmlFor="status" className="block text-sm font-medium text-gray-700">
             Result Status
           </label>
-          <Select
+          <select
             id="status"
             value={status}
-            onChange={(e) => setStatus(e.target.value as TestStatus)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as TestStatus)}
             disabled={isUploading}
+            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value={TestStatus.processing}>Processing</option>
             <option value={TestStatus.ready}>Ready</option>
-          </Select>
+          </select>
         </div>
         
         <div className="space-y-2">
           <label htmlFor="file" className="block text-sm font-medium text-gray-700">
             Result File (PDF, PNG, JPG, or DOCX - required for Ready status)
           </label>
-          <Input
+          <input
             id="file"
             type="file"
             accept="application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={handleFileChange}
             disabled={isUploading}
-            className="cursor-pointer"
+            className="cursor-pointer block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
           />
           {file && (
             <p className="text-sm text-gray-500">Selected: {file.name}</p>
           )}
-          <Alert variant="info" className="bg-blue-50 text-blue-800 text-sm">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
+          <div className="bg-blue-50 text-blue-800 text-sm p-4 rounded-md border border-blue-200 flex items-start">
+            <AlertCircle className="h-4 w-4 mr-2 mt-0.5" />
+            <div>
               When marked as Ready, an email notification (without attachment) will be sent to the client
               with instructions to view results securely in their dashboard.
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         </div>
         
         {error && (

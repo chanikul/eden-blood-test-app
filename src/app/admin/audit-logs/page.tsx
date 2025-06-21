@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button'; // Temporarily removed for deployment
 
 export default function AuditLogsPage() {
   const router = useRouter();
@@ -40,13 +40,14 @@ export default function AuditLogsPage() {
       <div className="bg-white rounded-lg shadow-md p-6 w-full">
         <div className="flex flex-row items-center justify-between space-y-0 pb-2">
           <h1 className="text-xl font-bold">Admin Audit Logs</h1>
-          <Button 
+          <button 
             onClick={() => fetchAuditLogs(page)}
             disabled={loading}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Refresh
-          </Button>
+          </button>
         </div>
         
         {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -108,23 +109,23 @@ export default function AuditLogsPage() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-end space-x-2 py-4">
-            <Button
-              variant="outline"
+            <button
               onClick={() => setPage((p) => Math.max(p - 1, 1))}
               disabled={page === 1 || loading}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
             >
               Previous
-            </Button>
+            </button>
             <div className="text-sm font-medium">
               Page {page} of {totalPages}
             </div>
-            <Button
-              variant="outline"
+            <button
               onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
               disabled={page === totalPages || loading}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
             >
               Next
-            </Button>
+            </button>
           </div>
         )}
       </div>
