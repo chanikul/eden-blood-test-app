@@ -5,8 +5,9 @@ const isEdgeRuntime = () => {
   return (
     process.env.NEXT_RUNTIME === 'edge' || // Next.js Edge API Routes
     process.env.NETLIFY === 'true' || // Netlify environment
-    process.env.VERCEL_REGION?.includes('cdg') || // Vercel edge functions typically have region codes
-    process.env.VERCEL_ENV === 'production' // Vercel production environment
+    // FIXED: Remove incorrect detection of Vercel production as edge runtime
+    process.env.VERCEL_REGION?.includes('cdg') // Vercel edge functions typically have region codes
+    // REMOVED: process.env.VERCEL_ENV === 'production' was incorrectly treating all Vercel prod as edge
   )
 }
 
@@ -71,9 +72,17 @@ function createPrismaClient() {
       return createMockPrismaClient()
     }
     
+    // Check if DATABASE_URL is available
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL environment variable is missing')
+      throw new Error('DATABASE_URL is required')
+    }
+    
     // For regular server-side code, use the standard Prisma client
+    console.log(`Initializing Prisma client in ${process.env.NODE_ENV} mode on ${process.env.VERCEL_ENV || 'local'} environment`)
     return new PrismaClient({
       log: ['error', 'warn'],
+      errorFormat: 'pretty',
     })
   } catch (error) {
     console.error('Failed to initialize Prisma client:', error)
@@ -92,10 +101,20 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Add error handler for connection issues
 if (!isEdgeRuntime()) {
-  prisma.$connect().catch(error => {
-    console.warn('Warning: Initial Prisma connection failed:', error.message)
+  prisma.$connect().then(() => {
+    console.log('Prisma client connected successfully')
+  }).catch(error => {
+    console.error('Warning: Initial Prisma connection failed:', error.message, error.stack)
     if (process.env.NODE_ENV === 'development') {
       console.info('Development mode: Mock data will be used as fallback')
+    } else {
+      console.error('Production Prisma connection error details:', {
+        databaseUrl: process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 15)}...` : 'missing',
+        directUrl: process.env.DIRECT_URL ? `${process.env.DIRECT_URL.substring(0, 15)}...` : 'missing',
+        nodeEnv: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV,
+        vercelRegion: process.env.VERCEL_REGION
+      })
     }
   })
 }

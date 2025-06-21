@@ -36,22 +36,37 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname === '/register' ||
     request.nextUrl.pathname === '/forgot-password' ||
-    request.nextUrl.pathname === '/reset-password'
+    request.nextUrl.pathname === '/reset-password' ||
+    // Also exclude API routes from middleware to prevent redirect loops
+    request.nextUrl.pathname.startsWith('/api/auth/')
   ) {
     return response;
   }
 
   // Protect admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
+    // Don't redirect /admin/login to itself - this prevents redirect loops
+    if (request.nextUrl.pathname === '/admin/login') {
+      return response;
+    }
+    
     // Bypass authentication in development mode
     if (process.env.NODE_ENV === 'development') {
       console.log('Development mode: Bypassing admin authentication in middleware');
       return response;
     }
     
+    // Log cookie information for debugging
+    console.log('Admin route access attempt:', {
+      path: request.nextUrl.pathname,
+      hasAdminToken: !!request.cookies.get('eden_admin_token')?.value,
+      cookieCount: request.cookies.getAll().length,
+    });
+    
     const token = request.cookies.get('eden_admin_token')?.value
 
     if (!token) {
+      console.log('No admin token found, redirecting to login');
       const redirectResponse = NextResponse.redirect(new URL('/admin/login', request.url));
       // Copy CSP headers to redirect response
       redirectResponse.headers.set('Content-Security-Policy', response.headers.get('Content-Security-Policy') || '');

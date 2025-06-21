@@ -5,9 +5,18 @@ import { verifyPassword } from '../../../../../lib/utils/password';
 import { generateSessionToken } from '../../../../../lib/auth';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'; // Force Node.js runtime to ensure proper Prisma functionality
 
 // Using named export for compatibility with Netlify
 export const POST = async (request: NextRequest) => {
+  console.log('=== PATIENT LOGIN REQUEST ===');
+  console.log('Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    DATABASE_URL: process.env.DATABASE_URL ? 'Set (truncated for security)' : 'Not set',
+    JWT_SECRET: process.env.JWT_SECRET ? 'Set (truncated for security)' : 'Not set'
+  });
+  
   try {
     const { email, password } = await request.json();
 
@@ -92,13 +101,33 @@ export const POST = async (request: NextRequest) => {
       passwordChangeRequired
     });
   } catch (error) {
-    console.error('Patient login error:', {
+    // Enhanced error logging
+    const errorDetails = {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+      stack: error instanceof Error ? error.stack : undefined,
+      prismaConnected: false
+    };
+    
+    // Try to check Prisma connection status
+    try {
+      // Simple query to test database connection
+      await prisma.$queryRaw`SELECT 1 as result`;
+      errorDetails.prismaConnected = true;
+      console.error('Patient login error (database connection is working):', errorDetails);
+    } catch (dbError) {
+      errorDetails.prismaConnected = false;
+      console.error('Patient login error with database connection failure:', {
+        ...errorDetails,
+        dbError: dbError instanceof Error ? dbError.message : String(dbError)
+      });
+    }
+    
     return NextResponse.json(
-      { message: 'An error occurred during login' },
+      { 
+        message: 'An error occurred during login',
+        error: process.env.NODE_ENV === 'development' ? errorDetails.message : undefined
+      },
       { status: 500 }
     );
   }

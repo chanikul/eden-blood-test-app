@@ -14,8 +14,24 @@ const nextConfig = {
   swcMinify: true,
   // Configure images for Vercel deployment
   images: {
-    domains: ['eden-clinic-blood-test-app.windsurf.build', 'edenclinicformen.com', 'dlzfhnnwyvddaoikrung.supabase.co', 'vercel.app', 'eden-blood-test-app.vercel.app'],
-    unoptimized: true,
+    domains: [
+      'eden-clinic-blood-test-app.windsurf.build', 
+      'edenclinicformen.com', 
+      'dlzfhnnwyvddaoikrung.supabase.co', 
+      'vercel.app', 
+      'eden-blood-test-app.vercel.app',
+      'localhost',
+      'edenclinic.netlify.app',
+      'supabase.co',
+      'supabase.in'
+    ],
+    unoptimized: false, // Changed to false to enable Next.js image optimization
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
   // Add trailing slash to help with routing
   trailingSlash: true,
@@ -80,9 +96,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true
   },
-  images: {
-    domains: ['localhost', 'edenclinic.netlify.app', 'supabase.co', 'supabase.in'],
-  },
+  // Removed duplicate images config
 };
 
 module.exports = nextConfig;
