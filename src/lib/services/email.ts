@@ -7,13 +7,21 @@ import { generateWelcomeEmail } from '../email-templates/welcome';
 import { renderAsync } from '@react-email/render';
 import { DispatchNotificationEmail } from '../email-templates/dispatch-notification';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error('SENDGRID_API_KEY is not set');
-}
+// Check if SendGrid API key is available
+let sendGridInitialized = false;
 
-console.log('Initializing SendGrid with API key:', process.env.SENDGRID_API_KEY.substring(0, 10) + '...');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-console.log('SendGrid initialized successfully');
+try {
+  if (process.env.SENDGRID_API_KEY) {
+    console.log('Initializing SendGrid with API key:', process.env.SENDGRID_API_KEY.substring(0, 10) + '...');
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sendGridInitialized = true;
+    console.log('SendGrid initialized successfully');
+  } else {
+    console.warn('SENDGRID_API_KEY is not set - email functionality will be disabled');
+  }
+} catch (error) {
+  console.error('Failed to initialize SendGrid:', error);
+}
 
 type EmailParams = {
   to: string;
@@ -22,7 +30,13 @@ type EmailParams = {
   html?: string;
 };
 
-export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResponse, {}]> {
+export async function sendEmail(params: EmailParams): Promise<[sgMail.ClientResponse, {}] | null> {
+  // If SendGrid is not initialized, log a warning and return null
+  if (!sendGridInitialized) {
+    console.warn('SendGrid not initialized - skipping email send');
+    return null;
+  }
+  
   const { to, subject, text, html } = params;
   const isProduction = process.env.NODE_ENV === 'production';
   const forceRealEmails = process.env.FORCE_REAL_EMAILS === 'true';

@@ -108,14 +108,24 @@ export async function POST(request: NextRequest) {
 
     // Send welcome email with login credentials
     try {
-      await sendWelcomeEmail({
-        email: validatedData.email,
-        name: validatedData.name,
-        password,
-        orderId: '', // No order associated with manually created clients
-        testName: '' // No test associated with manually created clients
-      });
-      console.log('Welcome email sent successfully');
+      // Check if SENDGRID_API_KEY is available
+      if (!process.env.SENDGRID_API_KEY) {
+        console.warn('SENDGRID_API_KEY not set - skipping welcome email');
+      } else {
+        const emailResult = await sendWelcomeEmail({
+          email: validatedData.email,
+          name: validatedData.name,
+          password,
+          orderId: '', // No order associated with manually created clients
+          testName: '' // No test associated with manually created clients
+        });
+        
+        if (emailResult) {
+          console.log('Welcome email sent successfully');
+        } else {
+          console.warn('Email service not initialized - welcome email not sent');
+        }
+      }
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError);
       // Continue even if email fails
