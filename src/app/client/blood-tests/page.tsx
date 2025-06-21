@@ -15,9 +15,9 @@ import {
 import { OrderTestResultViewer } from '../../../components/client/OrderTestResultViewer';
 import { BloodTestResultsTable } from '../../../components/client/BloodTestResultsTable';
 import { TestResultMcpProvider } from '../../../components/client/TestResultMcpProvider';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Badge } from '../../../components/ui/badge';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Define TestStatus enum locally to match the Prisma schema
 enum TestStatus {

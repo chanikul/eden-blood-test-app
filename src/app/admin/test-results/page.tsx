@@ -12,8 +12,8 @@ import {
   Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { TestResultUploader } from '../../../components/admin/TestResultUploader';
 import { TestResultViewerModal } from '../../../components/admin/TestResultViewerModal';
 
